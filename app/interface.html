@@ -1,0 +1,1711 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Bazaar Scanner</title>
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAIAAAD/gAIDAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAGUWlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDUgNzkuMTYzNDk5LCAyMDE4LzA4LzEzLTE2OjQwOjIyICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdEV2dD0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlRXZlbnQjIiB4bWxuczpwaG90b3Nob3A9Imh0dHA6Ly9ucy5hZG9iZS5jb20vcGhvdG9zaG9wLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ0MgMjAxOSAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDI2LTA4LTE1VDAyOjE4OjQyKzAyOjAwIiB4bXA6TWV0YWRhdGFEYXRlPSIyMDI2LTA4LTE1VDAyOjE4OjQyKzAyOjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyNi0wOC0xNVQwMjoxODo0MiswMjowMCIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpjODkzOWUxOC01YzdhLWIyNGUtYmM2MS1mM2RkZTFkNDY0MGEiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDo3ZjI1ZjQwYS02ZGY4LTljNGEtYTUyOC1lMTE5MzJkMTA3MzEiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo2YTAwMWJkZi0wOGRhLWRiNDgtYTFiOS0zODMyNzU1M2Q5ODkiIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIj4gPHhtcE1NOkhpc3Rvcnk+IDxyZGY6U2VxPiA8cmRmOmxpIHN0RXZ0OmFjdGlvbj0iY3JlYXRlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDo2YTAwMWJkZi0wOGRhLWRiNDgtYTFiOS0zODMyNzU1M2Q5ODkiIHN0RXZ0OndoZW49IjIwMjYtMDgtMTVUMDI6MTg6NDIrMDI6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCBDQyAyMDE5IChXaW5kb3dzKSIvPiA8cmRmOmxpIHN0RXZ0OmFjdGlvbj0ic2F2ZWQiIHN0RXZ0Omluc3RhbmNlSUQ9InhtcC5paWQ6Yzg5MzllMTgtNWM3YS1iMjRlLWJjNjEtZjNkZGUxZDQ2NDBhIiBzdEV2dDp3aGVuPSIyMDI2LTA4LTE1VDAyOjE4OjQyKzAyOjAwIiBzdEV2dDpzb2Z0d2FyZUFnZW50PSJBZG9iZSBQaG90b3Nob3AgQ0MgMjAxOSAoV2luZG93cykiIHN0RXZ0OmNoYW5nZWQ9Ii8iLz4gPC9yZGY6U2VxPiA8L3htcE1NOkhpc3Rvcnk+IDxwaG90b3Nob3A6VGV4dExheWVycz4gPHJkZjpCYWc+IDxyZGY6bGkgcGhvdG9zaG9wOkxheWVyTmFtZT0iQiAiIHBob3Rvc2hvcDpMYXllclRleHQ9IkIgIi8+IDwvcmRmOkJhZz4gPC9waG90b3Nob3A6VGV4dExheWVycz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz53PwMAAAAwbElEQVR42q29d7xlVXk3/n3WWruccs/tU5hhYCgDAgKW2KIi/pKIBY2vJq8RYzQxRV+75H0TDJIYX2OJBTUWYjRGxIYt/FCRKiIMMzJ0hoFh+tyZuf2ee8ouaz3P+8c+ZZ97zx0GcM/5nDl3l7XXevbT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">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fond:      #140c06;
+    --fond-haut: #241608;
+    --laiton:    #f0c060;
+    --laiton-bas:#8a6a34;
+    --texte:     #e8dcc4;
+    --discret:   #97866a;
+    --trait:     #4a3418;
+    --vif:       #6ee08a;
+    --attente:   #e0a840;
+    --alerte:    #e06a5a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background:
+      radial-gradient(120% 80% at 50% 0%, var(--fond-haut) 0%, var(--fond) 60%);
+    color: var(--texte);
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* La marge basse réserve la place du sélecteur de langue, en position
+       fixe : sans elle, le dernier réglage passerait dessous au défilement. */
+    padding: 24px 22px 54px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Titre ─────────────────────────────────────────────── */
+
+  h1 {
+    font-family: 'Cinzel', Georgia, serif;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: .22em;
+    text-indent: .22em;
+    background: linear-gradient(175deg, #ffe6a8 0%, var(--laiton) 45%, var(--laiton-bas) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .signature {
+    font-size: 11px;
+    letter-spacing: .3em;
+    text-indent: .3em;
+    color: var(--discret);
+    margin-top: 3px;
+  }
+
+  .filet {
+    width: 74px;
+    height: 1px;
+    margin: 12px 0 20px;
+    background: linear-gradient(90deg, transparent, var(--trait), transparent);
+  }
+
+  /* ── Plateau miniature ──────────────────────────────────
+     Dix cases, un objet occupant une à trois d'entre elles selon
+     sa taille, comme dans le jeu. Les noms viennent directement de
+     board_state.json : aucune requête réseau, donc rien qui puisse
+     échouer ni coûter quoi que ce soit. */
+
+  /* Le plateau profite de toute la largeur disponible, mais reste borné :
+     au-delà, les cases deviennent des rectangles étirés sans rapport avec
+     celles du jeu. */
+  .plateau {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    width: 100%;
+    max-width: 820px;
+    margin-bottom: 12px;
+  }
+
+  .case {
+    height: 54px;
+    border: 1px solid var(--trait);
+    border-radius: 2px;
+    background: #0d0703;
+  }
+
+  .objet {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 4px;
+    overflow: hidden;
+    border: 1px solid var(--laiton-bas);
+    border-radius: 2px;
+    background: linear-gradient(180deg, #3a2810, #1c1206);
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+    color: var(--texte);
+    word-break: break-word;
+    hyphens: auto;
+  }
+
+  .objet.t-Bronze    { border-color: #cd7f32; }
+  .objet.t-Silver    { border-color: #c8c8c8; }
+  .objet.t-Gold      { border-color: #f0c060; }
+  .objet.t-Diamond   { border-color: #a8d8f8; }
+  .objet.t-Legendary { border-color: #f08040; }
+
+  .objet.enchante { box-shadow: inset 0 0 0 1px rgba(192, 96, 240, .55); }
+
+  .talents {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    max-width: 820px;
+    margin-bottom: 12px;
+  }
+
+  .talent {
+    padding: 3px 8px;
+    border: 1px solid var(--trait);
+    border-radius: 9px;
+    background: #0d0703;
+    font-size: 11px;
+    color: var(--discret);
+  }
+
+  .talent.t-Gold    { border-color: #8a6a34; color: #d8bd86; }
+  .talent.t-Diamond { border-color: #5d7d95; color: #bcd8ea; }
+  .talent.t-Silver  { border-color: #6a6a6a; color: #d0d0d0; }
+
+  .vide {
+    font-size: 12px;
+    color: var(--discret);
+    margin-bottom: 10px;
+    height: 15px;
+  }
+
+  /* ── État ───────────────────────────────────────────────── */
+
+  .etat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 18px 9px 14px;
+    border: 1px solid var(--trait);
+    border-radius: 3px;
+    background: rgba(0, 0, 0, .3);
+  }
+
+  .voyant {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--discret);
+    flex: none;
+  }
+
+  .etat[data-code="pret"]    .voyant { background: var(--vif);
+    box-shadow: 0 0 9px rgba(110, 224, 138, .8); animation: pulse 2.4s ease-in-out infinite; }
+  .etat[data-code="attente"] .voyant,
+  .etat[data-code="config"]  .voyant,
+  .etat[data-code="jeu"]     .voyant { background: var(--attente); }
+  .etat[data-code="erreur"]  .voyant { background: var(--alerte);
+    box-shadow: 0 0 9px rgba(224, 106, 90, .7); }
+
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
+  @media (prefers-reduced-motion: reduce) { .voyant { animation: none !important } }
+
+  .libelle { font-size: 15px; font-weight: 600; letter-spacing: .04em; }
+  .precision { font-size: 12px; color: var(--discret); margin-top: 7px; min-height: 15px; }
+
+  /* ── Configuration ──────────────────────────────────────── */
+
+  .pousse { flex: 1 }
+
+  .lien {
+    background: none;
+    border: 0;
+    color: var(--discret);
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: .16em;
+    cursor: pointer;
+    padding: 6px;
+  }
+  .lien:hover { color: var(--laiton); }
+
+  /* Le chevron pointe vers le haut quand la configuration est fermée — il
+     indique ce qui va s'ouvrir — et pivote vers le bas une fois ouverte. */
+  #bascule {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chevron {
+    display: inline-flex;
+    transition: transform .22s ease;
+  }
+
+  #bascule.ouvert .chevron { transform: rotate(180deg); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chevron { transition: none; }
+  }
+
+  .reglages {
+    width: 100%;
+    max-width: 460px;
+    display: none;
+    flex-direction: column;
+    gap: 11px;
+    padding-top: 16px;
+    margin-top: 6px;
+    border-top: 1px solid var(--trait);
+  }
+  .reglages.ouvert { display: flex; }
+
+  label { font-size: 11px; letter-spacing: .16em; color: var(--discret); display: block; margin-bottom: 4px; }
+
+  input {
+    width: 100%;
+    padding: 7px 9px;
+    background: #0d0703;
+    border: 1px solid var(--trait);
+    border-radius: 2px;
+    color: var(--texte);
+    font: inherit;
+    font-size: 13px;
+  }
+  input:focus { outline: none; border-color: var(--laiton-bas); }
+
+  button.valider {
+    padding: 9px;
+    background: linear-gradient(180deg, #6a4d1c, #4a3414);
+    border: 1px solid var(--laiton-bas);
+    border-radius: 2px;
+    color: var(--laiton);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    cursor: pointer;
+  }
+  button.valider:hover { background: linear-gradient(180deg, #7d5c22, #573d18); }
+  button.valider { width: 100%; }
+
+  .compte {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 9px;
+    background: #0d0703;
+    border: 1px solid var(--trait);
+    border-radius: 2px;
+    font-size: 13px;
+    color: var(--discret);
+  }
+  .compte.lie { color: var(--vif); }
+
+  .lien.discret { display: block; width: 100%; text-align: center; margin-top: 7px; }
+
+  /* L'enregistrement était un lien discret, au point qu'on ne le voyait pas.
+     C'est l'action qui valide toute la configuration : elle mérite d'être
+     franche. */
+  button.avec-icone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 4px;
+    transition: background .2s ease, border-color .2s ease, color .2s ease;
+  }
+
+  /* Trois états, pour qu'on sache d'un coup d'œil s'il reste quelque chose à
+     faire : éteint quand rien n'a bougé, vif quand une modification attend
+     d'être enregistrée, vert quand c'est fait. */
+  #enregistrer {
+    background: #16100a;
+    border-color: var(--trait);
+    color: var(--discret);
+    cursor: default;
+  }
+
+  #enregistrer.modifie {
+    background: linear-gradient(180deg, #7a4c12, #52320c);
+    border-color: var(--attente);
+    color: #ffe0a0;
+    cursor: pointer;
+  }
+  #enregistrer.modifie:hover { background: linear-gradient(180deg, #8d5915, #613b0e); }
+
+  #enregistrer.sauve {
+    background: linear-gradient(180deg, #1d4a28, #12301a);
+    border-color: var(--vif);
+    color: var(--vif);
+    cursor: default;
+  }
+
+  /* Quatre vignettes figurant l'écran, avec la fiche dans un coin : plus
+     parlant qu'une liste déroulante « haut gauche / haut droite ». */
+  .coins { display: flex; gap: 10px; justify-content: center; }
+
+  .coins button {
+    position: relative;
+    width: 64px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--trait);
+    border-radius: 2px;
+    background: #0d0703;
+    cursor: pointer;
+  }
+  .coins button::after {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 13px;
+    border-radius: 1px;
+    background: var(--discret);
+  }
+  .coins button[data-coin="hg"]::after { top: 4px;    left: 4px; }
+  .coins button[data-coin="hd"]::after { top: 4px;    right: 4px; }
+
+  /* Le choix retenu doit se voir d'un coup d'œil : un simple changement de
+     teinte ne suffisait pas à distinguer « sélectionné » de « survolé ». */
+  .coins button {
+    opacity: .5;
+    transition: opacity .15s, border-color .15s, box-shadow .15s;
+  }
+  .coins button:hover { opacity: .8; border-color: var(--laiton-bas); }
+
+  .coins button.actif {
+    opacity: 1;
+    border-color: var(--laiton);
+    border-width: 2px;
+    background: #241706;
+    box-shadow: 0 0 0 1px rgba(198, 160, 74, .35);
+  }
+  .coins button.actif::after { background: var(--laiton); }
+
+  /* Une pastille cochée lève toute ambiguïté, même sans distinguer les teintes. */
+  .coins button.actif::before {
+    content: '✓';
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    width: 15px;
+    height: 15px;
+    line-height: 15px;
+    text-align: center;
+    font-size: 10px;
+    border-radius: 50%;
+    background: var(--laiton);
+    color: #1a1005;
+  }
+
+  .aide { font-size: 11px; color: var(--discret); margin-top: 6px; text-align: center; }
+
+  .ligne-champ { display: flex; gap: 5px; }
+  .ligne-champ input { flex: 1; min-width: 0; }
+
+  .parcourir {
+    flex: none;
+    padding: 0 10px;
+    border: 1px solid var(--trait);
+    border-radius: 2px;
+    background: #0d0703;
+    color: var(--discret);
+    font: inherit;
+    font-size: 10px;
+    letter-spacing: .08em;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .parcourir:hover { color: var(--laiton); border-color: var(--laiton-bas); }
+  .parcourir:disabled { opacity: .5; cursor: default; }
+
+  /* ── Calibrage ───────────────────────────────────────────
+     Occupe toute la fenêtre : encadrer une capture demande de
+     la place, et l'opération est ponctuelle. */
+
+  .calibrage {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 20px 18px;
+    background: var(--fond);
+  }
+  .calibrage.ouvert { display: flex; }
+
+  .cal-titre {
+    font-family: 'Cinzel', Georgia, serif;
+    font-size: 15px;
+    letter-spacing: .08em;
+    color: var(--laiton);
+  }
+  .cal-consigne { font-size: 12px; color: var(--discret); margin-top: 3px; min-height: 15px; }
+
+  /* Twitch n'accepte que le 16/9 : on impose ce rapport en permanence. La
+     scène rétrécit proportionnellement dans la place disponible au lieu de
+     s'écraser, ce qui déformerait les repères et fausserait le calibrage.
+     « flex: none » est indispensable : sans lui, le conteneur étire la scène
+     en hauteur et le rapport est ignoré. */
+  .cal-scene {
+    position: relative;
+    flex: none;
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    max-width: min(100%, calc((100vh - 230px) * 16 / 9));
+    margin: auto;
+    background: #0a0603 center/100% 100% no-repeat;
+    border: 1px solid var(--trait);
+    border-radius: 3px;
+    overflow: hidden;
+    outline: none;
+    user-select: none;
+  }
+
+  /* Placée en haut : au centre, les rectangles de repère la recouvraient. */
+  .cal-vide {
+    position: absolute;
+    inset: 0 0 auto 0;
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--discret);
+    padding: 22px 20px 0;
+  }
+  .cal-scene.remplie .cal-vide { display: none; }
+
+  /* Sans cette règle, le bouton héritait de .lien — 12 px et un interlettrage
+     large — ce qui tranchait avec la phrase juste au-dessus. */
+  /* Recoller une autre image fonctionne, mais rien ne l'indique : une croix
+     rend le retrait explicite. */
+  .cal-retirer {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--trait);
+    border-radius: 50%;
+    background: rgba(10, 7, 3, .8);
+    color: var(--discret);
+    cursor: pointer;
+    backdrop-filter: blur(2px);
+  }
+  .cal-retirer:hover { color: var(--alerte); border-color: var(--alerte); }
+
+  .cal-vide .lien {
+    font-size: 13px;
+    letter-spacing: normal;
+    padding: 2px 4px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* Rectangle déplaçable. Le fond reste transparent pour ne pas masquer
+     l'image qu'on est en train de cadrer. */
+  .cal-cadre {
+    position: absolute;
+    border: 2px solid var(--laiton);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, .45);
+    cursor: move;
+  }
+
+  .poignee {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: var(--laiton);
+    border-radius: 2px;
+  }
+  .poignee.nw { left: -8px; top: -8px;    cursor: nwse-resize; }
+  .poignee.ne { right: -8px; top: -8px;   cursor: nesw-resize; }
+  .poignee.sw { left: -8px; bottom: -8px; cursor: nesw-resize; }
+  .poignee.se { right: -8px; bottom: -8px; cursor: nwse-resize; }
+
+  /* Zones calculées, superposées en direct : c'est ce qui rend le réglage
+     évident, le streamer ajuste jusqu'à ce qu'elles tombent sur ses cartes. */
+  .cal-zones { position: absolute; inset: 0; pointer-events: none; }
+  .cal-zones div {
+    position: absolute;
+    /* La bordure doit être COMPRISE dans les dimensions calculées : en
+       content-box elle ajoutait 2 px à chaque repère, ce qui se voit sur les
+       petits carrés des talents. */
+    box-sizing: border-box;
+    padding: 0;
+    border: 1px solid rgba(110, 224, 138, .9);
+    background: rgba(110, 224, 138, .16);
+    border-radius: 2px;
+  }
+
+  /* Repère de talent. Il portait la classe « talent », déjà utilisée par les
+     pastilles de l'aperçu du plateau : leur remplissage de 3 px sur 8
+     s'ajoutait aux dimensions et transformait le carré en rectangle. */
+  .cal-zones div.zone-talent {
+    border-color: rgba(240,192,96,.9);
+    background: rgba(240,192,96,.16);
+  }
+
+  /* Repères fixes du jeu : ni verts ni ambrés, pour qu'on ne les confonde pas
+     avec les zones de survol. Ils ne servent qu'à s'aligner. */
+  .cal-zones div.repere { border: 0; background: none; }
+  .cal-zones div.cercle {
+    border: 1px solid rgba(255, 90, 120, .95);
+    border-radius: 50%;
+  }
+  .cal-zones div.equerre { border: 0; }
+  .cal-zones div.equerre.tr {
+    border-top: 1px solid rgba(255, 90, 120, .95);
+    border-right: 1px solid rgba(255, 90, 120, .95);
+  }
+  .cal-zones div.equerre.tl {
+    border-top: 1px solid rgba(255, 90, 120, .95);
+    border-left: 1px solid rgba(255, 90, 120, .95);
+  }
+
+  .cal-aide { font-size: 11px; color: var(--discret); text-align: center; min-height: 14px; }
+  .cal-boutons { display: flex; align-items: center; gap: 8px; }
+
+  .avis { font-size: 12px; margin-top: 8px; min-height: 15px; color: var(--attente); }
+  .avis.bon { color: var(--vif); }
+
+  /* Choix de langue. La détection automatique suffit à la plupart des gens,
+     mais elle se trompe pour qui utilise un Windows dans une autre langue que
+     la sienne. */
+  /* Ancré dans le coin, hors du flux : il ne doit pas décaler le reste ni
+     attirer l'œil, mais rester trouvable. */
+  .langues {
+    position: fixed;
+    left: 10px;
+    bottom: 10px;
+    display: flex;
+    gap: 4px;
+  }
+
+  .langues { align-items: center; }
+  .langues .globe { color: var(--discret); opacity: .75; flex: none; }
+
+  .langues select {
+    padding: 5px 9px;
+    border: 1px solid var(--trait);
+    border-radius: 2px;
+    background: #0d0703;
+    color: var(--discret);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    opacity: .75;
+  }
+  .langues select:hover, .langues select:focus {
+    opacity: 1;
+    color: var(--laiton);
+    border-color: var(--laiton-bas);
+    outline: none;
+  }
+</style>
+</head>
+<body>
+
+  <h1>BAZAAR SCANNER</h1>
+  <div class="signature">BY KWEV</div>
+  <div class="filet"></div>
+
+  <div class="plateau" id="plateau"></div>
+  <div class="talents" id="talents"></div>
+  <div class="vide" id="vide"></div>
+
+  <div class="etat" id="etat" data-code="demarrage">
+    <span class="voyant"></span>
+    <span class="libelle" id="libelle">Démarrage…</span>
+  </div>
+  <div class="precision" id="precision"></div>
+
+  <div class="pousse"></div>
+
+  <button class="lien" id="bascule">
+    <span id="bascule-texte">CONFIGURATION</span>
+    <span class="chevron" aria-hidden="true">
+      <svg viewBox="0 0 12 12" width="9" height="9" fill="none"
+           stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 8l4-4 4 4"/>
+      </svg>
+    </span>
+  </button>
+  <div class="langues" id="langues"></div>
+
+  <div class="reglages" id="reglages">
+    <div>
+      <label id="l-compte">COMPTE TWITCH</label>
+      <div class="ligne-champ">
+        <div class="compte" id="compte">non connecté</div>
+        <button class="parcourir" id="connecter">SE CONNECTER</button>
+      </div>
+    </div>
+    <div>
+      <label for="jeu" id="l-jeu">DOSSIER DU JEU</label>
+      <div class="ligne-champ">
+        <input type="text" id="jeu" placeholder="détecté automatiquement" autocomplete="off">
+        <button class="parcourir" id="parcourir">PARCOURIR…</button>
+      </div>
+    </div>
+    <div>
+      <label id="l-coin">EMPLACEMENT DE LA FICHE</label>
+      <div class="coins" id="coins">
+        <button type="button" data-coin="hg"></button>
+        <button type="button" data-coin="hd"></button>
+      </div>
+      <div class="aide" id="coin-aide"></div>
+    </div>
+    <div>
+      <label id="l-cadrage">CADRAGE</label>
+      <div id="etat-cadre" hidden></div>
+      <button class="valider" id="calibrer">CALIBRER L'AFFICHAGE</button>
+    </div>
+    <div>
+      <div class="avis" id="avis"></div>
+    </div>
+  </div>
+
+  <div class="calibrage" id="calibrage">
+    <div class="cal-entete">
+      <div class="cal-titre" id="cal-titre">Où se trouve le jeu dans ton stream ?</div>
+      <div class="cal-consigne" id="cal-consigne"></div>
+    </div>
+
+    <div class="cal-scene" id="cal-scene" tabindex="0">
+      <div class="cal-vide" id="cal-vide">
+        <div id="cal-colle"></div>
+        <button class="lien" id="cal-fichier"></button>
+        <input type="file" id="cal-input" accept="image/*" hidden>
+      </div>
+      <button class="cal-retirer" id="cal-retirer" hidden>
+        <svg viewBox="0 0 14 14" width="11" height="11" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+             aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+      </button>
+      <div class="cal-cadre" id="cal-cadre">
+        <span class="poignee nw"></span><span class="poignee ne"></span>
+        <span class="poignee sw"></span><span class="poignee se"></span>
+      </div>
+      <div class="cal-zones" id="cal-zones"></div>
+    </div>
+
+    <div class="cal-aide" id="cal-aide"></div>
+
+    <div class="cal-boutons">
+      <button class="lien" id="cal-plein"></button>
+      <div style="flex:1"></div>
+      <button class="lien" id="cal-annuler"></button>
+      <button class="valider" id="cal-valider" style="width:auto;padding:9px 22px"></button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* La langue suit celle du navigateur, donc celle de Windows dans la
+     pratique. Aucun réglage à proposer : un utilisateur anglophone ne devrait
+     pas avoir à chercher comment passer l'interface en anglais. */
+
+  var TEXTES = {
+    fr: {
+      coinTitre: "EMPLACEMENT DE LA FICHE",
+      coinAide: "Où la description apparaît chez tes spectateurs.",
+      calRetirer: "Retirer la capture",
+      demarrage: 'Démarrage…',
+      config:    'Configuration requise',
+      jeu:       'Jeu introuvable',
+      attente:   'En attente du jeu',
+      pret:      'Connecté',
+      erreur:    'Interrompu',
+      attentePartie: 'en attente d\u2019une partie',
+      configuration: 'CONFIGURATION',
+      compteTwitch:  'COMPTE TWITCH',
+      nonConnecte:   'non connecté',
+      connecteSansNom: 'connecté',
+      seConnecter:   'SE CONNECTER',
+      enAttenteAuth: 'AUTORISE…',
+      dossierJeu:    'DOSSIER DU JEU',
+      detecte:       'ex. C:\\Steam\\steamapps\\common\\The Bazaar',
+      enregistre:    'ENREGISTRÉ',
+      parcourir:     'PARCOURIR…',
+      calibrer:      'CALIBRER L\u2019AFFICHAGE',
+      cadrage:       'CADRAGE DE TON PLATEAU',
+      calibre:       'calibré',
+      calTitre:      'Où se trouve le jeu dans ton stream ?',
+      calColler:     'Fais une capture de ton aperçu OBS, puis colle-la ici (Ctrl+V)',
+      calChoisir:    'ou choisir une image…',
+      calEncadrer:   'Place le rectangle sur ta rangée d\u2019objets, du bord gauche de la première case au bord droit de la dixième. (Pas besoin que ce soit parfait.) Les coins servent à le redimensionner.',
+      calPlein:      'JEU EN PLEIN ÉCRAN',
+      calAnnuler:    'ANNULER',
+      calValider:    'VALIDER',
+      calPas169:     'Cette capture n\u2019est pas en 16/9. Recadre-la, sinon le calibrage sera faux.',
+      calAide:       'Capture ton APERÇU OBS, pas ton écran : c\u2019est lui que voient tes spectateurs.',
+      dossierOk:     'Dossier du jeu reconnu.',
+      dossierNon:    'Ce dossier ne contient pas le jeu.',
+      connecte:      'Connecté.',
+      sansReponse:   'Aucune réponse. Réessaie.',
+      arretee:       'Application arrêtée',
+    },
+    en: {
+      coinTitre: "CARD POSITION",
+      coinAide: "Where the description appears for your viewers.",
+      calRetirer: "Remove the screenshot",
+      demarrage: 'Starting…',
+      config:    'Setup required',
+      jeu:       'Game not found',
+      attente:   'Waiting for the game',
+      pret:      'Connected',
+      erreur:    'Interrupted',
+      attentePartie: 'waiting for a run',
+      configuration: 'SETUP',
+      compteTwitch:  'TWITCH ACCOUNT',
+      nonConnecte:   'not connected',
+      connecteSansNom: 'connected',
+      seConnecter:   'CONNECT',
+      enAttenteAuth: 'WAITING…',
+      dossierJeu:    'GAME FOLDER',
+      detecte:       'e.g. C:\\Steam\\steamapps\\common\\The Bazaar',
+      enregistre:    'SAVED',
+      parcourir:     'BROWSE…',
+      calibrer:      'CALIBRATE OVERLAY',
+      cadrage:       'YOUR BOARD FRAMING',
+      calibre:       'calibrated',
+      calTitre:      'Where is the game in your stream?',
+      calColler:     'Take a screenshot of your OBS preview, then paste it here (Ctrl+V)',
+      calChoisir:    'or pick an image…',
+      calEncadrer:   'Place the rectangle over your item row, from the left edge of the first slot to the right edge of the tenth. (It doesn\u2019t have to be perfect.) Drag the corners to resize it.',
+      calPlein:      'GAME FULLSCREEN',
+      calAnnuler:    'CANCEL',
+      calValider:    'SAVE',
+      calPas169:     'This capture is not 16:9. Crop it, otherwise the calibration will be wrong.',
+      calAide:       'Capture your OBS PREVIEW, not your screen: that is what your viewers see.',
+      dossierOk:     'Game folder recognised.',
+      dossierNon:    'This folder does not contain the game.',
+      connecte:      'Connected.',
+      sansReponse:   'No response. Try again.',
+      arretee:       'Application stopped',
+    },
+    es: {
+      coinTitre: "POSICIÓN DE LA FICHA",
+      coinAide: "Dónde aparece la descripción para tus espectadores.",
+      calRetirer: "Quitar la captura",
+      calPas169: "Esta captura no está en 16/9. Recórtala, de lo contrario la calibración será incorrecta.",
+      demarrage: "Iniciando…",
+      config: "Configuración necesaria",
+      jeu: "Juego no encontrado",
+      attente: "Esperando al juego",
+      pret: "Conectado",
+      erreur: "Interrumpido",
+      attentePartie: "esperando una partida",
+      configuration: "CONFIGURACIÓN",
+      compteTwitch: "CUENTA DE TWITCH",
+      nonConnecte: "sin conectar",
+      connecteSansNom: "conectado",
+      seConnecter: "CONECTAR",
+      enAttenteAuth: "ESPERANDO…",
+      dossierJeu: "CARPETA DEL JUEGO",
+      detecte: "p. ej. C:\\Steam\\steamapps\\common\\The Bazaar",
+      enregistre: "GUARDADO",
+      parcourir: "EXAMINAR…",
+      calibrer: "CALIBRAR LA SUPERPOSICIÓN",
+      cadrage: "ENCUADRE DE TU TABLERO",
+      calibre: "calibrado",
+      calTitre: "¿Dónde está el juego en tu emisión?",
+      calColler: "Haz una captura de tu vista previa de OBS y pégala aquí (Ctrl+V)",
+      calChoisir: "o elegir una imagen…",
+      calEncadrer: "Coloca el rectángulo sobre tu fila de objetos, del borde izquierdo de la primera casilla al borde derecho de la décima. (No hace falta que sea perfecto.) Arrastra las esquinas para redimensionarlo.",
+      calPlein: "JUEGO A PANTALLA COMPLETA",
+      calAnnuler: "CANCELAR",
+      calValider: "GUARDAR",
+      calAide: "Captura tu VISTA PREVIA de OBS, no tu pantalla: es lo que ven tus espectadores.",
+      dossierOk: "Carpeta del juego reconocida.",
+      dossierNon: "Esta carpeta no contiene el juego.",
+      connecte: "Conectado.",
+      sansReponse: "Sin respuesta. Inténtalo de nuevo.",
+      arretee: "Aplicación detenida",
+    },
+    it: {
+      coinTitre: "POSIZIONE DELLA SCHEDA",
+      coinAide: "Dove appare la descrizione per i tuoi spettatori.",
+      calRetirer: "Rimuovi l'immagine",
+      calPas169: "Questa immagine non è in 16/9. Ritagliala, altrimenti la calibrazione sarà errata.",
+      demarrage: "Avvio…",
+      config: "Configurazione necessaria",
+      jeu: "Gioco non trovato",
+      attente: "In attesa del gioco",
+      pret: "Connesso",
+      erreur: "Interrotto",
+      attentePartie: "in attesa di una partita",
+      configuration: "CONFIGURAZIONE",
+      compteTwitch: "ACCOUNT TWITCH",
+      nonConnecte: "non connesso",
+      connecteSansNom: "connesso",
+      seConnecter: "CONNETTI",
+      enAttenteAuth: "IN ATTESA…",
+      dossierJeu: "CARTELLA DEL GIOCO",
+      detecte: "es. C:\\Steam\\steamapps\\common\\The Bazaar",
+      enregistre: "SALVATO",
+      parcourir: "SFOGLIA…",
+      calibrer: "CALIBRA LA SOVRIMPRESSIONE",
+      cadrage: "INQUADRATURA DEL TUO TAVOLO",
+      calibre: "calibrato",
+      calTitre: "Dove si trova il gioco nella tua diretta?",
+      calColler: "Fai uno screenshot della tua anteprima OBS e incollalo qui (Ctrl+V)",
+      calChoisir: "oppure scegli un'immagine…",
+      calEncadrer: "Posiziona il rettangolo sulla tua fila di oggetti, dal bordo sinistro della prima casella al bordo destro della decima. (Non serve che sia perfetto.) Trascina gli angoli per ridimensionarlo.",
+      calPlein: "GIOCO A SCHERMO INTERO",
+      calAnnuler: "ANNULLA",
+      calValider: "SALVA",
+      calAide: "Cattura la tua ANTEPRIMA OBS, non lo schermo: è ciò che vedono i tuoi spettatori.",
+      dossierOk: "Cartella del gioco riconosciuta.",
+      dossierNon: "Questa cartella non contiene il gioco.",
+      connecte: "Connesso.",
+      sansReponse: "Nessuna risposta. Riprova.",
+      arretee: "Applicazione arrestata",
+    },
+    de: {
+      coinTitre: "POSITION DER KARTE",
+      coinAide: "Wo die Beschreibung für deine Zuschauer erscheint.",
+      calRetirer: "Screenshot entfernen",
+      calPas169: "Dieser Screenshot ist nicht 16:9. Schneide ihn zu, sonst wird die Kalibrierung falsch.",
+      demarrage: "Startet…",
+      config: "Einrichtung erforderlich",
+      jeu: "Spiel nicht gefunden",
+      attente: "Warte auf das Spiel",
+      pret: "Verbunden",
+      erreur: "Unterbrochen",
+      attentePartie: "warte auf eine Partie",
+      configuration: "EINSTELLUNGEN",
+      compteTwitch: "TWITCH-KONTO",
+      nonConnecte: "nicht verbunden",
+      connecteSansNom: "verbunden",
+      seConnecter: "VERBINDEN",
+      enAttenteAuth: "WARTEN…",
+      dossierJeu: "SPIELORDNER",
+      detecte: "z. B. C:\\Steam\\steamapps\\common\\The Bazaar",
+      enregistre: "GESPEICHERT",
+      parcourir: "DURCHSUCHEN…",
+      calibrer: "OVERLAY KALIBRIEREN",
+      cadrage: "AUSSCHNITT DEINES SPIELFELDS",
+      calibre: "kalibriert",
+      calTitre: "Wo befindet sich das Spiel in deinem Stream?",
+      calColler: "Mache einen Screenshot deiner OBS-Vorschau und füge ihn hier ein (Strg+V)",
+      calChoisir: "oder ein Bild auswählen…",
+      calEncadrer: "Lege das Rechteck über deine Gegenstandsreihe, vom linken Rand des ersten Feldes bis zum rechten Rand des zehnten. (Es muss nicht perfekt sein.) Zieh an den Ecken, um die Größe zu ändern.",
+      calPlein: "SPIEL IM VOLLBILD",
+      calAnnuler: "ABBRECHEN",
+      calValider: "SPEICHERN",
+      calAide: "Nimm deine OBS-VORSCHAU auf, nicht deinen Bildschirm: das sehen deine Zuschauer.",
+      dossierOk: "Spielordner erkannt.",
+      dossierNon: "Dieser Ordner enthält das Spiel nicht.",
+      connecte: "Verbunden.",
+      sansReponse: "Keine Antwort. Bitte erneut versuchen.",
+      arretee: "Anwendung beendet",
+    },
+    pt: {
+      coinTitre: "POSIÇÃO DA FICHA",
+      coinAide: "Onde a descrição aparece para os teus espectadores.",
+      calRetirer: "Remover a captura",
+      calPas169: "Esta captura não está em 16/9. Recorta-a, caso contrário a calibração ficará errada.",
+      demarrage: "A iniciar…",
+      config: "Configuração necessária",
+      jeu: "Jogo não encontrado",
+      attente: "À espera do jogo",
+      pret: "Ligado",
+      erreur: "Interrompido",
+      attentePartie: "à espera de uma partida",
+      configuration: "CONFIGURAÇÃO",
+      compteTwitch: "CONTA TWITCH",
+      nonConnecte: "não ligado",
+      connecteSansNom: "ligado",
+      seConnecter: "LIGAR",
+      enAttenteAuth: "A AGUARDAR…",
+      dossierJeu: "PASTA DO JOGO",
+      detecte: "ex. C:\\Steam\\steamapps\\common\\The Bazaar",
+      enregistre: "GUARDADO",
+      parcourir: "PROCURAR…",
+      calibrer: "CALIBRAR A SOBREPOSIÇÃO",
+      cadrage: "ENQUADRAMENTO DO TEU TABULEIRO",
+      calibre: "calibrado",
+      calTitre: "Onde está o jogo na tua transmissão?",
+      calColler: "Faz uma captura da tua pré-visualização OBS e cola-a aqui (Ctrl+V)",
+      calChoisir: "ou escolher uma imagem…",
+      calEncadrer: "Coloca o retângulo sobre a tua fila de itens, da borda esquerda da primeira casa à borda direita da décima. (Não precisa de ser perfeito.) Arrasta os cantos para redimensionar.",
+      calPlein: "JOGO EM ECRÃ INTEIRO",
+      calAnnuler: "CANCELAR",
+      calValider: "GUARDAR",
+      calAide: "Captura a tua PRÉ-VISUALIZAÇÃO OBS, não o teu ecrã: é o que os teus espectadores veem.",
+      dossierOk: "Pasta do jogo reconhecida.",
+      dossierNon: "Esta pasta não contém o jogo.",
+      connecte: "Ligado.",
+      sansReponse: "Sem resposta. Tenta novamente.",
+      arretee: "Aplicação parada",
+    },
+    zh: {
+      coinTitre: "卡片位置",
+      coinAide: "描述在观众端显示的位置。",
+      calRetirer: "移除截图",
+      calPas169: "这张截图不是 16:9。请裁剪，否则校准会出错。",
+      demarrage: "启动中…",
+      config: "需要设置",
+      jeu: "未找到游戏",
+      attente: "等待游戏",
+      pret: "已连接",
+      erreur: "已中断",
+      attentePartie: "等待对局开始",
+      configuration: "设置",
+      compteTwitch: "TWITCH 账号",
+      nonConnecte: "未连接",
+      connecteSansNom: "已连接",
+      seConnecter: "连接",
+      enAttenteAuth: "等待中…",
+      dossierJeu: "游戏文件夹",
+      detecte: "例如 C:\\Steam\\steamapps\\common\\The Bazaar",
+      enregistre: "已保存",
+      parcourir: "浏览…",
+      calibrer: "校准覆盖层",
+      cadrage: "你的物品栏范围",
+      calibre: "已校准",
+      calTitre: "游戏在你的直播画面中的位置？",
+      calColler: "截取你的 OBS 预览画面，然后粘贴到这里（Ctrl+V）",
+      calChoisir: "或选择一张图片…",
+      calEncadrer: "把矩形放在你的物品栏上，从第一格的左边缘到第十格的右边缘。（不需要非常精确。）拖动四角可调整大小。",
+      calPlein: "游戏全屏",
+      calAnnuler: "取消",
+      calValider: "保存",
+      calAide: "请截取 OBS 预览，而不是整个屏幕：观众看到的是前者。",
+      dossierOk: "已识别游戏文件夹。",
+      dossierNon: "该文件夹中没有游戏。",
+      connecte: "已连接。",
+      sansReponse: "没有响应，请重试。",
+      arretee: "应用已停止",
+    },
+    ko: {
+      coinTitre: "카드 위치",
+      coinAide: "시청자에게 설명이 표시되는 위치입니다.",
+      calRetirer: "캡처 삭제",
+      calPas169: "이 캡처는 16:9가 아닙니다. 잘라내지 않으면 보정이 잘못됩니다.",
+      demarrage: "시작 중…",
+      config: "설정이 필요합니다",
+      jeu: "게임을 찾을 수 없습니다",
+      attente: "게임 대기 중",
+      pret: "연결됨",
+      erreur: "중단됨",
+      attentePartie: "게임 시작 대기 중",
+      configuration: "설정",
+      compteTwitch: "트위치 계정",
+      nonConnecte: "연결되지 않음",
+      connecteSansNom: "연결됨",
+      seConnecter: "연결",
+      enAttenteAuth: "대기 중…",
+      dossierJeu: "게임 폴더",
+      detecte: "예: C:\\Steam\\steamapps\\common\\The Bazaar",
+      enregistre: "저장됨",
+      parcourir: "찾아보기…",
+      calibrer: "오버레이 보정",
+      cadrage: "보드 화면 범위",
+      calibre: "보정됨",
+      calTitre: "방송 화면에서 게임의 위치는?",
+      calColler: "OBS 미리보기를 캡처한 뒤 여기에 붙여넣으세요 (Ctrl+V)",
+      calChoisir: "또는 이미지 선택…",
+      calEncadrer: "아이템 줄 위에 사각형을 맞추세요. 첫 번째 칸의 왼쪽 끝부터 열 번째 칸의 오른쪽 끝까지입니다. (완벽하지 않아도 됩니다.) 모서리를 끌어 크기를 조절하세요.",
+      calPlein: "게임 전체 화면",
+      calAnnuler: "취소",
+      calValider: "저장",
+      calAide: "화면 전체가 아니라 OBS 미리보기를 캡처하세요. 시청자가 보는 것은 그쪽입니다.",
+      dossierOk: "게임 폴더를 확인했습니다.",
+      dossierNon: "이 폴더에는 게임이 없습니다.",
+      connecte: "연결되었습니다.",
+      sansReponse: "응답이 없습니다. 다시 시도하세요.",
+      arretee: "애플리케이션이 종료되었습니다",
+    },
+  };
+
+  var CLE_LANGUE = 'bazaar-scanner-langue-interface';
+
+  function langueChoisie() {
+    try {
+      var v = window.localStorage.getItem(CLE_LANGUE);
+      return TEXTES[v] ? v : null;
+    } catch (e) { return null; }
+  }
+
+  var LANGUE = langueChoisie()
+            || (navigator.language || 'en').slice(0, 2).toLowerCase();
+  if (!TEXTES[LANGUE]) LANGUE = 'en';
+  var T = TEXTES[LANGUE];
+
+  document.documentElement.lang = LANGUE;
+
+  var LIBELLES = {
+    demarrage: T.demarrage, config: T.config, jeu: T.jeu,
+    attente: T.attente, pret: T.pret, erreur: T.erreur,
+  };
+
+  // Libellés fixes de la page.
+  document.getElementById('bascule-texte').textContent = T.configuration;
+  document.getElementById('l-compte').textContent  = T.compteTwitch;
+  document.getElementById('connecter').textContent = T.seConnecter;
+  document.getElementById('l-jeu').textContent     = T.dossierJeu;
+  document.getElementById('jeu').placeholder       = T.detecte;
+  document.getElementById('parcourir').textContent   = T.parcourir;
+  // Le texte initial est écrit en dur dans la page : sans ceci, un utilisateur
+  // anglophone verrait « Démarrage… » jusqu'au premier message du serveur.
+  document.getElementById('libelle').textContent     = T.demarrage;
+
+  // Recharger est plus simple et plus sûr que de repeindre chaque libellé :
+  // la page est locale, le rechargement est instantané, et l'état revient
+  // aussitôt par le flux.
+  // Nom natif de chaque langue : un anglophone perdu dans une interface
+  // coréenne doit pouvoir retrouver la sienne sans deviner un code.
+  var NOMS_LANGUE = {
+    en: 'English', fr: 'Français', de: 'Deutsch',    es: 'Español',
+    it: 'Italiano', pt: 'Português', ko: '한국어', zh: '中文',
+  };
+
+  // Ordre d'affichage : les deux langues d'origine en tête, le reste ensuite.
+  /* Le russe, l'ukrainien et le japonais sont retirés : le jeu ne publie leurs
+     traductions que sur sa branche de test, sous accord de confidentialité.
+     Les proposer afficherait des cartes en anglais, et laisserait entendre
+     l'existence de contenu non public. Leurs traductions d'interface sont
+     conservées hors dépôt, prêtes à revenir le jour où le jeu les publiera. */
+  var ORDRE = ['en', 'fr', 'de', 'es', 'it', 'pt', 'ko', 'zh'];
+
+  (function construireLangues() {
+    var boite = document.getElementById('langues');
+    var dispo = ORDRE.filter(function (l) { return TEXTES[l]; });
+
+    // Une liste déroulante dès qu'il y a trop de langues pour des boutons.
+    // Une planète en fil de fer : repère universel pour qui s'est trompé de
+    // langue et ne sait plus lire l'interface.
+    boite.insertAdjacentHTML('beforeend',
+      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" '
+      + 'stroke="currentColor" stroke-width="1.4" class="globe">'
+      + '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/>'
+      + '<path d="M3.2 9h17.6M3.2 15h17.6"/></svg>');
+
+    var sel = document.createElement('select');
+    sel.setAttribute('aria-label', 'Langue');
+    dispo.forEach(function (l) {
+      var o = document.createElement('option');
+      o.value = l;
+      o.textContent = NOMS_LANGUE[l] || l.toUpperCase();
+      if (l === LANGUE) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener('change', function () {
+      if (sel.value === LANGUE) return;
+      try { window.localStorage.setItem(CLE_LANGUE, sel.value); } catch (e) { /* tant pis */ }
+      location.reload();
+    });
+    boite.appendChild(sel);
+  })();
+
+  var elPlateau = document.getElementById('plateau');
+  var elVide    = document.getElementById('vide');
+
+  var elEtat      = document.getElementById('etat');
+  var elLibelle   = document.getElementById('libelle');
+  var elPrecision = document.getElementById('precision');
+  var elTalents   = document.getElementById('talents');
+
+  function caseVide() {
+    var d = document.createElement('div');
+    d.className = 'case';
+    return d;
+  }
+
+  // Reproduit le plateau : chaque objet occupe le nombre de cases de sa taille,
+  // les emplacements libres restent vides. Le streamer vérifie ainsi d'un coup
+  // d'œil que ce qui est diffusé correspond bien à sa partie.
+  function dessinerPlateau(objets) {
+    elPlateau.textContent = '';
+    var occupe = 0;
+
+    objets.forEach(function (o) {
+      while (occupe < o.s) { elPlateau.appendChild(caseVide()); occupe++; }
+      var d = document.createElement('div');
+      d.className = 'objet t-' + (o.tier || '') + (o.ench ? ' enchante' : '');
+      d.style.gridColumn = 'span ' + Math.max(1, Math.min(3, o.n || 1));
+      d.textContent = o.nom;
+      d.title = o.nom + (o.ench ? ' — ' + o.ench : '') + (o.tier ? ' (' + o.tier + ')' : '');
+      elPlateau.appendChild(d);
+      occupe += (o.n || 1);
+    });
+
+    while (occupe < 10) { elPlateau.appendChild(caseVide()); occupe++; }
+  }
+
+  function dessinerTalents(talents) {
+    elTalents.textContent = '';
+    talents.forEach(function (t) {
+      var d = document.createElement('div');
+      d.className = 'talent t-' + (t.tier || '');
+      d.textContent = t.nom;
+      d.title = t.nom + (t.tier ? ' (' + t.tier + ')' : '');
+      elTalents.appendChild(d);
+    });
+  }
+
+  function peindre(e) {
+    elEtat.dataset.code = e.code;
+    elLibelle.textContent = LIBELLES[e.code] || e.code;
+    elPrecision.textContent = e.detail || '';
+
+    var enPartie = e.code === 'pret';
+    dessinerPlateau(enPartie ? (e.plateau || []) : []);
+    dessinerTalents(enPartie ? (e.listeTalents || []) : []);
+    elVide.textContent = enPartie ? '' : T.attentePartie;
+  }
+
+  /* Edge et Chrome ignorent --window-size quand une instance tourne déjà : la
+     fenêtre reprend alors la taille de la précédente. On rattrape une seule
+     fois par session — sinon un changement de langue, qui recharge la page,
+     annulerait le redimensionnement fait à la main par l'utilisateur. */
+  try {
+    if (!window.sessionStorage.getItem('bazaar-taille-ajustee')) {
+      window.sessionStorage.setItem('bazaar-taille-ajustee', '1');
+      if (window.outerHeight > 1000 || window.outerWidth < 900) window.resizeTo(1170, 770);
+    }
+  } catch (e) { /* refusé selon le contexte, sans conséquence */ }
+
+  // On annonce la langue au serveur pour que l'aperçu du plateau soit traduit
+  // dans la même langue que l'interface.
+  fetch('/langue?l=' + encodeURIComponent(LANGUE)).catch(function () {});
+
+  var flux = new EventSource('/etat');
+  flux.onmessage = function (ev) {
+    try { peindre(JSON.parse(ev.data)); } catch (err) { /* trame partielle */ }
+  };
+  flux.onerror = function () {
+    elEtat.dataset.code = 'erreur';
+    elLibelle.textContent = T.arretee;
+    elPrecision.textContent = '';
+  };
+
+  // ── Configuration ──────────────────────────────────────────
+  /* La configuration reste ouverte au rechargement provoqué par un changement
+     de langue : la refermer obligerait à rouvrir puis à retrouver son réglage. */
+  var CLE_REGLAGES = 'bazaar-reglages-ouverts';
+  var reglages = document.getElementById('reglages');
+
+  function memoriserReglages(ouvert) {
+    try { window.sessionStorage.setItem(CLE_REGLAGES, ouvert ? '1' : ''); }
+    catch (e) { /* tant pis */ }
+  }
+
+  try {
+    if (window.sessionStorage.getItem(CLE_REGLAGES)) {
+      reglages.classList.add('ouvert');
+      document.getElementById('bascule').classList.add('ouvert');
+    }
+  } catch (e) { /* tant pis */ }
+
+  var elBascule = document.getElementById('bascule');
+
+  // Une seule fonction décide de l'état, pour que la flèche ne puisse pas
+  // désigner le contraire de ce que fait le panneau.
+  function afficherReglages(ouvert) {
+    reglages.classList.toggle('ouvert', ouvert);
+    elBascule.classList.toggle('ouvert', ouvert);
+    memoriserReglages(ouvert);
+  }
+
+  elBascule.addEventListener('click', function () {
+    afficherReglages(!reglages.classList.contains('ouvert'));
+  });
+
+  var elCompte = document.getElementById('compte');
+
+
+  /* Dernière valeur enregistrée du dossier du jeu. Elle sert à ne rien
+     réécrire quand le champ est quitté sans avoir changé. Sa déclaration avait
+     disparu avec le bouton « Enregistrer » alors que deux endroits l'utilisent
+     encore : le script s'interrompait dès la première lecture de la
+     configuration, et plus rien ne s'affichait ensuite. */
+  var dossierEnregistre = null;
+
+  function relireConfig() {
+    return fetch('/config').then(function (r) { return r.json(); }).then(function (c) {
+      document.getElementById('jeu').value = c.BAZAAR_PATH;
+      dossierEnregistre = (c.BAZAAR_PATH || '').trim();
+      var lie = !!c.RELAY_TOKEN;
+      // Le nom de chaîne, jamais l'identifiant numérique : il ne dit rien à
+      // personne. Faute de nom — configuration antérieure à sa mémorisation,
+      // ou réponse incomplète de Twitch — on se contente de « connecté ».
+      elCompte.textContent = lie
+        ? (c.TWITCH_NOM || T.connecteSansNom)
+        : T.nonConnecte;
+
+      // Le cadre courant n'est pas affiché — « calibré » n'apprend rien — mais
+      // il est conservé pour rouvrir l'outil sur le réglage existant.
+      // La vignette du coin choisi est mise en évidence.
+      [].forEach.call(document.querySelectorAll('#coins button'), function (b) {
+        b.classList.toggle('actif', b.dataset.coin === (c.COIN || 'hg'));
+      });
+
+      document.getElementById('etat-cadre').dataset.cadre = c.CADRE || '';
+      elCompte.classList.toggle('lie', lie);
+      // Premier lancement : la configuration s'ouvre d'elle-même.
+      if (!lie) afficherReglages(true);
+      return c;
+    });
+  }
+  relireConfig();
+
+  var elAvis = document.getElementById('avis');
+
+  document.getElementById('connecter').addEventListener('click', function () {
+    var b = this;
+    elAvis.className = 'avis';
+    elAvis.textContent = '';
+
+    fetch('/connexion').then(function (r) { return r.json(); }).then(function (rep) {
+      elAvis.textContent = rep.message;
+      elAvis.className = 'avis' + (rep.ok ? ' bon' : '');
+      if (!rep.ok) return;
+      b.textContent = T.enAttenteAuth;
+      surveillerJeton(b);
+    });
+  });
+
+  function surveillerJeton(b) {
+    // Le jeton arrive par le navigateur : on surveille jusqu'à le voir.
+    var essais = 0;
+    var minuteur = setInterval(function () {
+      relireConfig().then(function (c) {
+        if (c.RELAY_TOKEN) {
+          clearInterval(minuteur);
+          b.textContent = T.seConnecter;
+          elAvis.textContent = T.connecte;
+          elAvis.className = 'avis bon';
+        } else if (++essais > 120) {
+          clearInterval(minuteur);
+          b.textContent = T.seConnecter;
+          elAvis.textContent = T.sansReponse;
+          elAvis.className = 'avis';
+        }
+      });
+    }, 1000);
+  }
+
+
+  /* ── Calibrage du cadrage ─────────────────────────────────────────────
+     Le streamer encadre son jeu dans une capture de sa scène OBS. Toutes les
+     coordonnées d'emplacements étant relatives au jeu, ce seul rectangle
+     recale l'ensemble : les dix cases du plateau comme les talents, qui
+     conservent leurs positions relatives.
+     ------------------------------------------------------------------- */
+
+  // MIROIR de twitch-extension/extension/config.js. Ces valeurs décrivent où
+  // le JEU place ses cartes ; elles ne changent que si le jeu change son
+  // interface. En cas de modification là-bas, reporter ici.
+  var GEOMETRIE = {
+    /* <<< GÉOMÉTRIE — engendré par tools/sync-geometrie.js */
+    // Ne pas modifier ici : la source est
+    // twitch-extension/extension/config.js
+    BOARD: {"left":21.0003,"top":52.0036,"width":58.2494,"height":19.5839,"slots":10},
+    SKILL_LAYOUTS: [
+      { max: 5, w: 3.5311, h: 6.2769, slots: [[34.237,82.3214],[38.1005,88.528],[41.9058,82.3214],[58.1082,82.3214],[61.9526,88.528],[65.7579,82.3214]] },
+      { max: 11, w: 2.7458, h: 4.8819, slots: [[33.6876,81.4838],[38.1397,81.4838],[42.6128,81.4838],[57.6181,81.4838],[62.0711,81.4838],[66.5433,81.4838],[33.6876,89.0864],[38.1397,89.0864],[42.6128,89.0864],[57.6181,89.0864],[62.0711,89.0864],[66.5433,89.0864]] },
+      { max: 17, w: 2.1974, h: 3.975, slots: [[33.2166,80.4725],[37.042,80.4725],[41.0039,80.4725],[59.1677,80.5428],[63.1106,80.5428],[67.0133,80.4725],[35.1981,85.2851],[39.0425,85.2851],[43.0045,85.2851],[57.2847,85.2851],[61.2075,85.2851],[65.1302,85.2148],[33.2367,90.0977],[37.0812,90.0977],[41.0431,90.0977],[59.2069,90.167],[63.1297,90.167],[67.0525,90.0977]] },
+      { max: 24, w: 2.0397, h: 3.6968, slots: [[33.0398,80.2636],[36.1783,80.2636],[39.2776,80.2636],[42.3377,80.124],[57.7948,80.4032],[60.9333,80.4032],[64.0325,80.4032],[67.0926,80.2636],[33.785,85.3544],[36.9235,85.3544],[40.0227,85.3544],[43.0828,85.2148],[57.0496,85.4247],[60.1881,85.4247],[63.2864,85.4247],[66.3465,85.2851],[33.0398,90.3759],[36.1783,90.3759],[39.2776,90.3759],[42.3377,90.2363],[57.7557,90.4462],[60.8941,90.4462],[63.9934,90.4462],[67.0525,90.3066]] }
+    ],
+    REPERES: {
+      cercles: [
+        {"x":14.297,"y":44.514,"w":1.914,"h":3.403},
+        {"x":16.992,"y":47.708,"w":0.859,"h":1.528},
+        {"x":12.656,"y":47.778,"w":0.859,"h":1.528},
+        {"x":17.031,"y":52.222,"w":0.859,"h":1.528},
+        {"x":12.656,"y":52.292,"w":0.859,"h":1.528},
+        {"x":14.844,"y":54.514,"w":0.859,"h":1.528},
+        {"x":14.922,"y":50.208,"w":0.664,"h":1.181},
+      ],
+      equerres: [
+        {"x":20.547,"y":72.778,"w":10.703,"h":19.653,"coin":"tr"},
+        {"x":68.789,"y":72.708,"w":10.703,"h":19.653,"coin":"tl"},
+      ],
+    },
+    /* GÉOMÉTRIE >>> */
+  };
+
+  /* Le rectangle manipulé est LE PLATEAU, pas le jeu entier : « encadre le
+     jeu » est une consigne floue — les bordures décoratives n'ont pas de
+     limite nette — alors que la rangée d'objets offre des repères francs.
+
+     Le cadre du jeu s'en déduit : on connaît la place qu'occupe le plateau à
+     l'intérieur du jeu, donc l'un donne l'autre. C'est ce cadre qui est
+     enregistré et diffusé, l'extension restant inchangée. */
+
+  var calPlateau = null;                              // en % de la scène
+  var calImage   = null;
+
+  // Position du plateau quand le jeu occupe tout le cadre. Sur une capture qui
+  // n'est pas en 16/9, le jeu est encadré de bandes : les valeurs nominales
+  // restent le meilleur point de départ, le streamer ajuste ensuite.
+  function plateauParDefaut() {
+    var B = GEOMETRIE.BOARD;
+    return { l: B.left, t: B.top, w: B.width, h: B.height };
+  }
+
+  // Plateau (scène) → cadre du jeu (scène).
+  function cadreCalcule() {
+    var B = GEOMETRIE.BOARD;
+    var p = calPlateau || plateauParDefaut();
+    var w = p.w * 100 / B.width;
+    var h = p.h * 100 / B.height;
+    return { l: p.l - B.left * w / 100, t: p.t - B.top * h / 100, w: w, h: h };
+  }
+
+  // Cadre du jeu → plateau, pour rouvrir sur un calibrage existant.
+  function plateauDepuisCadre(c) {
+    var B = GEOMETRIE.BOARD;
+    return {
+      l: c.l + B.left  * c.w / 100,
+      t: c.t + B.top   * c.h / 100,
+      w: B.width  * c.w / 100,
+      h: B.height * c.h / 100,
+    };
+  }
+
+  var elCal      = document.getElementById('calibrage');
+  var elScene    = document.getElementById('cal-scene');
+  var elRect     = document.getElementById('cal-cadre');
+  var elZones    = document.getElementById('cal-zones');
+  var elConsigne = document.getElementById('cal-consigne');
+
+  document.getElementById('cal-titre').textContent    = T.calTitre;
+  document.getElementById('cal-colle').textContent    = T.calColler;
+  document.getElementById('cal-fichier').textContent  = T.calChoisir;
+  document.getElementById('cal-plein').textContent    = T.calPlein;
+  document.getElementById('cal-annuler').textContent  = T.calAnnuler;
+  document.getElementById('cal-valider').textContent  = T.calValider;
+  document.getElementById('cal-aide').textContent     = T.calAide;
+  document.getElementById('cal-retirer').title        = T.calRetirer;
+  document.getElementById('l-cadrage').textContent    = T.cadrage;
+  document.getElementById('l-coin').textContent       = T.coinTitre;
+  document.getElementById('coin-aide').textContent    = T.coinAide;
+  document.getElementById('calibrer').textContent     = T.calibrer;
+
+  function pct(v) { return v + '%'; }
+
+  function dessinerCadre() {
+    var p = calPlateau || plateauParDefaut();
+    elRect.style.left   = pct(p.l);
+    elRect.style.top    = pct(p.t);
+    elRect.style.width  = pct(p.w);
+    elRect.style.height = pct(p.h);
+    dessinerZones();
+  }
+
+  // Projette une coordonnée exprimée en % du jeu vers un % de la scène.
+  function projX(x) { var c = cadreCalcule(); return c.l + x * c.w / 100; }
+  function projY(y) { var c = cadreCalcule(); return c.t + y * c.h / 100; }
+  function projL(w) { return w * cadreCalcule().w / 100; }
+  function projH(h) { return h * cadreCalcule().h / 100; }
+
+  function dessinerZones() {
+    elZones.textContent = '';
+    var B = GEOMETRIE.BOARD;
+    var pas = B.width / B.slots;
+
+    // Les dix divisions à l'intérieur du rectangle : elles montrent où
+    // tombent les séparations entre cases, ce qui permet un alignement fin.
+    for (var i = 0; i < B.slots; i++) {
+      var d = document.createElement('div');
+      d.style.left   = pct(projX(B.left + i * pas));
+      d.style.top    = pct(projY(B.top));
+      d.style.width  = pct(projL(pas));
+      d.style.height = pct(projH(B.height));
+      elZones.appendChild(d);
+    }
+
+    // Repères fixes : ils ne dépendent pas de ce que possède le joueur, donc
+    // ils restent alignables même sur un plateau presque vide.
+    (GEOMETRIE.REPERES.cercles || []).forEach(function (c) {
+      var d = document.createElement('div');
+      d.className = 'repere cercle';
+      d.style.left   = pct(projX(c.x));
+      d.style.top    = pct(projY(c.y));
+      d.style.width  = pct(projL(c.w));
+      d.style.height = pct(projH(c.h));
+      elZones.appendChild(d);
+    });
+
+    (GEOMETRIE.REPERES.equerres || []).forEach(function (e) {
+      var d = document.createElement('div');
+      d.className = 'repere equerre ' + e.coin;
+      d.style.left   = pct(projX(e.x));
+      d.style.top    = pct(projY(e.y));
+      d.style.width  = pct(projL(e.w));
+      d.style.height = pct(projH(e.h));
+      elZones.appendChild(d);
+    });
+
+    // La première disposition de talents, la plus courante, suffit à vérifier
+    // que le bas de l'écran est bien cadré.
+    var L = GEOMETRIE.SKILL_LAYOUTS[0];
+    L.slots.forEach(function (p) {
+      var d = document.createElement('div');
+      d.className = 'zone-talent';
+      d.style.left   = pct(projX(p[0] - L.w / 2));
+      d.style.top    = pct(projY(p[1] - L.h / 2));
+      d.style.width  = pct(projL(L.w));
+      d.style.height = pct(projH(L.h));
+      elZones.appendChild(d);
+    });
+  }
+
+  function afficherImage(source) {
+    calImage = source;
+    elScene.style.backgroundImage = 'url(' + source + ')';
+
+    dessinerCadre();
+
+    /* La scène reste en 16/9 quoi qu'il arrive. Si la capture ne l'est pas,
+       « contain » la centrerait en laissant des bandes et les pourcentages ne
+       désigneraient plus les mêmes points : on prévient plutôt que de calibrer
+       faux en silence. */
+    var sonde = new Image();
+    sonde.onload = function () {
+      var r = sonde.naturalWidth / sonde.naturalHeight;
+      if (isFinite(r) && Math.abs(r - 16 / 9) > 0.02) {
+        elConsigne.textContent = T.calPas169;
+      }
+    };
+    sonde.src = source;
+    elScene.classList.add('remplie');
+    elRetirer.hidden = false;
+    elConsigne.textContent = T.calEncadrer;
+    dessinerCadre();
+  }
+
+  var elRetirer = document.getElementById('cal-retirer');
+
+  function retirerImage() {
+    calImage = null;
+    elScene.style.backgroundImage = '';
+    elScene.classList.remove('remplie');
+    elRetirer.hidden = true;
+    // Le rectangle reste : il montre toujours ce qu'on attend.
+    dessinerCadre();
+  }
+
+  elRetirer.addEventListener('click', function (ev) {
+    ev.stopPropagation();
+    retirerImage();
+  });
+
+  function lireFichier(f) {
+    if (!f || !/^image\//.test(f.type)) return;
+    var lecteur = new FileReader();
+    lecteur.onload = function () { afficherImage(lecteur.result); };
+    lecteur.readAsDataURL(f);
+  }
+
+  // Collage : la voie normale, un simple Ctrl+V après une capture d'écran.
+  elScene.addEventListener('paste', function (ev) {
+    var items = (ev.clipboardData || {}).items || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') === 0) { lireFichier(items[i].getAsFile()); break; }
+    }
+  });
+  document.addEventListener('paste', function (ev) {
+    if (elCal.classList.contains('ouvert')) elScene.dispatchEvent(
+      new ClipboardEvent('paste', { clipboardData: ev.clipboardData }));
+  });
+
+  document.getElementById('cal-fichier').addEventListener('click', function () {
+    document.getElementById('cal-input').click();
+  });
+  document.getElementById('cal-input').addEventListener('change', function () {
+    lireFichier(this.files[0]);
+  });
+
+  /* --- déplacement et redimensionnement -------------------------------- */
+
+  var saisie = null;
+
+  function positionRelative(ev) {
+    var r = elScene.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(100, (ev.clientX - r.left) / r.width * 100)),
+      y: Math.max(0, Math.min(100, (ev.clientY - r.top) / r.height * 100)),
+    };
+  }
+
+  elRect.addEventListener('mousedown', function (ev) {
+    var coin = ev.target.classList.contains('poignee')
+      ? ev.target.className.replace('poignee', '').trim() : null;
+    var p = positionRelative(ev);
+    saisie = { coin: coin, depart: p,
+               cadre: Object.assign({}, calPlateau || plateauParDefaut()) };
+    ev.preventDefault();
+    ev.stopPropagation();
+  });
+
+  document.addEventListener('mousemove', function (ev) {
+    if (!saisie) return;
+    var p = positionRelative(ev);
+    var dx = p.x - saisie.depart.x, dy = p.y - saisie.depart.y;
+    var c = saisie.cadre;
+    var MIN = 5;
+
+    if (!calPlateau) calPlateau = plateauParDefaut();
+
+    if (!saisie.coin) {
+      // Déplacement : le rectangle reste entièrement dans la scène.
+      calPlateau.l = Math.max(0, Math.min(100 - c.w, c.l + dx));
+      calPlateau.t = Math.max(0, Math.min(100 - c.h, c.t + dy));
+    } else {
+      /* Les proportions sont IMPOSÉES. Le plateau a une forme fixe dans le
+         jeu ; l'écraser produirait un cadre déformé, et donc des zones de
+         survol fausses en hauteur ou en largeur. On ne suit donc que le
+         déplacement horizontal de la poignée, et la hauteur en découle.
+         Le coin opposé reste immobile, comme on l'attend d'une poignée. */
+      /* Le rapport doit être calculé en PIXELS, pas en pourcentages : sur une
+         capture qui n'est pas en 16/9, un même pourcentage de largeur et de
+         hauteur ne représente pas la même distance à l'écran, et la contrainte
+         déformerait le rectangle. */
+      var r = elScene.getBoundingClientRect();
+      var aspectScene = (r.width && r.height) ? r.width / r.height : 16 / 9;
+      var RAPPORT = (GEOMETRIE.BOARD.width / GEOMETRIE.BOARD.height) * (16 / 9) / aspectScene;
+      var versLaDroite = saisie.coin.indexOf('e') >= 0;
+
+      var la = versLaDroite ? c.w + dx : c.w - dx;
+      if (la < MIN) la = MIN;
+      var ha = la / RAPPORT;
+
+      // Ancrage : le coin diagonalement opposé ne bouge pas.
+      var g = versLaDroite ? c.l : c.l + c.w - la;
+      var hh = (saisie.coin.indexOf('s') >= 0) ? c.t : c.t + c.h - ha;
+
+      if (g >= 0 && g + la <= 100 && hh >= 0 && hh + ha <= 100) {
+        calPlateau.l = g; calPlateau.t = hh;
+        calPlateau.w = la; calPlateau.h = ha;
+      }
+    }
+    dessinerCadre();
+  });
+
+  document.addEventListener('mouseup', function () { saisie = null; });
+
+  /* --- déplacement au clavier -------------------------------------------
+     Les flèches déplacent le rectangle d'un pixel de la capture, ce qui donne
+     le réglage fin que la souris ne permet pas. Maintenir accélère : sans ça,
+     traverser l'image demanderait un millier d'appuis.
+     ------------------------------------------------------------------- */
+
+  var FLECHES = { ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+                  ArrowUp: [0, -1], ArrowDown: [0, 1] };
+
+  var repetitions = 0;
+
+  document.addEventListener('keydown', function (ev) {
+    if (!elCal.classList.contains('ouvert')) return;
+    var d = FLECHES[ev.key];
+    if (!d) return;
+    ev.preventDefault();
+
+    // Un « pixel » se mesure sur la capture affichée, pas sur l'écran : le pas
+    // reste ainsi le même quelle que soit la taille de la fenêtre.
+    var r = elScene.getBoundingClientRect();
+    var pasX = r.width  ? 100 / r.width  : 0.05;
+    var pasY = r.height ? 100 / r.height : 0.09;
+
+    // Accélération progressive tant que la touche reste enfoncée.
+    repetitions = ev.repeat ? repetitions + 1 : 0;
+    var facteur = Math.min(1 + Math.pow(repetitions, 1.6) / 12, 40);
+
+    if (!calPlateau) calPlateau = plateauParDefaut();
+    var p = calPlateau;
+
+    // Le rectangle ne sort pas de la capture.
+    p.l = Math.max(0, Math.min(100 - p.w, p.l + d[0] * pasX * facteur));
+    p.t = Math.max(0, Math.min(100 - p.h, p.t + d[1] * pasY * facteur));
+    dessinerCadre();
+  });
+
+  document.addEventListener('keyup', function () { repetitions = 0; });
+
+  /* --- ouverture, fermeture, enregistrement ---------------------------- */
+
+  function ouvrirCalibrage(cadreActuel) {
+    calPlateau = cadreActuel ? plateauDepuisCadre(cadreActuel) : plateauParDefaut();
+    elCal.classList.add('ouvert');
+    /* La consigne de cadrage est affichée DÈS L'OUVERTURE : elle explique ce
+       qu'on attend du streamer, ce qui donne un sens au collage demandé juste
+       en dessous. Le cadre noir garde sa propre invitation à coller — les deux
+       textes sont distincts, il n'y a plus de répétition. */
+    elConsigne.textContent = T.calEncadrer;
+    elRetirer.hidden = !calImage;
+    // Le rectangle est montré dès l'ouverture, même sans capture : le streamer
+    // voit tout de suite ce qu'on attend de lui, et à quoi ressemble un
+    // cadrage plein écran.
+    dessinerCadre();
+    elScene.focus();
+  }
+
+  function fermerCalibrage() { elCal.classList.remove('ouvert'); }
+
+  document.getElementById('cal-plein').addEventListener('click', function () {
+    calPlateau = plateauParDefaut();      // jeu occupant tout le cadre
+    dessinerCadre();
+  });
+  document.getElementById('cal-annuler').addEventListener('click', fermerCalibrage);
+
+  document.getElementById('cal-valider').addEventListener('click', function () {
+    var c = cadreCalcule();
+    var v = [c.l, c.t, c.w, c.h]
+      .map(function (x) { return Math.round(x * 100) / 100; });
+    var plein = v[0] === 0 && v[1] === 0 && v[2] === 100 && v[3] === 100;
+    fetch('/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ CADRE: plein ? '' : v.join(',') })
+    }).then(relireConfig).then(fermerCalibrage);
+  });
+
+  [].forEach.call(document.querySelectorAll('#coins button'), function (b) {
+    b.addEventListener('click', function () {
+      fetch('/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ COIN: b.dataset.coin })
+      }).then(relireConfig);
+    });
+  });
+
+  document.getElementById('calibrer').addEventListener('click', function () {
+    var c = (document.getElementById('etat-cadre').dataset.cadre || '')
+      .split(',').map(parseFloat);
+    ouvrirCalibrage(c.length === 4 && isFinite(c[0])
+      ? { l: c[0], t: c[1], w: c[2], h: c[3] } : null);
+  });
+
+  document.getElementById('parcourir').addEventListener('click', function () {
+    var b = this;
+    b.disabled = true;
+    elAvis.className = 'avis';
+    elAvis.textContent = '';
+
+    // La requête ne répond qu'une fois la fenêtre Windows refermée.
+    fetch('/parcourir').then(function (r) { return r.json(); }).then(function (rep) {
+      b.disabled = false;
+      if (!rep.chemin) return;                 // annulé
+      document.getElementById('jeu').value = rep.chemin;
+      elAvis.textContent = rep.valide ? T.dossierOk : T.dossierNon;
+      elAvis.className = 'avis' + (rep.valide ? ' bon' : '');
+      // Le dossier choisi par la boîte de dialogue est enregistré aussitôt :
+      // il vient d'être vérifié, il n'y a rien à confirmer.
+      if (rep.valide) enregistrerDossier();
+    }).catch(function () { b.disabled = false; });
+  });
+
+  function enregistrerDossier() {
+    return fetch('/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ BAZAAR_PATH: document.getElementById('jeu').value })
+    }).then(relireConfig);
+  }
+
+  /* Le dossier s'enregistre en quittant le champ. Un bouton dédié n'avait plus
+     de sens : c'était le seul réglage à ne pas se sauvegarder tout seul, et
+     l'oublier laissait une configuration à moitié appliquée. */
+  document.getElementById('jeu').addEventListener('change', function () {
+    var champ = this.value.trim();
+    if (champ === dossierEnregistre) return;
+    enregistrerDossier().then(function () {
+      elAvis.textContent = T.enregistre;
+      elAvis.className = 'avis bon';
+      setTimeout(function () {
+        if (elAvis.textContent === T.enregistre) elAvis.textContent = '';
+      }, 1600);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
