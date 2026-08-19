@@ -1,0 +1,95 @@
+BAZAAR SCANNER
+==============
+
+Permet a tes spectateurs de survoler les cartes de ton plateau pendant ton
+stream pour en lire la description, dans leur langue.
+
+
+INSTALLATION
+------------
+
+1. LE MOD
+
+   BepInEx doit etre installe dans le dossier du jeu, et le fichier
+   BazaarScannerBridge.dll place dans :
+
+     <jeu>\BepInEx\plugins\BazaarScannerBridge\
+
+   Sans lui, l'outil ne voit rien.
+
+2. L'OUTIL
+
+   Lance BazaarScanner.exe. Une petite fenetre s'ouvre.
+   Clique sur CONFIGURATION puis SE CONNECTER AVEC TWITCH : ton navigateur
+   s'ouvre, tu autorises, c'est termine. Rien a copier, rien a saisir.
+
+   Le dossier du jeu est detecte automatiquement dans la plupart des cas.
+
+3. L'EXTENSION TWITCH
+
+   Depuis le gestionnaire d'extensions de ta chaine, installe Bazaar Scanner
+   et active-la dans un emplacement Overlay.
+
+
+UTILISATION
+-----------
+
+Lance l'outil avant ou pendant ta partie, peu importe. La fenetre affiche ton
+plateau et tes talents : c'est ainsi que tu verifies que ce qui est diffuse
+correspond bien a ta partie.
+
+Fermer la fenetre ferme l'outil.
+
+
+LE VOYANT
+---------
+
+  vert    tout fonctionne
+  orange  en attente : jeu non lance, aucune partie en cours, ou connexion
+          Twitch pas encore faite
+  rouge   probleme de liaison, le detail est affiche juste en dessous
+
+
+CE QUI EST TRANSMIS
+-------------------
+
+Uniquement la composition de ton plateau : quels objets, a quelle place, avec
+quelle qualite et quel enchantement. Rien d'autre.
+
+Pas d'etat de combat, pas de points de vie, pas d'or, pas de donnees
+personnelles. Tout ce qui est transmis est deja visible a l'ecran de tes
+spectateurs.
+
+L'autorisation Twitch sert uniquement a identifier ta chaine. Elle ne donne
+acces ni a ton compte, ni a ton chat, ni a tes revenus, et se revoque a tout
+moment depuis les parametres de ton compte Twitch.
+
+Ton jeton ne permet de diffuser que sur ta propre chaine.
+
+
+FICHIERS
+--------
+
+  BazaarScanner.exe   l'application
+  interface.html      sa fenetre
+  config.ini          cree au premier lancement
+
+
+PROBLEMES COURANTS
+------------------
+
+  "Jeu introuvable"
+     Ouvre CONFIGURATION et indique le dossier du jeu a la main. C'est celui
+     qui contient TheBazaar_Data.
+
+  "En attente du jeu" alors que le jeu tourne
+     Le mod n'est pas installe, ou pas au bon endroit. Verifie que
+     BazaarScannerBridge.dll est bien dans BepInEx\plugins\BazaarScannerBridge\
+
+  "Interrompu"
+     Le detail sous le voyant indique la cause. Un probleme de reseau se
+     resout tout seul des que la connexion revient.
+
+  Rien ne s'affiche sur le stream
+     Verifie que l'extension est bien activee dans un emplacement Overlay de
+     ta chaine, et que le voyant de l'outil est vert.

@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bazaar Scanner — calibrage</title>
+<style>
+  :root {
+    --bg:      #0d0b14;
+    --panel:   #16121f;
+    --line:    #2b2338;
+    --text:    #ece9f2;
+    --muted:   #8d85a3;
+    --accent:  #c060f0;
+    --ok:      #57d68a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    min-height: 100vh;
+  }
+  @media (max-width: 900px) { body { grid-template-columns: 1fr; } }
+
+  /* --- scène --- */
+  .stage-wrap { padding: 20px; }
+  .stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000 center/contain no-repeat;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .stage iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: transparent;
+  }
+  .empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    color: var(--muted);
+    gap: 6px;
+    pointer-events: none;
+  }
+  .empty b { color: var(--text); font-weight: 600; }
+
+  /* --- panneau --- */
+  aside {
+    background: var(--panel);
+    border-left: 1px solid var(--line);
+    padding: 20px 18px 40px;
+  }
+  h1 {
+    font-size: 15px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin: 0 0 4px;
+  }
+  .by { color: var(--muted); font-size: 12px; margin: 0 0 22px; }
+  h2 {
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 26px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  h2:first-of-type { margin-top: 0; }
+
+  label.file {
+    display: block;
+    padding: 10px;
+    text-align: center;
+    border: 1px dashed var(--line);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  label.file:hover { border-color: var(--accent); color: var(--text); }
+  label.file input { display: none; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 62px 1fr 58px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 9px;
+  }
+  .row span { color: var(--muted); font-size: 12px; }
+  .row input[type=range] { width: 100%; accent-color: var(--accent); }
+  .row input[type=number] {
+    width: 100%;
+    background: #0d0b14;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 4px 6px;
+    font: inherit;
+    font-size: 13px;
+  }
+
+  .check { display: flex; align-items: center; gap: 8px; margin: 14px 0; }
+  .check input { accent-color: var(--accent); }
+
+  button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 6px;
+    background: var(--accent);
+    color: #12091a;
+    border: 0;
+    border-radius: 6px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--line);
+    font-weight: 500;
+  }
+  button.ghost:hover { border-color: var(--accent); }
+
+  pre {
+    background: #0d0b14;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+    color: var(--ok);
+    overflow-x: auto;
+    margin: 10px 0 0;
+  }
+  .hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; word-break: break-all; }
+  input[type=text] {
+    width: 100%; margin-top: 8px; padding: 7px 8px;
+    background: #0d0b14; border: 1px solid var(--line); border-radius: 4px;
+    color: var(--text); font: inherit; font-size: 12px;
+  }
+</style>
+<!-- La calibration et l'adresse du CDN viennent de config.js : une seule source. -->
+<script src="../extension/config.js"></script>
+</head>
+<body>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <iframe id="frame" src="../extension/viewer.html?dev=1" title="Aperçu de l'extension"></iframe>
+    <div class="empty" id="empty">
+      <b>Charge une capture d'écran de ton stream</b>
+      <span>Une image de ta scène OBS, plateau visible.</span>
+    </div>
+  </div>
+</div>
+
+<aside>
+  <h1>Calibrage</h1>
+  <p class="by">Bazaar Scanner — by Kwev</p>
+
+  <h2>Image de fond</h2>
+  <label class="file">
+    Choisir une capture…
+    <input type="file" id="file" accept="image/*">
+  </label>
+  <p class="hint">Idéalement une image de ta scène OBS en 16/9, pas juste le jeu.</p>
+
+  <h2>Position du plateau</h2>
+  <div class="row"><span>Gauche</span><input type="range" id="r-left"   min="0" max="100" step="0.1"><input type="number" id="n-left"   step="0.1"></div>
+  <div class="row"><span>Haut</span>  <input type="range" id="r-top"    min="0" max="100" step="0.1"><input type="number" id="n-top"    step="0.1"></div>
+  <div class="row"><span>Largeur</span><input type="range" id="r-width"  min="1" max="100" step="0.1"><input type="number" id="n-width"  step="0.1"></div>
+  <div class="row"><span>Hauteur</span><input type="range" id="r-height" min="1" max="100" step="0.1"><input type="number" id="n-height" step="0.1"></div>
+  <div class="row"><span>Slots</span> <input type="range" id="r-slots"  min="4" max="14" step="1"><input type="number" id="n-slots" step="1"></div>
+
+  <div class="check">
+    <input type="checkbox" id="dbg" checked>
+    <label for="dbg">Afficher les zones en rouge</label>
+  </div>
+
+  <h2>Plateau de test</h2>
+  <button class="ghost" id="b-full">Plateau plein (10 slots)</button>
+  <button class="ghost" id="b-mixed">Objets de tailles variées</button>
+  <button class="ghost" id="b-empty">Plateau vide</button>
+
+  <h2>Talents</h2>
+  <div class="row">
+    <span>Nombre</span>
+    <input type="range" id="r-sk" min="0" max="24" step="1" value="0">
+    <input type="number" id="n-sk" min="0" max="24" step="1" value="0">
+  </div>
+  <div class="row">
+    <span>Taille</span>
+    <input type="range" id="r-sksz" min="0.5" max="1.6" step="0.05" value="1">
+    <input type="number" id="n-sksz" min="0.5" max="1.6" step="0.05" value="1">
+  </div>
+  <p class="hint" id="sk-info">Aucun talent</p>
+
+  <h2>Vraies cartes</h2>
+  <button id="b-real">Tirer 5 objets au hasard</button>
+  <input type="text" id="tid" placeholder="ou colle un TemplateId ici">
+  <button class="ghost" id="b-tid">Afficher cet objet</button>
+  <p class="hint" id="real-status">Les fiches viennent de <span id="cdn"></span></p>
+
+  <h2>Résultat</h2>
+  <button id="copy">Copier pour config.js</button>
+  <pre id="out"></pre>
+</aside>
+
+<script>
+(function () {
+  'use strict';
+
+  var frame = document.getElementById('frame');
+  var stage = document.getElementById('stage');
+  var out   = document.getElementById('out');
+
+  // Valeurs initiales lues dans config.js : plus de duplication, donc plus de
+  // risque que le harness écrase silencieusement ta calibration.
+  var CFG   = window.BAZAAR_CONFIG || {};
+  var BOARD = Object.assign({ left: 21, top: 52, width: 58, height: 19.5, slots: 10 },
+                            CFG.BOARD || {});
+  var keys  = ['left', 'top', 'width', 'height', 'slots'];
+
+  function push() {
+    frame.contentWindow.postMessage({
+      type: 'config',
+      payload: {
+        BOARD: BOARD,
+        DEBUG_HOTSPOTS: document.getElementById('dbg').checked,
+        SKILL_SCALE: parseFloat(document.getElementById('n-sksz').value) || 1
+      }
+    }, '*');
+
+    var sz = parseFloat(document.getElementById('n-sksz').value) || 1;
+    out.textContent =
+      (sz !== 1 ? 'SKILL_SCALE: ' + sz + ',\n\n' : '') +
+      'BOARD: {\n' +
+      '  left:   ' + BOARD.left   + ',\n' +
+      '  top:    ' + BOARD.top    + ',\n' +
+      '  width:  ' + BOARD.width  + ',\n' +
+      '  height: ' + BOARD.height + ',\n' +
+      '  slots:  ' + BOARD.slots  + '\n' +
+      '}';
+  }
+
+  keys.forEach(function (k) {
+    var r = document.getElementById('r-' + k);
+    var n = document.getElementById('n-' + k);
+    r.value = n.value = BOARD[k];
+    function set(v) {
+      BOARD[k] = parseFloat(v);
+      r.value = n.value = BOARD[k];
+      push();
+    }
+    r.addEventListener('input', function () { set(r.value); });
+    n.addEventListener('input', function () { set(n.value); });
+  });
+
+  document.getElementById('dbg').addEventListener('change', push);
+
+  document.getElementById('file').addEventListener('change', function (e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    stage.style.backgroundImage = 'url(' + URL.createObjectURL(f) + ')';
+    document.getElementById('empty').style.display = 'none';
+  });
+
+  var dernierPlateau = [];
+
+  function sendBoard(items) {
+    dernierPlateau = items;
+    frame.contentWindow.postMessage(
+      { type: 'board', payload: { b: items, k: talentsFactices() } }, '*');
+  }
+
+  // ── Talents ───────────────────────────────────────────────────────────────
+  var nbTalents = 0;
+
+  function talentsFactices() {
+    var out = [];
+    for (var i = 0; i < nbTalents; i++) out.push({ s: i, id: 'demo-talent-' + i });
+    return out;
+  }
+
+  function majTalents() {
+    var L = (CFG.SKILL_LAYOUTS || []);
+    var d = null;
+    for (var i = 0; i < L.length && !d; i++) if (nbTalents <= L[i].max) d = L[i];
+    document.getElementById('sk-info').textContent = nbTalents === 0
+      ? 'Aucun talent'
+      : nbTalents + ' talent(s) — disposition ' + (L.indexOf(d) + 1)
+        + ' (' + d.slots.length + ' emplacements)';
+    sendBoard(dernierPlateau);
+  }
+
+  (function () {
+    var r = document.getElementById('r-sk'), n = document.getElementById('n-sk');
+    function set(v) { nbTalents = parseInt(v, 10) || 0; r.value = n.value = nbTalents; majTalents(); }
+    r.addEventListener('input', function () { set(r.value); });
+    n.addEventListener('input', function () { set(n.value); });
+
+    var rs = document.getElementById('r-sksz'), ns = document.getElementById('n-sksz');
+    function setSz(v) { rs.value = ns.value = v; push(); }
+    rs.addEventListener('input', function () { setSz(rs.value); });
+    ns.addEventListener('input', function () { setSz(ns.value); });
+  })();
+
+  document.getElementById('b-full').addEventListener('click', function () {
+    var a = [];
+    for (var i = 0; i < BOARD.slots; i++) a.push({ s: i, n: 1, id: 'Objet ' + (i + 1) });
+    sendBoard(a);
+  });
+
+  document.getElementById('b-mixed').addEventListener('click', function () {
+    sendBoard([
+      { s: 0, n: 2, id: 'Flute Gun' },
+      { s: 2, n: 1, id: 'Bandages' },
+      { s: 3, n: 3, id: 'Whistling Glaive', e: 'Golden' },
+      { s: 7, n: 2, id: 'Cove' },
+      { s: 9, n: 1, id: 'Pearl' }
+    ]);
+  });
+
+  document.getElementById('b-empty').addEventListener('click', function () { sendBoard([]); });
+
+  document.getElementById('copy').addEventListener('click', function () {
+    navigator.clipboard.writeText(out.textContent);
+    var b = document.getElementById('copy');
+    b.textContent = 'Copié';
+    setTimeout(function () { b.textContent = 'Copier pour config.js'; }, 1400);
+  });
+
+  // ── Vraies fiches, lues depuis le CDN déclaré dans config.js ──────────────
+  var base = (CFG.DATA_BASE_URL || '').replace(/\/$/, '');
+  var lang = CFG.LANG || 'fr';
+  var statut = document.getElementById('real-status');
+  document.getElementById('cdn').textContent = base || '(DATA_BASE_URL non renseignée)';
+
+  var idsReels = null;
+
+  function dire(msg) { statut.textContent = msg; }
+
+  function chargerIndex() {
+    if (idsReels) return Promise.resolve(idsReels);
+    dire('Lecture de index.json…');
+    return fetch(base + '/index.json')
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (idx) {
+        idsReels = (idx.langs && idx.langs[lang] && idx.langs[lang].ids) || [];
+        dire(idsReels.length + ' fiches disponibles (version ' + idx.version + ')');
+        return idsReels;
+      })
+      .catch(function (e) {
+        dire('Échec : ' + e.message + ' — vérifie DATA_BASE_URL dans config.js');
+        throw e;
+      });
+  }
+
+  document.getElementById('b-real').addEventListener('click', function () {
+    chargerIndex().then(function (ids) {
+      var tailles = [1, 2, 3], slot = 0, plateau = [];
+      while (slot < BOARD.slots && plateau.length < 5) {
+        var n = tailles[Math.floor(Math.random() * 3)];
+        if (slot + n > BOARD.slots) break;
+        plateau.push({ s: slot, n: n, id: ids[Math.floor(Math.random() * ids.length)] });
+        slot += n;
+      }
+      sendBoard(plateau);
+      dire(plateau.length + ' objet(s) placé(s). Survole-les.');
+    }).catch(function () {});
+  });
+
+  document.getElementById('b-tid').addEventListener('click', function () {
+    var id = document.getElementById('tid').value.trim();
+    if (!id) { dire('Colle un TemplateId d\u2019abord.'); return; }
+    sendBoard([{ s: 0, n: 2, id: id }]);
+    dire('Objet placé sur les cases 1 et 2.');
+  });
+
+  frame.addEventListener('load', function () { setTimeout(function () { push(); majTalents(); }, 80); });
+})();
+</script>
+
+</body>
+</html>
