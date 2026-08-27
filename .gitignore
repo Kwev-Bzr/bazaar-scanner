@@ -1,0 +1,34 @@
+# Secrets et configuration locale ────────────────────────────────────────────
+# config.ini contient le jeton personnel du streamer. Il est créé au premier
+# lancement et ne doit JAMAIS être versionné.
+config.ini
+.dev.vars
+.env
+
+# Certificats de développement
+**/certs/
+*.pem
+*.key
+
+# Données du jeu ─────────────────────────────────────────────────────────────
+# Propriété de l'éditeur, et volumineuses. Rien de tout cela n'est nécessaire
+# pour compiler ou comprendre le projet.
+GameData.db
+*.db
+extracted_cards_*.json
+translations_*.csv
+assets/
+images/
+characters/
+
+# Sorties de compilation ─────────────────────────────────────────────────────
+dist/
+build/
+node_modules/
+*.exe
+*.dll
+*.blob
+
+# Système
+.DS_Store
+Thumbs.db

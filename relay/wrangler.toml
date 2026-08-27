@@ -1,0 +1,6 @@
+name = "bazaar-relais"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# Aucun secret ici : ils s'ajoutent avec `wrangler secret put`, et restent
+# stockés chiffrés chez Cloudflare. Ce fichier peut être versionné sans risque.
