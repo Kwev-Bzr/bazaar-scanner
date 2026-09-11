@@ -2,7 +2,7 @@
 
 A Twitch extension for [The Bazaar](https://playthebazaar.com). Viewers hover
 over any item on the streamer's board and read its full description, in their
-own language.
+own language. A search panel gives them the whole catalogue, board or not.
 
 Available in English, French, German, Spanish, Italian, Portuguese, Korean and
 Chinese.
@@ -22,11 +22,30 @@ game folder on its own. Then open Bazaar Scanner, click **Connect with Twitch**,
 and activate the extension on your channel.
 
 If the game does not fill your whole OBS scene, use **Calibrate** so the hover
-zones line up with your layout. You can also choose which top corner the card
-appears in — handy if your webcam sits in one of them.
+zones line up with your layout. You can also declare your broadcast delay, so
+the cards stay in step with what your viewers actually see.
+
+Placement, size, colour and font belong to each viewer, who sets them from the
+extension's own menu.
 
 The app must be running while you stream: the extension only shows what the app
-sends it.
+sends it, and displays nothing at all when it is closed.
+
+## For viewers
+
+Hovering a card shows its sheet: translated description, per-tier values,
+coloured keywords, enchantment variants.
+
+Three buttons sit at the bottom right of the player:
+
+- the **magnifier** searches the whole catalogue, with filters by hero, card
+  type, size, rarity and effect;
+- the **options** menu sets where the sheet appears, its text size, its colour
+  and its font;
+- the **globe** changes the display language.
+
+Those preferences are kept in the browser and follow the viewer from one
+channel to the next.
 
 ## What the mod does, and does not
 
@@ -54,35 +73,44 @@ The full technical description is in
 
 ```
 The Bazaar                    the game
-    │
-    │  read-only reflection, once per second
-    ▼
-BepInEx mod  ─────────────►  board_state.json      on the streamer's disk
-    │
-    ▼
-Companion app  ───────────►  Twitch PubSub          card ids only, ~1 KB/s
-    │                              │
-    │  requests a short-lived      ▼
-    │  token, 3× per hour     Extension              in the viewer's player
-    ▼                              │
-Relay (Cloudflare Worker)          │  fetches card text and artwork
-                                   ▼
+    |
+    |  read-only reflection, once per second
+    v
+BepInEx mod  ------------->  board_state.json      on the streamer's disk
+    |
+    v
+Companion app  ----------->  Twitch PubSub          card ids only, ~1 KB/s
+    |                              |
+    |  requests a short-lived      v
+    |  token, 3x per hour     Extension              in the viewer's player
+    v                              |
+Relay (Cloudflare Worker)          |  fetches card text and artwork
+                                   v
                             Static hosting
 ```
 
-The message sent to Twitch carries positions and card identifiers, plus two
-display preferences — where the game sits inside the streamer's scene, and which
-corner the card should appear in:
+The message sent to Twitch carries positions and card identifiers, where the
+game sits inside the streamer's scene, and the broadcast delay the streamer
+declared:
 
 ```json
-{"v":1,"lang":"fr","b":[{"s":0,"n":2,"id":"a05d23cb-…","e":"Golden","q":"Gold"}],
- "k":[{"s":0,"id":"73722d74-…","q":"Diamond"}]}
+{"v":2,"lang":"fr","b":[{"s":0,"n":2,"id":"a05d23cb-...","e":"Golden","q":"Gold"}],
+ "k":[{"s":0,"id":"73722d74-...","q":"Diamond"}],"d":30}
 ```
 
 Descriptions and artwork are fetched by the extension from static hosting, not
 by the app. That is what keeps the app tiny and the bandwidth near zero: the
 same message serves one viewer or thirty thousand, because Twitch does the
 fan-out.
+
+## Delays
+
+The opponent's board is held back for fifteen seconds from the start of a fight
+between players. Everything else — the streamer's own board, stash, skills,
+shops and events — is sent without delay, since it is already on screen.
+
+A streamer who broadcasts on a delay declares it in the app, and that delay adds
+to the hold.
 
 ## The relay, and why it exists
 
@@ -103,8 +131,9 @@ users inside Cloudflare's free tier.
 ## Privacy
 
 The extension collects nothing about viewers. No trackers, no advertising
-cookies, no identity request. The only thing kept in a viewer's browser is their
-chosen display language.
+cookies, no identity request. The only things kept in a viewer's browser are
+their display preferences: language, placement, size, colour, font, and whether
+they have seen the first-visit hint.
 
 The companion app sends the board and nothing else — not combat state, not
 health, not resources, not personal data. Its Twitch authorisation identifies
