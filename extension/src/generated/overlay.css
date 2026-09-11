@@ -18,7 +18,13 @@
     }
 
     /* ── Carte ─────────────────────────────────────────────── */
+    /* Teintes de l'ambiance. Elles valent l'or d'origine par défaut, et chaque
+       thème les redéfinit : nom de l'objet, étiquettes, filets, barre du haut
+       suivent alors la couleur choisie sans règle supplémentaire. */
     #card {
+      --accent:      #f0c060;   /* titres, valeurs mises en avant */
+      --accent-doux: #c09050;   /* étiquettes, filets */
+      --accent-sombre: #b07818;
       width: 483px;
       background: linear-gradient(155deg, #1c0f06 0%, #2c1808 55%, #1c0f06 100%);
       border: 1px solid #7a4e28;
@@ -36,7 +42,7 @@
     #card.hiding  { opacity:0; transform:translateY(-9px) scale(0.98); transition:opacity 0.3s ease-in, transform 0.3s ease-in; }
 
     /* ── Barre dorée ──────────────────────────────────────── */
-    .top-bar { height:2px; background:linear-gradient(90deg,transparent,#b07818 15%,#f0c060 50%,#b07818 85%,transparent); }
+    .top-bar { height:2px; background:linear-gradient(90deg,transparent,var(--accent-sombre) 15%,var(--accent) 50%,var(--accent-sombre) 85%,transparent); }
 
     /* ── En-tête ──────────────────────────────────────────── */
     .header {
@@ -95,7 +101,7 @@
       font-family: 'Cinzel', serif;
       font-size: 26px;
       font-weight: 700;
-      color: #f0c060;
+      color: var(--accent);
       text-shadow: 0 0 18px rgba(190,115,5,.7), 1px 1px 3px rgba(0,0,0,0.9);
       line-height: 1.15;
       word-break: break-word;
@@ -145,6 +151,64 @@
     .badge-tag.Core     { color:#e0b0f8; border-color:rgba(224,176,248,.55); background:rgba(216,160,248,.12); }
     .badge-tag.Potion   { color:#90d850; border-color:rgba(144,216,80,.55); background:rgba(128,200,64,.12); }
 
+    /* Chaque tag porte la couleur de sa thématique : un coup d'œil suffit à
+       reconnaître une arme, un butin ou un marchand. */
+    .badge-tag.Apparel  { color:#d8a0c8; border-color:rgba(216,160,200,.55); background:rgba(208,144,192,.12); }
+    .badge-tag.Dinosaur { color:#88c060; border-color:rgba(136,192,96,.55); background:rgba(120,176,80,.12); }
+    .badge-tag.Dragon   { color:#f06060; border-color:rgba(240,96,96,.55); background:rgba(224,80,80,.12); }
+    .badge-tag.Drone    { color:#88b8d8; border-color:rgba(136,184,216,.55); background:rgba(120,168,200,.12); }
+    .badge-tag.Loot     { color:#f0d070; border-color:rgba(240,208,112,.55); background:rgba(232,196,96,.12); }
+    .badge-tag.Ray      { color:#a0e8e0; border-color:rgba(160,232,224,.55); background:rgba(144,216,208,.12); }
+    .badge-tag.Reagent  { color:#b890e8; border-color:rgba(184,144,232,.55); background:rgba(168,128,216,.12); }
+    .badge-tag.Relic    { color:#d0b088; border-color:rgba(208,176,136,.55); background:rgba(192,160,120,.12); }
+    .badge-tag.Tech     { color:#70d0c0; border-color:rgba(112,208,192,.55); background:rgba(96,192,176,.12); }
+    .badge-tag.Toy      { color:#f0a0d0; border-color:rgba(240,160,208,.55); background:rgba(232,144,192,.12); }
+    .badge-tag.Trap     { color:#c08850; border-color:rgba(192,136,80,.55); background:rgba(176,120,64,.12); }
+    .badge-tag.Merchant { color:#e8c890; border-color:rgba(232,200,144,.55); background:rgba(216,180,120,.14); }
+
+    /* Les tags d'EFFET reprennent la couleur que le mot-clé porte déjà dans le
+       corps de la fiche : la même notion garde la même teinte partout. */
+    .badge-tag.Burn       { color:#f89840; border-color:rgba(248,152,64,.55);  background:rgba(232,140,56,.12); }
+    .badge-tag.Poison     { color:#08b848; border-color:rgba(8,184,72,.55);    background:rgba(8,168,64,.12); }
+    .badge-tag.Freeze     { color:#38c8f0; border-color:rgba(56,200,240,.55);  background:rgba(48,184,224,.12); }
+    .badge-tag.Heal       { color:#88e830; border-color:rgba(136,232,48,.55);  background:rgba(120,216,40,.12); }
+    .badge-tag.Regen      { color:#88e830; border-color:rgba(136,232,48,.55);  background:rgba(120,216,40,.12); }
+    .badge-tag.Shield     { color:#f0c820; border-color:rgba(240,200,32,.55);  background:rgba(224,184,24,.12); }
+    .badge-tag.Haste      { color:#68e8c0; border-color:rgba(104,232,192,.55); background:rgba(88,216,176,.12); }
+    .badge-tag.Slow       { color:#c69c6c; border-color:rgba(198,156,108,.55); background:rgba(180,140,96,.12); }
+    .badge-tag.Crit       { color:#f05038; border-color:rgba(240,80,56,.55);   background:rgba(224,64,48,.12); }
+    .badge-tag.Charge     { color:#c0a0f0; border-color:rgba(192,160,240,.55); background:rgba(176,144,224,.12); }
+    .badge-tag.Economy    { color:#f8c818; border-color:rgba(248,200,24,.55);  background:rgba(232,184,16,.12); }
+    .badge-tag.Flying     { color:#b0e0f8; border-color:rgba(176,224,248,.55); background:rgba(160,208,240,.12); }
+    .badge-tag.Unsellable { color:#909090; border-color:rgba(144,144,144,.55); background:rgba(128,128,128,.12); }
+
+    /* ── Effet d'emplacement ─────────────────────────────────
+       Une seconde fiche, plus petite, accolée sous la principale : l'objet
+       est posé sur un fourneau ou une note, et cela change ce qu'il fait. */
+    .socket-effect {
+      margin: 8px -14px -14px;
+      padding: 8px 14px 10px;
+      border-top: 1px solid color-mix(in srgb, var(--accent-doux) 45%, transparent);
+      background: rgba(0,0,0,.28);
+      border-radius: 0 0 6px 6px;
+    }
+    /* Première ligne : la police des étiquettes de la fiche. */
+    .socket-effect .se-ligne1 {
+      font-family: 'Rajdhani', Arial, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      color: var(--accent-doux);
+      margin-bottom: 4px;
+    }
+    /* Seconde ligne : celle des descriptions de carte. */
+    .socket-effect .se-ligne2 {
+      font-family: 'Rajdhani', Arial, sans-serif;
+      font-size: 15px;
+      color: #e8dcc4;
+      line-height: 1.35;
+    }
+
     /* ── Portrait héros ───────────────────────────────────── */
     .hero-portraits { display:flex; gap:5px; align-items:center; flex-shrink:0; }
     .hero-portrait {
@@ -177,7 +241,7 @@
       font-weight: 700;
       letter-spacing: .25em;
       text-transform: uppercase;
-      color: #c09050;
+      color: var(--accent-doux);
       margin: 9px 0 6px;
     }
     .section-label:first-child { margin-top: 0; }
@@ -198,8 +262,8 @@
       gap: 7px;
       margin-bottom: 7px;
       padding: 5px 9px;
-      background: rgba(20,10,3,.6);
-      border: 1px solid #5a3818;
+      background: color-mix(in srgb, var(--accent-sombre) 12%, rgba(0,0,0,.65));
+      border: 1px solid color-mix(in srgb, var(--accent-sombre) 55%, transparent);
       border-radius: 6px;
     }
     .cd-label {
@@ -208,7 +272,7 @@
       font-weight: 700;
       letter-spacing: .04em;
       text-transform: uppercase;
-      color: #c09050;
+      color: var(--accent-doux);
       white-space: nowrap;
     }
     .cd-val {
@@ -235,7 +299,7 @@
       font-size: 18px;
       font-weight: 700;
     }
-    .cd-sep { color:#a07840; font-weight:700; margin:0 3px; font-size:15px; }
+    .cd-sep { color:var(--accent-doux); font-weight:700; margin:0 3px; font-size:15px; }
 
     /* ── Lignes actif / passif — identiques sauf couleur du > ── */
     .effect-row {
@@ -260,7 +324,7 @@
       font-size: 11px;
       line-height: 2.15;
       margin-right: 3px;
-      color: #c08030;
+      color: var(--accent-doux);
     }
 
     /* ── Texte tooltip ────────────────────────────────────── */
@@ -307,6 +371,11 @@
       flex-shrink: 0;
     }
     .hero-portraits-bottom .hero-portrait img { width:44px; height:44px; border-radius:50%; object-fit:cover; }
+
+    /* Nombreux, ils se resserrent plutôt que de déborder. */
+    .hero-portraits-bottom.serres { gap:3px; }
+    .hero-portraits-bottom.serres .hero-portrait,
+    .hero-portraits-bottom.serres .hero-portrait img { width:30px; height:30px; }
     .hero-portraits-bottom .hero-portrait .hero-initial {
       font-family: 'Cinzel', serif; font-size:15px; font-weight:700; color:#c89040;
     }
@@ -344,11 +413,11 @@
     /* ── Bas ──────────────────────────────────────────────── */
     .bottom-bar {
       height: 2px;
-      background: linear-gradient(90deg,transparent,rgba(185,115,8,.3) 30%,rgba(185,115,8,.3) 70%,transparent);
+      background: linear-gradient(90deg,transparent,color-mix(in srgb, var(--accent-sombre) 30%, transparent) 30%,color-mix(in srgb, var(--accent-sombre) 30%, transparent) 70%,transparent);
       margin: 0 21px 6px;
     }
     .progress-wrap { height:2px; background:rgba(255,255,255,.04); }
-    #progress { height:100%; background:linear-gradient(90deg,#b07818,#f0c060); transform-origin:left; }
+    #progress { height:100%; background:linear-gradient(90deg,var(--accent-sombre),var(--accent)); transform-origin:left; }
 
     /* ══════════════════════════════════════════
        COULEURS MOTS-CLÉS (palette officielle)
@@ -378,7 +447,7 @@
     .kw-destroy { color:#8e7cc3; font-weight:700; }
     .kw-fly     { color:#f0c820; font-weight:700; }
     .kw-life    { color:#984868; font-weight:700; }
-    .kw-tag     { color:#98a8fe; font-weight:700; }
+    .kw-tag     { color:#809cff; font-weight:700; }
     .kw-quest   { color:#ffff00; font-weight:700; }
     .kw-rage    { color:#f01e60; font-weight:700; }
     .kw-repair  { color:#94facf; font-weight:700; }

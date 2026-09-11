@@ -19,22 +19,6 @@ using UnityEngine;
 
 namespace BazaarScannerBridge
 {
-    /// <summary>
-    /// Lit en direct l'etat du joueur (board, competences, heros) et l'ecrit dans
-    /// board_state.json toutes les secondes. Extrait egalement, pour chaque
-    /// nouvelle carte rencontree, sa definition complete (Tiers, Enchantments,
-    /// Localization...) dans extracted_cards.json — une base de donnees qui
-    /// s'enrichit au fil des parties, toujours a jour avec le jeu en cours
-    /// d'execution (contrairement a GameData.db.zip, qui n'est pas regenere par
-    /// le jeu a chaque ajout de contenu).
-    ///
-    /// Localisation : le jeu ne fournit pas de traduction fiable via
-    /// TLocalizableText.Text (toujours l'anglais). On charge donc un CSV externe
-    /// (hash MD5 du texte anglais -> texte traduit) et on patche les JSON
-    /// serialises avant ecriture. C'est la meme approche que celle utilisee par
-    /// les mods communautaires existants (aucune API interne fiable trouvee
-    /// pour recuperer la traduction directement depuis le jeu).
-    /// </summary>
     [BepInPlugin("com.bazaarscanner.bridge", "Bazaar Scanner Bridge", "1.3.0")]
     public class Plugin : BaseUnityPlugin
     {
@@ -42,32 +26,26 @@ namespace BazaarScannerBridge
 
         private float _timer = 0f;
         private const float IntervalSeconds = 1.0f;
+
+        private const long SeuilAlerteMs = 8;
+        private static int _cyclesLents;
+        private static int _ecritureEnCours;
+        private static double _cumulMs;
+        private static int _cycles;
         private string _outputPath;
         private static string _dllDir;
         private static string _cardsDbPath;
-        // Le JSON sérialisé d'un template est TOUJOURS en anglais : c'est
-        // PatchLocalizedTexts qui le traduit ensuite. On conserve donc aussi la
-        // version brute, sans quoi les cartes absentes de GameData.db n'auraient
-        // jamais de version anglaise (le fichier n'existerait que si le joueur
-        // lançait le jeu en anglais).
         private static string _cardsDbPathEn;
         private static readonly Dictionary<string, object> _extractedCardsEn = new Dictionary<string, object>();
         private static string _currentLang = "en";
         private static readonly Dictionary<string, object> _extractedCards = new Dictionary<string, object>();
 
-        // Signature JSON de la dernière extraction connue par templateId — permet
-        // de détecter qu'une carte a changé de contenu (rework, Id réutilisé pour
-        // un item différent lors d'une mise à jour du jeu) plutôt que de supposer
-        // qu'un Id déjà vu une fois n'a plus jamais besoin d'être réextrait.
         private static readonly Dictionary<string, string> _extractedCardsSignature = new Dictionary<string, string>();
 
-        // Détecte la langue active dans le jeu via l'API Unity Localization.
-        // En cas d'échec, retombe sur la langue système.
         private static string DetectLanguage()
         {
             try
             {
-                // Cherche LocalizationSettings dans tous les assemblies chargés.
                 foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
                     var t = assembly.GetType("UnityEngine.Localization.Settings.LocalizationSettings");
@@ -85,7 +63,6 @@ namespace BazaarScannerBridge
             }
             catch { /* silencieux */ }
 
-            // Fallback : langue système Windows
             return Application.systemLanguage switch
             {
                 SystemLanguage.French  => "fr",
@@ -101,9 +78,6 @@ namespace BazaarScannerBridge
             };
         }
 
-        // Recalcule le chemin du fichier de cache selon la langue active.
-        // Appelé à chaque cycle : si la langue a changé depuis la dernière
-        // vérification, vide le cache et recharge (extractions + traductions).
         private static void RefreshLanguage()
         {
             var lang = DetectLanguage();
@@ -118,16 +92,9 @@ namespace BazaarScannerBridge
             LoadExtractedCardsCache();
             LoadTranslations();
 
-            // La langue a changé : le catalogue doit être revidé pour que le
-            // nouveau fichier se remplisse, sinon il resterait vide jusqu'au
-            // prochain lancement du jeu.
             _vidageFait = false;
         }
 
-        // Produit un "$type" identique au format utilise par le jeu lui-meme
-        // (juste le nom court de la classe, ex: "TFixedValue"), pour que toute
-        // la logique de resolution cote serveur (qui depend de $type) fonctionne
-        // de la meme maniere sur les cartes extraites par le mod.
         private class ShortTypeNameBinder : Newtonsoft.Json.Serialization.DefaultSerializationBinder
         {
             public override void BindToName(Type serializedType, out string assemblyName, out string typeName)
@@ -168,10 +135,10 @@ namespace BazaarScannerBridge
             if (_timer < IntervalSeconds) return;
             _timer = 0f;
 
-            RefreshLanguage();
+            var chrono = System.Diagnostics.Stopwatch.StartNew();
+            _cycles++;
 
-            // Tenté à chaque cycle, mais ne s'exécute qu'une fois — et seulement
-            // si l'auteur l'a demandé. Voir ViderCatalogue().
+            RefreshLanguage();
             ViderCatalogue();
 
             try
@@ -182,6 +149,356 @@ namespace BazaarScannerBridge
             {
                 Log.LogWarning("Erreur lecture board: " + ex.Message);
             }
+
+            chrono.Stop();
+            var ms = chrono.Elapsed.TotalMilliseconds;
+            _cumulMs += ms;
+
+            if (ms >= SeuilAlerteMs)
+            {
+                _cyclesLents++;
+                if (_cyclesLents <= 3 || _cyclesLents % 200 == 0)
+                    Log.LogWarning("[Perf] relevé lent : " + ms.ToString("0.0")
+                        + " ms (" + _cyclesLents + "e). Le mod devrait tenir "
+                        + "sous " + SeuilAlerteMs + " ms.");
+            }
+
+            if (_cycles % 300 == 0)
+                Log.LogInfo("[Perf] " + _cycles + " relevés, moyenne "
+                    + (_cumulMs / _cycles).ToString("0.00") + " ms, "
+                    + _cyclesLents + " au-dessus de " + SeuilAlerteMs + " ms.");
+        }
+
+        private static List<CardInfo> _face = new List<CardInfo>();
+        private static List<CardInfo> _reserve = new List<CardInfo>();
+
+        private static void LireBandes()
+        {
+            _reserve = new List<CardInfo>();
+            _face = LireBande("OpponentSocket_", "PlayerStorageSocket_", _reserve);
+        }
+
+        private static List<CardInfo> LireBande(string prefixe)
+        {
+            return LireBande(prefixe, null);
+        }
+
+        private static List<CardInfo> LireBande(string prefixe, string prefixe2,
+                                                List<CardInfo> seconde = null)
+        {
+            var result = new List<CardInfo>();
+            var vues = new HashSet<string>();
+
+            object dict;
+            try
+            {
+                dict = typeof(Data).GetProperty("CardControllerToBoardTarget",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                    ?.GetValue(null);
+            }
+            catch { return result; }
+
+            var suite = dict as System.Collections.IEnumerable;
+            if (suite == null) return result;
+
+            try
+            {
+                foreach (var e in suite)
+                {
+                    var t = e.GetType();
+                    var emplacement = t.GetProperty("Value")?.GetValue(e)?.ToString();
+                    if (emplacement == null) continue;
+
+                    List<CardInfo> cible = null;
+                    string p = null;
+                    if (emplacement.StartsWith(prefixe)) { cible = result; p = prefixe; }
+                    else if (prefixe2 != null && seconde != null
+                             && emplacement.StartsWith(prefixe2)) { cible = seconde; p = prefixe2; }
+                    if (cible == null) continue;
+
+                    if (!int.TryParse(emplacement.Substring(p.Length),
+                                      out var socket)) continue;
+
+                    var controleur = t.GetProperty("Key")?.GetValue(e);
+                    if (controleur == null) continue;
+
+                    object carte = null;
+                    try
+                    {
+                        carte = controleur.GetType().GetProperty("CardData")?.GetValue(controleur)
+                             ?? controleur.GetType().GetProperty("Card")?.GetValue(controleur);
+                    }
+                    catch { }
+                    if (carte == null) continue;
+
+                    try
+                    {
+                        var go = controleur.GetType().GetProperty("gameObject")?.GetValue(controleur);
+                        var actif = go?.GetType().GetProperty("activeInHierarchy")?.GetValue(go);
+                        if (actif is bool b && !b) continue;
+                    }
+                    catch { }
+
+                    string type = null;
+                    try { type = carte.GetType().GetProperty("Type")?.GetValue(carte)?.ToString(); }
+                    catch { }
+                    if (type == "SocketEffect") continue;
+
+                    string instance = null;
+                    try
+                    {
+                        var iid = carte.GetType().GetProperty("InstanceId")?.GetValue(carte);
+                        instance = iid?.GetType().GetProperty("Value")?.GetValue(iid)?.ToString()
+                                ?? iid?.ToString();
+                    }
+                    catch { }
+                    if (instance != null && !vues.Add(instance)) continue;
+
+                    var info = DecrireCarte(carte, socket);
+                    if (info == null) continue;
+                    PositionEcran(controleur, info);
+                    cible.Add(info);
+                }
+            }
+            catch (Exception ex) { Log.LogWarning("[Bande] " + prefixe + " : " + ex.Message); }
+
+            result.Sort((a, b) => a.Socket.CompareTo(b.Socket));
+            if (seconde != null) seconde.Sort((a, b) => a.Socket.CompareTo(b.Socket));
+            return result;
+        }
+
+        private static List<CardInfo> LireTalentsAdverses(object run, List<CardInfo> face)
+        {
+            var result = new List<CardInfo>();
+            if (face == null || face.Count == 0) return result;
+
+            object adversaire;
+            try { adversaire = run.GetType().GetProperty("Opponent")?.GetValue(run); }
+            catch { return result; }
+            if (adversaire == null) return result;
+
+            try { return ReadSkills(adversaire); }
+            catch (Exception ex)
+            {
+                Log.LogWarning("[Face] talents adverses : " + ex.Message);
+                return result;
+            }
+        }
+
+        private static Camera TrouverCamera()
+        {
+            var c = Camera.main;
+            if (c != null) return c;
+            var toutes = Camera.allCameras;
+            return (toutes != null && toutes.Length > 0) ? toutes[0] : null;
+        }
+
+        private static void PositionEcran(object controleur, CardInfo info)
+        {
+            try
+            {
+                var cam = TrouverCamera();
+                if (cam == null) return;
+
+                var comp = controleur as Component;
+                if (comp == null) return;
+
+                int l = Screen.width;
+                int h = Screen.height;
+                if (l <= 0 || h <= 0) return;
+
+                var boite = comp.GetComponent<BoxCollider>();
+
+                if (boite != null)
+                {
+                    var b = boite.bounds;
+                    float xmin = float.MaxValue, xmax = float.MinValue;
+                    float ymin = float.MaxValue, ymax = float.MinValue;
+                    bool devant = false;
+
+                    for (int i = 0; i < 8; i++)
+                    {
+                        var coin = new Vector3(
+                            (i & 1) == 0 ? b.min.x : b.max.x,
+                            (i & 2) == 0 ? b.min.y : b.max.y,
+                            (i & 4) == 0 ? b.min.z : b.max.z);
+
+                        var q = cam.WorldToScreenPoint(coin);
+                        if (q.z <= 0f) continue;      // coin derriere la camera
+                        devant = true;
+
+                        if (q.x < xmin) xmin = q.x;
+                        if (q.x > xmax) xmax = q.x;
+                        if (q.y < ymin) ymin = q.y;
+                        if (q.y > ymax) ymax = q.y;
+                    }
+
+                    if (devant)
+                    {
+                        info.X = (xmin + xmax) / 2f * 100f / l;
+                        info.Y = (h - (ymin + ymax) / 2f) * 100f / h;
+                        info.W = (xmax - xmin) * 100f / l;
+                        info.H = (ymax - ymin) * 100f / h;
+                        return;
+                    }
+                }
+
+                var p = cam.WorldToScreenPoint(comp.transform.position);
+                if (p.z <= 0f) return;
+                info.X = p.x * 100f / l;
+                info.Y = (h - p.y) * 100f / h;
+            }
+            catch { /* position indisponible : l'application se rabat sur le socket */ }
+        }
+
+        private static Dictionary<int, string> LireEffetsEmplacement()
+        {
+            return LireEffetsDe(Data.Run?.Player);
+        }
+
+        private static void RattacherEffets(List<CardInfo> cartes,
+                                            Dictionary<int, string> effets)
+        {
+            if (cartes == null || effets == null || effets.Count == 0) return;
+            foreach (var carte in cartes)
+            {
+                var largeur = carte.Size == "Medium" ? 2 : (carte.Size == "Large" ? 3 : 1);
+                for (var k = 0; k < largeur; k++)
+                {
+                    if (!effets.TryGetValue(carte.Socket + k, out var id)) continue;
+                    carte.SocketEffects ??= new List<string>();
+                    if (!carte.SocketEffects.Contains(id)) carte.SocketEffects.Add(id);
+                }
+            }
+        }
+
+        private static Dictionary<int, string> LireEffetsDe(object joueur)
+        {
+            var effets = new Dictionary<int, string>();
+            try
+            {
+                var conteneur = joueur?.GetType()
+                    .GetProperty("Socket")?.GetValue(joueur);
+                if (conteneur == null) return effets;
+
+                var m = conteneur.GetType().GetMethod("GetItems",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    null, Type.EmptyTypes, null);
+                var liste = m?.Invoke(conteneur, null) as System.Collections.IEnumerable;
+                if (liste == null) return effets;
+
+                foreach (var effet in liste)
+                {
+                    if (effet == null) continue;
+
+                    var id = effet.GetType()
+                        .GetProperty("TemplateId")?.GetValue(effet)?.ToString();
+
+                    string code = null;
+                    try
+                    {
+                        var modele = effet.GetType().GetProperty("Template")?.GetValue(effet);
+                        var interne = modele?.GetType()
+                            .GetProperty("InternalName")?.GetValue(modele)?.ToString();
+                        if (interne != null)
+                        {
+                            var ouvre = interne.IndexOf('[');
+                            var ferme = interne.IndexOf(']');
+                            if (ouvre >= 0 && ferme > ouvre)
+                            {
+                                code = interne.Substring(ouvre + 1, ferme - ouvre - 1).Trim();
+                                if (code.EndsWith(" Note")) code = code.Substring(0, code.Length - 5);
+                            }
+                        }
+                    }
+                    catch { }
+
+                    var emplacement = effet.GetType()
+                        .GetProperty("LeftSocketId")?.GetValue(effet)?.ToString();
+                    if (id == null || emplacement == null) continue;
+
+                    var chiffres = emplacement.Substring(emplacement.LastIndexOf('_') + 1);
+                    if (int.TryParse(chiffres, out var numero))
+                        effets[numero] = code == null ? id : (id + "|" + code);
+                }
+            }
+            catch (Exception ex) { Log.LogWarning("[Effets] " + ex.Message); }
+            return effets;
+        }
+
+        private static bool _enchantementSignale;
+
+        private static string NomEnchantement(object carte)
+        {
+            if (carte == null) return null;
+
+            const BindingFlags OU = BindingFlags.Instance | BindingFlags.Public
+                                  | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy;
+            object v = null;
+
+            try
+            {
+                for (var t = carte.GetType(); t != null && v == null; t = t.BaseType)
+                {
+                    var p = t.GetProperty("Enchantment", OU);
+                    if (p != null && p.GetIndexParameters().Length == 0)
+                    {
+                        v = p.GetValue(carte);
+                        if (v != null) break;
+                    }
+
+                    var f = t.GetField("Enchantment", OU);
+                    if (f != null) v = f.GetValue(carte);
+                }
+            }
+            catch { return null; }
+
+            if (v == null)
+            {
+                if (!_enchantementSignale)
+                {
+                    _enchantementSignale = true;
+                    Log.LogInfo("[Face] « Enchantment » introuvable sur "
+                        + carte.GetType().FullName + " — les cartes de la bande "
+                        + "s'afficheront sans enchantement.");
+                }
+                return null;
+            }
+
+            var nom = v.ToString();
+            return string.IsNullOrEmpty(nom) || nom == "None" ? null : nom;
+        }
+
+        private static CardInfo DecrireCarte(object carte, int socket)
+        {
+            try
+            {
+                var t = carte.GetType();
+                var modele = t.GetProperty("Template")?.GetValue(carte);
+                var id = modele?.GetType().GetProperty("Id")?.GetValue(modele)?.ToString();
+
+                if (modele != null && id != null && VidageDemande())
+                    TryExtractCardData(modele, id);
+
+                var loc = modele?.GetType().GetProperty("Localization")?.GetValue(modele);
+                var titre = loc?.GetType().GetProperty("Title")?.GetValue(loc);
+
+                return new CardInfo
+                {
+                    Name         = LocalizeText(titre),
+                    InternalName = modele?.GetType().GetProperty("InternalName")
+                                         ?.GetValue(modele)?.ToString(),
+                    TemplateId   = id,
+                    Size         = t.GetProperty("Size")?.GetValue(carte)?.ToString(),
+                    Tier         = t.GetProperty("Tier")?.GetValue(carte)?.ToString(),
+                    Socket       = socket,
+                    Type         = t.GetProperty("Type")?.GetValue(carte)?.ToString(),
+                    Enchantment  = NomEnchantement(carte),
+                    ArtKey       = modele?.GetType().GetProperty("ArtKey")
+                                         ?.GetValue(modele)?.ToString(),
+                };
+            }
+            catch { return null; }
         }
 
         private void WriteBoardState()
@@ -192,9 +509,32 @@ namespace BazaarScannerBridge
                 File.WriteAllText(_outputPath, "{\"ready\":false}");
                 return;
             }
-
             var board = ReadContainerItems(run.Player.Hand);
+
+            var effets = LireEffetsEmplacement();
+            if (effets.Count > 0)
+            {
+                RattacherEffets(board, effets);
+            }
+
             var skills = ReadSkills(run.Player);
+
+            LireBandes();
+            var face = _face;
+            var reserve = _reserve;
+
+            var effetsAdverses = LireEffetsDe(run.Opponent);
+            if (effetsAdverses.Count > 0) RattacherEffets(face, effetsAdverses);
+            var faceSkills = LireTalentsAdverses(run, face);
+
+            var enCombat = false;
+            try
+            {
+                var adv = run.GetType().GetProperty("Opponent")?.GetValue(run);
+                var main = adv?.GetType().GetProperty("Hand")?.GetValue(adv);
+                enCombat = ReadContainerItems(main).Count > 0;
+            }
+            catch { }
 
             var state = new BoardState
             {
@@ -203,14 +543,37 @@ namespace BazaarScannerBridge
                 Language = _currentLang,
                 Board = board,
                 Skills = skills,
+                Face = face,
+                Reserve = reserve,
+                FaceCentree = !enCombat,
+                FaceSkills = faceSkills,
             };
 
-            var json = JsonConvert.SerializeObject(state, Formatting.Indented);
-            File.WriteAllText(_outputPath, json);
+            if (System.Threading.Interlocked.CompareExchange(ref _ecritureEnCours, 1, 0) == 0)
+            {
+                System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+                {
+                    try
+                    {
+                        var json = JsonConvert.SerializeObject(state, Formatting.Indented);
+
+                        var temporaire = _outputPath + ".tmp";
+                        File.WriteAllText(temporaire, json);
+                        if (File.Exists(_outputPath)) File.Delete(_outputPath);
+                        File.Move(temporaire, _outputPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.LogWarning("Erreur ecriture board: " + ex.Message);
+                    }
+                    finally
+                    {
+                        System.Threading.Interlocked.Exchange(ref _ecritureEnCours, 0);
+                    }
+                });
+            }
         }
 
-        // Charge le fichier extracted_cards.json existant (s'il y en a un) dans
-        // le cache mémoire, pour ne pas re-sérialiser des cartes déjà connues.
         private static void LoadExtractedCardsCache()
         {
             if (File.Exists(_cardsDbPath))
@@ -235,9 +598,6 @@ namespace BazaarScannerBridge
                 }
             }
 
-            // Le cache anglais se recharge de la meme facon. Sans cela, le fichier
-            // serait reecrit a chaque session avec les seules cartes vues depuis
-            // le demarrage, et perdrait tout le reste.
             if (File.Exists(_cardsDbPathEn) &&
                 !string.Equals(_cardsDbPath, _cardsDbPathEn, StringComparison.OrdinalIgnoreCase))
             {
@@ -256,17 +616,9 @@ namespace BazaarScannerBridge
             }
         }
 
-        // ------------------------------------------------------------------
-        // Traduction : dictionnaire hash MD5(texte anglais) -> texte traduit,
-        // charge depuis un CSV externe place a cote de la DLL.
-        // ------------------------------------------------------------------
-
         private static readonly Dictionary<string, string> _translations = new Dictionary<string, string>();
         private static bool _translationsLoaded = false;
 
-        // Nom de fichier attendu : translations_<lang>.csv (ex: translations_fr.csv).
-        // Format : "English" (texte anglais exact), "Translation". Pas de hash :
-        // on compare directement le texte anglais tel qu'il apparaît dans le jeu.
         private static void LoadTranslations()
         {
             _translationsLoaded = true;
@@ -325,10 +677,6 @@ namespace BazaarScannerBridge
             }
         }
 
-        // Parseur CSV minimal mais correct : gère les champs entre guillemets,
-        // les guillemets échappés ("") et les retours à la ligne à l'intérieur
-        // d'un champ (le CSV fourni en contient ~135, un simple ReadAllLines
-        // les aurait corrompus).
         private static List<string[]> ParseCsv(string content)
         {
             var rows = new List<string[]>();
@@ -373,20 +721,6 @@ namespace BazaarScannerBridge
             return rows;
         }
 
-        // Résout le texte localisé d'un objet TLocalizableText (propriété Text
-        // accédée par réflexion car le type exact n'est pas référencé ici).
-        // Retombe sur le texte anglais si aucune traduction n'est trouvée.
-        // Renvoie le texte ANGLAIS d'origine, sans traduire.
-        //
-        // Le mod traduisait auparavant avec translations_<langue>.csv, la langue
-        // venant de DetectLanguage() — qui retombe sur celle de Windows quand la
-        // locale d'Unity n'est pas lisible. Un jeu en anglais produisait donc des
-        // noms francais sur une machine francaise.
-        //
-        // Desormais board_state.json ne transporte que de l'anglais, et c'est
-        // l'application compagnon qui traduit, dans la langue que le streamer a
-        // choisie dans son interface. Une seule langue affichee, decidee a un
-        // seul endroit.
         private static string LocalizeText(object localizableText)
         {
             if (localizableText == null) return null;
@@ -401,9 +735,6 @@ namespace BazaarScannerBridge
             }
         }
 
-        // Parcourt récursivement le JSON sérialisé d'une carte et remplace tout
-        // champ "Text" par sa traduction quand ce texte anglais exact est trouvé
-        // dans le dictionnaire de traductions (clé = texte anglais, pas de hash).
         private static void PatchLocalizedTexts(Newtonsoft.Json.Linq.JToken token)
         {
             if (token is Newtonsoft.Json.Linq.JObject obj)
@@ -425,48 +756,9 @@ namespace BazaarScannerBridge
             }
         }
 
-        // Sérialise et ajoute au cache cumulatif la définition complète d'une carte
-        // (item ou skill), en la réextrayant si son contenu a changé depuis la
-        // dernière fois (mise à jour du jeu, rework, Id réutilisé). Le fichier
-        // résultant a la même structure que GameData.db (Tiers, Enchantments,
-        // Localization...), pour être directement exploitable côté serveur sans
-        // changement de logique.
-        // ── VIDAGE DU CATALOGUE ────────────────────────────────────────────────
-        //
-        // Le jeu tient en memoire la totalite de ses modeles de carte : il doit
-        // les connaitre pour composer ses boutiques. On peut donc les extraire
-        // TOUS d'un coup, sans jouer, au lieu d'attendre de les croiser.
-        //
-        // Le chemin d'acces est celui qu'emploie le jeu lui-meme :
-        //   Data.GetStatic()      -> JsonGameDataManager
-        //   manager.GetCardMap()  -> Dictionary<Guid, ITCard>
-        //
-        // GetCardMap() lit toute la table SQLite et deserialise chaque carte :
-        // c'est couteux (plusieurs secondes), donc on l'appelle sur un thread
-        // de fond pour ne pas figer le jeu. Le jeu publie sa carte par une
-        // affectation de reference atomique, l'appel hors thread principal est
-        // donc sans danger.
-        //
-        // Interet decisif : chaque modele porte son texte anglais d'origine en
-        // plus de sa cle de traduction. Un seul vidage donne donc l'anglais
-        // authentique ET la langue jouee, sans relancer le jeu onze fois.
-        //
-        // Mecanisme repere dans BazaarPlusPlus (MIT, Xinyu YANG) :
-        // GameInterop/StaticCards/BppStaticDataAccess.cs
-
         private static bool _vidageEnCours;
         private static bool _vidageFait;
 
-        // Le vidage du catalogue ne sert QU'À L'AUTEUR, pour alimenter le site
-        // qui sert les fiches. Un streamer n'en a aucun usage : ses cartes lui
-        // viennent déjà de ce site. Le lui imposer écrirait 32 Mo dans son
-        // dossier de plugins et ferait lire toute la base à chaque lancement,
-        // sans rien lui apporter.
-        //
-        // Il ne s'exécute donc que si un fichier vide nommé « extraire-catalogue »
-        // est déposé à côté de la DLL. Un fichier plutôt qu'une option compilée :
-        // la même DLL sert à tout le monde, et il n'y a pas deux versions à
-        // maintenir.
         private static bool VidageDemande()
         {
             try
@@ -478,18 +770,6 @@ namespace BazaarScannerBridge
             catch { return false; }
         }
 
-        // Seul le fichier ANGLAIS est ecrit desormais.
-        //
-        // Le fichier traduit etait redondant : son contenu se deduit entierement
-        // de l'anglais en appliquant translations_<langue>.csv, ce que le serveur
-        // fait deja pour les dix autres langues. Deux fichiers de 32 Mo au lieu
-        // d'un, pour la meme information.
-        //
-        // Et surtout, il dependait de DetectLanguage(), qui retombe sur la langue
-        // de Windows quand la locale d'Unity n'est pas lisible. Un streamer
-        // allemand jouant en anglais aurait produit un fichier mal etiquete sans
-        // le savoir. L'anglais, lui, vient du champ Text des modeles : c'est la
-        // langue d'origine du jeu, independante de tout reglage.
         private static void EcrireCaches()
         {
             File.WriteAllText(_cardsDbPathEn,
@@ -507,9 +787,6 @@ namespace BazaarScannerBridge
                 if (!TheBazaar.Data.IsManagerCreated()) return;
                 statique = TheBazaar.Data.GetStatic();
 
-                // GetStatic() a existe en version synchrone et en version
-                // renvoyant une tache : on accepte les deux, sans jamais
-                // bloquer en attendant.
                 if (statique is System.Threading.Tasks.Task tache)
                 {
                     if (!tache.IsCompleted) return;
@@ -560,8 +837,6 @@ namespace BazaarScannerBridge
                             var id = entree.Key?.ToString();
                             if (string.IsNullOrEmpty(id) || entree.Value == null) continue;
 
-                            // Les cartes portent leur modele dans .Template quand
-                            // elles sont instanciees ; ici ce SONT les modeles.
                             TryExtractCardData(entree.Value, id);
                         }
                         catch { echecs++; }
@@ -583,8 +858,37 @@ namespace BazaarScannerBridge
             });
         }
 
+        private sealed class ParReference : IEqualityComparer<object>
+        {
+            public static readonly ParReference Instance = new ParReference();
+            public new bool Equals(object a, object b) { return ReferenceEquals(a, b); }
+            public int GetHashCode(object o)
+            {
+                return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(o);
+            }
+        }
+
+        private static string NomDeCarte(object socketable)
+        {
+            try
+            {
+                var tpl = socketable?.GetType()
+                    .GetProperty("Template")?.GetValue(socketable);
+                if (tpl == null) return null;
+
+                var loc = tpl.GetType().GetProperty("Localization")?.GetValue(tpl);
+                if (loc == null) return null;
+
+                var titre = loc.GetType().GetProperty("Title")?.GetValue(loc);
+                return LocalizeText(titre);
+            }
+            catch { return null; }
+        }
+
         private static void TryExtractCardData(object template, string templateId)
         {
+            if (!VidageDemande()) return;
+
             if (template == null || string.IsNullOrEmpty(templateId)) return;
 
             try
@@ -594,7 +898,6 @@ namespace BazaarScannerBridge
                 var json = JsonConvert.SerializeObject(template, ExtractSettings);
                 var jObj = Newtonsoft.Json.Linq.JObject.Parse(json);
 
-                // Version anglaise : le JSON tel quel, avant toute traduction.
                 var objEn = Newtonsoft.Json.Linq.JObject.Parse(json).ToObject<object>();
 
                 if (_translations.Count > 0)
@@ -603,14 +906,6 @@ namespace BazaarScannerBridge
                 var obj = jObj.ToObject<object>();
                 var signature = JsonConvert.SerializeObject(obj, Formatting.None);
 
-                // Un Id déjà vu ne veut pas dire "plus jamais besoin d'être réextrait" :
-                // une mise à jour du jeu peut reworker ou réutiliser cet Id pour un
-                // tout autre item/skill. On ne saute que si le contenu est identique
-                // à la dernière extraction connue.
-                // Contenu inchange ET version anglaise deja presente : rien a faire.
-                // La seconde condition est indispensable apres l'ajout du fichier
-                // anglais : sans elle, une carte deja connue ne serait jamais
-                // ecrite en anglais, puisque sa signature n'a pas bouge.
                 if (_extractedCardsSignature.TryGetValue(templateId, out var previous)
                     && previous == signature
                     && _extractedCardsEn.ContainsKey(templateId))
@@ -620,9 +915,6 @@ namespace BazaarScannerBridge
                 _extractedCardsEn[templateId] = objEn;
                 _extractedCardsSignature[templateId] = signature;
 
-                // Pendant le vidage du catalogue, on n'ecrit pas a chaque carte :
-                // 1400 ecritures de plusieurs megaoctets bloqueraient le disque.
-                // EcrireCaches() est appele une fois a la fin.
                 if (_vidageEnCours) return;
 
                 EcrireCaches();
@@ -671,6 +963,44 @@ namespace BazaarScannerBridge
             { "Bronze", 0 }, { "Silver", 1 }, { "Gold", 2 }, { "Diamond", 3 }, { "Legendary", 4 },
         };
 
+        private static readonly Dictionary<string, int> _arriveeTalents = new();
+        private static int _compteurArrivees;
+
+        private static string CleTalent(CardInfo c)
+        {
+            return (c.TemplateId ?? c.Name ?? "?") + "|" + (c.Tier ?? "?");
+        }
+
+        private static void NoterArriveesTalents(List<CardInfo> talents)
+        {
+            foreach (var c in talents)
+            {
+                var cle = CleTalent(c);
+                if (!_arriveeTalents.ContainsKey(cle))
+                    _arriveeTalents[cle] = _compteurArrivees++;
+            }
+        }
+
+        /* Le jeu présente ses talents du palier le plus élevé au plus bas.
+           Si l'énumération ne respecte pas cette pente, c'est qu'elle n'est
+           pas celle de l'affichage : on retombe alors sur notre tri. */
+        private static bool OrdreJeuPlausible(List<CardInfo> talents)
+        {
+            var precedent = int.MaxValue;
+            foreach (var c in talents)
+            {
+                var rang = TierRank.TryGetValue(c.Tier ?? "", out var r) ? r : -1;
+                if (rang > precedent) return false;
+                precedent = rang;
+            }
+            return true;
+        }
+
+        private static int RangArrivee(CardInfo c)
+        {
+            return _arriveeTalents.TryGetValue(CleTalent(c), out var r) ? r : int.MaxValue;
+        }
+
         private static List<CardInfo> ReadSkills(object player)
         {
             var result = new List<CardInfo>();
@@ -694,12 +1024,27 @@ namespace BazaarScannerBridge
                 });
             }
 
-            // Trie par qualité décroissante (Legendary → Bronze), comme l'affichage
-            // du jeu. OrderByDescending est un tri stable : pour deux compétences
-            // de même qualité, l'ordre d'obtention d'origine est conservé.
-            var sorted = result
-                .OrderByDescending(c => TierRank.TryGetValue(c.Tier, out var r) ? r : -1)
-                .ToList();
+            NoterArriveesTalents(result);
+
+            /* L'ordre dans lequel le jeu énumère les talents est celui qu'il
+               affiche. Le reconstituer — par palier, puis par ordre d'arrivée
+               mémorisé — donnait un résultat proche mais pas identique : un
+               talent amélioré après ses voisins de palier se retrouvait devant
+               eux au lieu de derrière.
+
+               On conserve donc l'ordre du jeu tel quel. Le tri d'origine reste
+               en secours, pour le cas où une mise à jour cesserait de garantir
+               cet ordre : il vaut mieux un ordre approché qu'aucun. */
+            var sorted = result;
+
+            if (!OrdreJeuPlausible(result))
+            {
+                sorted = result
+                    .OrderByDescending(c => TierRank.TryGetValue(c.Tier, out var r) ? r : -1)
+                    .ThenBy(c => RangArrivee(c))
+                    .ToList();
+            }
+
             for (int i = 0; i < sorted.Count; i++) sorted[i].Socket = i;
             return sorted;
         }
@@ -712,6 +1057,14 @@ namespace BazaarScannerBridge
         public string Language;
         public List<CardInfo> Board;
         public List<CardInfo> Skills;
+
+        public List<CardInfo> Face;
+
+        public bool FaceCentree;
+
+        public List<CardInfo> FaceSkills;
+
+        public List<CardInfo> Reserve;
     }
 
     public class CardInfo
@@ -723,6 +1076,15 @@ namespace BazaarScannerBridge
         public string Tier;
         public string Enchantment;
         public int Socket;
+
+        public List<string> SocketEffects;
         public string ArtKey;
+
+        public float? X;
+        public float? Y;
+        public float? W;
+        public float? H;
+
+        public string Type;
     }
 }

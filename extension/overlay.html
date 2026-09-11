@@ -19,16 +19,16 @@
       justify-content: flex-start;
       min-height: 100vh;
       padding: 12px;
-      /* Rajdhani : sans-serif compact, excellent en overlay */
       font-family: 'Rajdhani', 'Arial Narrow', Arial, sans-serif;
       overflow: hidden;
-      /* Netteté maximale dans le navigateur CEF d'OBS */
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
     }
 
-    /* ── Carte ─────────────────────────────────────────────── */
     #card {
+      --accent:      #f0c060;   /* titres, valeurs mises en avant */
+      --accent-doux: #c09050;   /* étiquettes, filets */
+      --accent-sombre: #b07818;
       width: 483px;
       background: linear-gradient(155deg, #1c0f06 0%, #2c1808 55%, #1c0f06 100%);
       border: 1px solid #7a4e28;
@@ -45,10 +45,8 @@
     #card.visible { opacity:1; transform:none; }
     #card.hiding  { opacity:0; transform:translateY(-9px) scale(0.98); transition:opacity 0.3s ease-in, transform 0.3s ease-in; }
 
-    /* ── Barre dorée ──────────────────────────────────────── */
-    .top-bar { height:2px; background:linear-gradient(90deg,transparent,#b07818 15%,#f0c060 50%,#b07818 85%,transparent); }
+    .top-bar { height:2px; background:linear-gradient(90deg,transparent,var(--accent-sombre) 15%,var(--accent) 50%,var(--accent-sombre) 85%,transparent); }
 
-    /* ── En-tête ──────────────────────────────────────────── */
     .header {
       display: flex;
       align-items: center;
@@ -59,7 +57,6 @@
     }
     .header-left { flex:1; min-width:0; }
 
-    /* ── Image de l'objet ─────────────────────────────────── */
     .item-img-wrap {
       flex-shrink: 0;
       height: 94px;
@@ -70,12 +67,10 @@
       border-radius: 4px;
       overflow: hidden;
     }
-    /* Ratios fidèles au jeu (comme bazaardb.gg) */
     .item-img-wrap.size-Small  { width: 47px;  } /* 0.5 × 94 */
     .item-img-wrap.size-Medium { width: 94px;  } /* 1.0 × 94 */
     .item-img-wrap.size-Large  { width: 141px; } /* 1.5 × 94 */
 
-    /* Couleur de bordure selon le tier de départ */
     .item-img-wrap.tier-Bronze   { border-color: #cd7f32; box-shadow: 0 0 8px rgba(205,127,50,.5); }
     .item-img-wrap.tier-Silver   { border-color: #c8c8c8; box-shadow: 0 0 8px rgba(200,200,200,.5); }
     .item-img-wrap.tier-Gold     { border-color: #f0c060; box-shadow: 0 0 8px rgba(240,192,96,.5); }
@@ -105,11 +100,10 @@
       font-family: 'Cinzel', serif;
       font-size: 26px;
       font-weight: 700;
-      color: #f0c060;
+      color: var(--accent);
       text-shadow: 0 0 18px rgba(190,115,5,.7), 1px 1px 3px rgba(0,0,0,0.9);
       line-height: 1.15;
       word-break: break-word;
-      /* Autorise 2 lignes ; au-delà (cas extrême), coupe proprement avec … */
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -118,8 +112,6 @@
 
     .badges-row { display:flex; gap:6px; margin-top:7px; flex-wrap:wrap; align-items:center; }
 
-    /* ── Badges : taille et tier unifiés ─────────────────── */
-    /* Base commune à TOUS les badges (tier, size, tag) */
     .badge, .badge-tag {
       font-family: 'Rajdhani', Arial, sans-serif;
       font-size: 13px;
@@ -132,7 +124,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Tier */
     .badge-tier            { border-color:rgba(185,115,8,.5); background:rgba(185,115,8,.12); }
     .badge-tier.Bronze     { color:#e08830; }
     .badge-tier.Silver     { color:#d0d0d0; }
@@ -140,10 +131,8 @@
     .badge-tier.Diamond    { color:#a8d8f8; }
     .badge-tier.Legendary  { color:#f08040; }
 
-    /* Taille */
     .badge-size { color:#b09060; border-color:rgba(176,144,96,.45); background:rgba(144,112,80,.1); }
 
-    /* Tags */
     .badge-tag { color:#c0a870; border-color:rgba(160,110,50,.55); background:rgba(100,65,25,.3); }
     .badge-tag.Weapon   { color:#f07848; border-color:rgba(240,120,72,.55); background:rgba(240,96,48,.12); }
     .badge-tag.Tool     { color:#d4b050; border-color:rgba(210,178,80,.55); background:rgba(200,168,72,.12); }
@@ -155,7 +144,55 @@
     .badge-tag.Core     { color:#e0b0f8; border-color:rgba(224,176,248,.55); background:rgba(216,160,248,.12); }
     .badge-tag.Potion   { color:#90d850; border-color:rgba(144,216,80,.55); background:rgba(128,200,64,.12); }
 
-    /* ── Portrait héros ───────────────────────────────────── */
+    .badge-tag.Apparel  { color:#d8a0c8; border-color:rgba(216,160,200,.55); background:rgba(208,144,192,.12); }
+    .badge-tag.Dinosaur { color:#88c060; border-color:rgba(136,192,96,.55); background:rgba(120,176,80,.12); }
+    .badge-tag.Dragon   { color:#f06060; border-color:rgba(240,96,96,.55); background:rgba(224,80,80,.12); }
+    .badge-tag.Drone    { color:#88b8d8; border-color:rgba(136,184,216,.55); background:rgba(120,168,200,.12); }
+    .badge-tag.Loot     { color:#f0d070; border-color:rgba(240,208,112,.55); background:rgba(232,196,96,.12); }
+    .badge-tag.Ray      { color:#a0e8e0; border-color:rgba(160,232,224,.55); background:rgba(144,216,208,.12); }
+    .badge-tag.Reagent  { color:#b890e8; border-color:rgba(184,144,232,.55); background:rgba(168,128,216,.12); }
+    .badge-tag.Relic    { color:#d0b088; border-color:rgba(208,176,136,.55); background:rgba(192,160,120,.12); }
+    .badge-tag.Tech     { color:#70d0c0; border-color:rgba(112,208,192,.55); background:rgba(96,192,176,.12); }
+    .badge-tag.Toy      { color:#f0a0d0; border-color:rgba(240,160,208,.55); background:rgba(232,144,192,.12); }
+    .badge-tag.Trap     { color:#c08850; border-color:rgba(192,136,80,.55); background:rgba(176,120,64,.12); }
+    .badge-tag.Merchant { color:#e8c890; border-color:rgba(232,200,144,.55); background:rgba(216,180,120,.14); }
+
+    .badge-tag.Burn       { color:#f89840; border-color:rgba(248,152,64,.55);  background:rgba(232,140,56,.12); }
+    .badge-tag.Poison     { color:#08b848; border-color:rgba(8,184,72,.55);    background:rgba(8,168,64,.12); }
+    .badge-tag.Freeze     { color:#38c8f0; border-color:rgba(56,200,240,.55);  background:rgba(48,184,224,.12); }
+    .badge-tag.Heal       { color:#88e830; border-color:rgba(136,232,48,.55);  background:rgba(120,216,40,.12); }
+    .badge-tag.Regen      { color:#88e830; border-color:rgba(136,232,48,.55);  background:rgba(120,216,40,.12); }
+    .badge-tag.Shield     { color:#f0c820; border-color:rgba(240,200,32,.55);  background:rgba(224,184,24,.12); }
+    .badge-tag.Haste      { color:#68e8c0; border-color:rgba(104,232,192,.55); background:rgba(88,216,176,.12); }
+    .badge-tag.Slow       { color:#c69c6c; border-color:rgba(198,156,108,.55); background:rgba(180,140,96,.12); }
+    .badge-tag.Crit       { color:#f05038; border-color:rgba(240,80,56,.55);   background:rgba(224,64,48,.12); }
+    .badge-tag.Charge     { color:#c0a0f0; border-color:rgba(192,160,240,.55); background:rgba(176,144,224,.12); }
+    .badge-tag.Economy    { color:#f8c818; border-color:rgba(248,200,24,.55);  background:rgba(232,184,16,.12); }
+    .badge-tag.Flying     { color:#b0e0f8; border-color:rgba(176,224,248,.55); background:rgba(160,208,240,.12); }
+    .badge-tag.Unsellable { color:#909090; border-color:rgba(144,144,144,.55); background:rgba(128,128,128,.12); }
+
+    .socket-effect {
+      margin: 8px -14px -14px;
+      padding: 8px 14px 10px;
+      border-top: 1px solid color-mix(in srgb, var(--accent-doux) 45%, transparent);
+      background: rgba(0,0,0,.28);
+      border-radius: 0 0 6px 6px;
+    }
+    .socket-effect .se-ligne1 {
+      font-family: 'Rajdhani', Arial, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      color: var(--accent-doux);
+      margin-bottom: 4px;
+    }
+    .socket-effect .se-ligne2 {
+      font-family: 'Rajdhani', Arial, sans-serif;
+      font-size: 15px;
+      color: #e8dcc4;
+      line-height: 1.35;
+    }
+
     .hero-portraits { display:flex; gap:5px; align-items:center; flex-shrink:0; }
     .hero-portrait {
       flex-shrink: 0;
@@ -177,22 +214,19 @@
       color: #c89040;
     }
 
-    /* ── Corps ────────────────────────────────────────────── */
     .body { padding:12px 16px 12px; display:flex; flex-direction:column; gap:0; }
 
-    /* ── Label de section ─────────────────────────────────── */
     .section-label {
       font-family: 'Rajdhani', Arial, sans-serif;
       font-size: 13px;
       font-weight: 700;
       letter-spacing: .25em;
       text-transform: uppercase;
-      color: #c09050;
+      color: var(--accent-doux);
       margin: 9px 0 6px;
     }
     .section-label:first-child { margin-top: 0; }
 
-    /* ── Ligne tooltip ────────────────────────────────────── */
     .tooltip-row {
       display: flex;
       align-items: flex-start;
@@ -201,15 +235,14 @@
     }
     .tooltip-row:last-child { margin-bottom: 0; }
 
-    /* ── Ligne cooldown horizontale ──────────────────────── */
     .cd-line {
       display: flex;
       align-items: baseline;
       gap: 7px;
       margin-bottom: 7px;
       padding: 5px 9px;
-      background: rgba(20,10,3,.6);
-      border: 1px solid #5a3818;
+      background: color-mix(in srgb, var(--accent-sombre) 12%, rgba(0,0,0,.65));
+      border: 1px solid color-mix(in srgb, var(--accent-sombre) 55%, transparent);
       border-radius: 6px;
     }
     .cd-label {
@@ -218,7 +251,7 @@
       font-weight: 700;
       letter-spacing: .04em;
       text-transform: uppercase;
-      color: #c09050;
+      color: var(--accent-doux);
       white-space: nowrap;
     }
     .cd-val {
@@ -245,9 +278,8 @@
       font-size: 18px;
       font-weight: 700;
     }
-    .cd-sep { color:#a07840; font-weight:700; margin:0 3px; font-size:15px; }
+    .cd-sep { color:var(--accent-doux); font-weight:700; margin:0 3px; font-size:15px; }
 
-    /* ── Lignes actif / passif — identiques sauf couleur du > ── */
     .effect-row {
       display: flex;
       align-items: flex-start;
@@ -260,20 +292,15 @@
       padding-left: 7px;
       margin-left: -10px;
     }
-    /* Puce des effets. Volontairement DIFFÉRENTE du « > » qui sépare les
-       valeurs par palier (.cd-sep) : les deux se confondaient à la lecture,
-       surtout quand un effet passait à la ligne. Rajdhani ne contient pas ce
-       glyphe, on laisse donc une pile de polices qui l'a. */
     .effect-arrow {
       flex-shrink: 0;
       font-family: 'Segoe UI Symbol', 'DejaVu Sans', Arial, sans-serif;
       font-size: 11px;
       line-height: 2.15;
       margin-right: 3px;
-      color: #c08030;
+      color: var(--accent-doux);
     }
 
-    /* ── Texte tooltip ────────────────────────────────────── */
     .kw-icon {
       display: inline-block;
       width: 1em;
@@ -291,7 +318,6 @@
       text-shadow: 1px 1px 2px rgba(0,0,0,0.85);
       -webkit-font-smoothing: antialiased;
     }
-    /* Passif : même rendu que l'actif */
     .tooltip-row.passive .tooltip-text {
       color: #d8c898;
       font-weight: 700;
@@ -299,10 +325,8 @@
       text-shadow: 1px 1px 2px rgba(0,0,0,0.85);
     }
 
-    /* ── Pas trouvé ───────────────────────────────────────── */
     .not-found { color:#905030; font-style:italic; font-size:16px; padding:5px 0; }
 
-    /* ── Portraits héros en bas (skills) ──────────────────── */
     .hero-portraits-bottom {
       display: flex; gap: 8px; align-items: center; justify-content: center;
       padding: 8px 14px 10px;
@@ -317,11 +341,14 @@
       flex-shrink: 0;
     }
     .hero-portraits-bottom .hero-portrait img { width:44px; height:44px; border-radius:50%; object-fit:cover; }
+
+    .hero-portraits-bottom.serres { gap:3px; }
+    .hero-portraits-bottom.serres .hero-portrait,
+    .hero-portraits-bottom.serres .hero-portrait img { width:30px; height:30px; }
     .hero-portraits-bottom .hero-portrait .hero-initial {
       font-family: 'Cinzel', serif; font-size:15px; font-weight:700; color:#c89040;
     }
 
-    /* ── Image skill ronde ────────────────────────────────── */
     .item-img-wrap.skill-img {
       width: 94px !important;
       height: 94px !important;
@@ -335,7 +362,6 @@
     }
     .kw-dynamic { color:#888; font-style:italic; } /* valeurs dynamiques en jeu */
 
-    /* ── Quêtes ───────────────────────────────────────────── */
     .quests-section { border-top: 1px solid rgba(120,70,20,.4); margin-top: 4px; padding-top: 4px; }
     .quest-label { font-size:14px; font-weight:700; letter-spacing:.15em; text-transform:uppercase;
                    color:#a07840; padding: 3px 14px 1px; }
@@ -351,24 +377,21 @@
       font-size: 11px;
     }
 
-    /* ── Bas ──────────────────────────────────────────────── */
     .bottom-bar {
       height: 2px;
-      background: linear-gradient(90deg,transparent,rgba(185,115,8,.3) 30%,rgba(185,115,8,.3) 70%,transparent);
+      background: linear-gradient(90deg,transparent,color-mix(in srgb, var(--accent-sombre) 30%, transparent) 30%,color-mix(in srgb, var(--accent-sombre) 30%, transparent) 70%,transparent);
       margin: 0 21px 6px;
     }
     .progress-wrap { height:2px; background:rgba(255,255,255,.04); }
-    #progress { height:100%; background:linear-gradient(90deg,#b07818,#f0c060); transform-origin:left; }
+    #progress { height:100%; background:linear-gradient(90deg,var(--accent-sombre),var(--accent)); transform-origin:left; }
 
-    /* ══════════════════════════════════════════
-       COULEURS MOTS-CLÉS (palette officielle)
-    ══════════════════════════════════════════ */
     .kw-num     { color:#f0c060; font-weight:700; }
     .kw-damage  { color:#f05038; font-weight:700; }
     .kw-shield  { color:#f0c820; font-weight:700; }
     .kw-heal    { color:#88e830; font-weight:700; }
     .kw-health  { color:#88e830; font-weight:700; }
     .kw-regen   { color:#88e830; font-weight:700; }
+    .kw-lifesteal{ color:#e05070; font-weight:700; }
     .kw-gold    { color:#f8c818; font-weight:700; }
     .kw-value   { color:#f8c818; font-weight:700; }
     .kw-poison  { color:#08b848; font-weight:700; }
@@ -388,7 +411,7 @@
     .kw-destroy { color:#8e7cc3; font-weight:700; }
     .kw-fly     { color:#f0c820; font-weight:700; }
     .kw-life    { color:#984868; font-weight:700; }
-    .kw-tag     { color:#98a8fe; font-weight:700; }
+    .kw-tag     { color:#809cff; font-weight:700; }
     .kw-quest   { color:#ffff00; font-weight:700; }
     .kw-rage    { color:#f01e60; font-weight:700; }
     .kw-repair  { color:#94facf; font-weight:700; }
@@ -481,7 +504,6 @@
   </g>
 </defs></svg>
 
-
 <div id="card">
   <div class="top-bar"></div>
   <div class="header">
@@ -502,8 +524,6 @@
 
 <script>
 let DISPLAY_MS = 10000;
-// Durée d'affichage : lue une fois au chargement, puis mise à jour par push
-// via /events quand les paramètres sont enregistrés (pas de polling).
 fetch('/overlay-config').then(r => r.json())
   .then(cfg => { if (cfg.displayMs > 0) DISPLAY_MS = cfg.displayMs; })
   .catch(() => { /* valeur par défaut conservée */ });
@@ -517,17 +537,13 @@ const HERO_PORTRAITS = {
   Mak:       'http://localhost:3000/characters/Mak_Portrait.png',
   Karnok:    'http://localhost:3000/characters/Karnok_Portrait.png',
   Common:    'http://localhost:3000/characters/Common_Portrait.png',
-  // Nouveau héros (maj en cours) : card.Heroes renvoie encore "Hero8" (nom
-  // interne/placeholder côté jeu) plutôt qu'un nom définitif — à corriger ici
-  // si le jeu expose un jour un vrai nom à la place.
   Hero8:     'http://localhost:3000/characters/Dragons_Portrait.png',
 };
 const HERO_INITIAL = { Pygmalien:'P', Vanessa:'V', Stelle:'S', Dooley:'D', Jules:'J', Mak:'M', Karnok:'K', Hero8:'D' };
 
-// Couleurs par enchantement (mêmes teintes thématiques que les mots-clés du jeu).
 const ENCHANTMENT_COLORS = {
   Golden:      '#f0c060',
-  Heavy:       '#999999',
+  Heavy:       '#c69c6c',   // même gris-brun que le ralentissement qu'il inflige
   Icy:         '#9fc5e8',
   Turbo:       '#00ffff',
   Shielded:    '#ffff00',
@@ -546,28 +562,10 @@ const HIDDEN_TAGS = new Set([
   'Shield','Poison','Burn','Freeze','Slow','Haste',
 ]);
 
-// Traductions d'affichage pour les badges (tags et taille). La classe CSS
-// garde la valeur anglaise d'origine (ex: "Vehicle") pour que les couleurs et
-// la largeur d'image continuent de fonctionner — seul le texte visible change.
-/* ── Langue d'affichage ──────────────────────────────────────────────────
-   Les glossaires ci-dessous traduisent en français ce que le jeu expose en
-   anglais. Dans l'overlay OBS, la langue est celle de l'outil ; dans
-   l'extension Twitch, c'est le spectateur qui choisit, et viewer.js pose
-   alors window.BAZAAR_LANGUE.
-
-   En anglais, on ne traduit rien : le texte du jeu est déjà dans la bonne
-   langue, il suffit de laisser passer la valeur d'origine.
-   --------------------------------------------------------------------- */
-
 function langueActive() {
   return (typeof window !== 'undefined' && window.BAZAAR_LANGUE) || 'fr';
 }
 
-/* Libellés et glossaires publiés avec les données, déduits des traductions du
-   jeu par tools/export-cards.js. Quand ils sont présents, ils font foi : ils
-   emploient la terminologie exacte du jeu, ce que des tables écrites à la main
-   ne garantiraient pas. Absents — overlay OBS, ou langue non exportée — on
-   retombe sur les glossaires français intégrés. */
 function publies() {
   return (typeof window !== 'undefined' && window.BAZAAR_LIBELLES) || null;
 }
@@ -576,9 +574,6 @@ function enFrancais() {
   return langueActive() === 'fr';
 }
 
-/* Traduit via un glossaire. Trois sources, dans cet ordre : les données
-   publiées, le glossaire français intégré, puis la valeur d'origine — que le
-   jeu fournit déjà en anglais. */
 function trad(glossaire, valeur, nomPublie) {
   const p = publies();
   if (p && nomPublie && p[nomPublie] && p[nomPublie][valeur]) {
@@ -588,17 +583,22 @@ function trad(glossaire, valeur, nomPublie) {
   return glossaire[valeur] || valeur;
 }
 
-// Libellés fixes de la fiche, par langue.
 const LIBELLES = {
   fr: {
     actif: 'Actif', passif: 'Passif', talent: 'Talent',
     delai: 'Délai d\'Activation :', sec: 'sec',
     munitions: 'Munitions', quetes: 'Quêtes', multicast: 'Répétition',
+    sansDescription: 'Aucune description.',
+    estSur: 'Cet objet est {}', surNotes: 'sur {}',
+    uneNote: 'un {}', et: 'et',
   },
   en: {
     actif: 'Active', passif: 'Passive', talent: 'Skill',
     delai: 'Cooldown:', sec: 'sec',
     munitions: 'Ammo', quetes: 'Quests', multicast: 'Multicast',
+    sansDescription: 'No description.',
+    estSur: 'This item is {}', surNotes: 'on {}',
+    uneNote: 'a {}', et: 'and',
   },
 };
 
@@ -615,6 +615,10 @@ const TAG_FR = {
   Loot: 'Butin', Potion: 'Potion', Property: 'Propriété', Ray: 'Rayon',
   Reagent: 'Réactif', Relic: 'Relique', Tech: 'Tech', Tool: 'Outil',
   Toy: 'Jouet', Trap: 'Piège', Vehicle: 'Véhicule', Weapon: 'Arme',
+  Instrument: 'Instrument', Merchant: 'Marchand', Burn: 'Brûlure', Poison: 'Poison', Freeze: 'Gel',
+  Heal: 'Soin', Shield: 'Bouclier', Regen: 'Régénération', Haste: 'Hâte',
+  Slow: 'Ralentissement', Crit: 'Critique', Charge: 'Charge', Economy: 'Économie',
+  Flying: 'Volant', Unsellable: 'Invendable',
 };
 const SIZE_FR = { Small: 'Petit', Medium: 'Moyen', Large: 'Grand' };
 const TIER_FR = { Bronze: 'Bronze', Silver: 'Argent', Gold: 'Or', Diamond: 'Diamant', Legendary: 'Légendaire' };
@@ -630,10 +634,6 @@ const itemImgWrap = document.getElementById('item-img-wrap');
 const itemImg     = document.getElementById('item-img');
 let hideTimer     = null;
 
-/**
- * Noms français officiels des enchantements (tirés du CSV de traductions du jeu).
- * La clé anglaise reste utilisée en interne (couleurs, lookups).
- */
 const ENCHANT_FR = {
   Golden: 'Doré', Heavy: 'Lourd', Icy: 'Glacé', Turbo: 'Turbo',
   Shielded: 'Blindé', Restorative: 'Guérisseur', Toxic: 'Toxique',
@@ -641,7 +641,6 @@ const ENCHANT_FR = {
   Radiant: 'Radieux', Obsidian: 'Obsidienne', Mossy: 'Moussu',
 };
 
-// ── Affichage ────────────────────────────────────────────────────────────────
 function showError(msg) {
   if (hideTimer) clearTimeout(hideTimer);
   nameEl.textContent = msg;
@@ -658,21 +657,18 @@ function showError(msg) {
 function showItem(data) {
   if (hideTimer) clearTimeout(hideTimer);
 
-  // Slot vide ou aucun objet/skill détecté → message d'erreur
   if (!data.found && data.empty) {
     const msg = data.isSkill ? 'Aucun skill détecté' : 'Aucun objet détecté';
     showError(msg);
     return;
   }
 
-  // Aucun résultat (position hors limites, etc.)
   if (!data.found) {
     const msg = data.isSkill ? 'Aucun skill détecté' : 'Aucun objet détecté';
     showError(msg);
     return;
   }
 
-  // Erreur serveur
   if (data.error) {
     showError('Erreur serveur.');
     return;
@@ -680,7 +676,6 @@ function showItem(data) {
 
   nameEl.textContent = data.name || '?';
 
-  // Nom de l'enchantement actif, au-dessus du nom de l'objet, dans sa couleur.
   const enchantColor = ENCHANTMENT_COLORS[data.enchantmentName] || '#f0c060';
   if (data.enchantmentName) {
     enchantNameEl.textContent = trad(ENCHANT_FR, data.enchantmentName, 'enchantements');
@@ -690,24 +685,34 @@ function showItem(data) {
     enchantNameEl.style.display = 'none';
   }
 
-  // Image
   if (data.image) {
     const imgDir = data.isSkill ? 'skills' : 'items';
-    itemImg.src = `http://localhost:3000/${imgDir}/${data.image}`;
+    const source = `http://localhost:3000/${imgDir}/${data.image}`;
+
+    if (itemImg.src !== source) {
+      itemImg.style.visibility = 'hidden';
+      itemImg.onload = () => { itemImg.style.visibility = ''; };
+      itemImg.src = source;
+    } else {
+      itemImg.style.visibility = '';
+    }
     itemImg.alt = data.name;
-    // Le cadre porte la qualité MINIMALE de l'objet (celle à laquelle il
-    // apparaît en boutique), pas celle de l'exemplaire possédé : c'est une
-    // caractéristique de la carte, pas de la partie en cours.
     itemImgWrap.className = `item-img-wrap size-${data.size || 'Medium'} tier-${data.tier || 'Bronze'}${data.isSkill ? ' skill-img' : ''}`;
+
+    /* La fiche porte aussi le palier : le cadre « rareté » du menu des
+       options s'en sert pour prendre la teinte correspondante. */
+    if (card) {
+      card.className = card.className.replace(/\btier-\w+\b/g, '').trim();
+      card.classList.add('tier-' + (data.tier || 'Bronze'));
+    }
     itemImgWrap.style.display = '';
     itemImg.onerror = () => { itemImgWrap.style.display = 'none'; };
   } else {
     itemImgWrap.style.display = 'none';
   }
 
-  // Badges
   badgesRow.innerHTML = '';
-  if (data.tier) badgesRow.innerHTML += `<span class="badge badge-tier ${esc(data.tier)}">${esc(trad(TIER_FR, data.tier, 'qualites'))}</span>`;
+
   if (data.isSkill) badgesRow.innerHTML += `<span class="badge badge-size">${lib('talent')}</span>`;
   else if (data.size) badgesRow.innerHTML += `<span class="badge badge-size">${esc(trad(SIZE_FR, data.size, 'tailles'))}</span>`;
   if (data.tags?.length) {
@@ -715,14 +720,15 @@ function showItem(data) {
       .forEach(t => { badgesRow.innerHTML += `<span class="badge-tag ${esc(t)}">${esc(trad(TAG_FR, t, 'tags'))}</span>`; });
   }
 
-  // Portraits : en haut pour items, en bas pour skills
   heroPortEl.innerHTML = '';
-  // Supprime les portraits en bas précédents si existants
   const existingBottom = document.getElementById('hero-portraits-bottom');
   if (existingBottom) existingBottom.remove();
 
-  if (!data.isSkill) {
-    // Items : portraits en haut à droite comme avant
+  const PORTRAITS_EN_HAUT_MAX = 2;
+  const enLigneDediee = data.isSkill
+    || (data.heroes && data.heroes.length > PORTRAITS_EN_HAUT_MAX);
+
+  if (!enLigneDediee) {
     const heroes = data.heroes?.length ? data.heroes : ['Common'];
     heroes.forEach(hero => {
       const div = document.createElement('div');
@@ -735,14 +741,15 @@ function showItem(data) {
     });
   }
 
-  // Corps
   bodyEl.innerHTML = buildBody(data.tooltips || [], data.cooldowns, data.ammo, data.multicast, data.quests, data.isSkill, data.enchantmentTooltips, enchantColor);
 
-  // Portraits en bas pour les skills — insérés avant bottom-bar
-  if (data.isSkill && data.heroes?.length) {
+  bodyEl.innerHTML += rendreEffetEmplacement(data.socketEffect);
+
+  if (enLigneDediee && data.heroes?.length) {
     const bottomDiv = document.createElement('div');
     bottomDiv.id = 'hero-portraits-bottom';
-    bottomDiv.className = 'hero-portraits-bottom';
+    bottomDiv.className = 'hero-portraits-bottom'
+      + (data.heroes.length > 4 ? ' serres' : '');
     data.heroes.forEach(hero => {
       const div = document.createElement('div');
       div.className = 'hero-portrait';
@@ -752,16 +759,13 @@ function showItem(data) {
         : `<span class="hero-initial">${esc(HERO_INITIAL[hero] || hero[0])}</span>`;
       bottomDiv.appendChild(div);
     });
-    // Insère avant la bottom-bar
     const bottomBar = card.querySelector('.bottom-bar');
     card.insertBefore(bottomDiv, bottomBar);
   }
 
-  // Animation
   card.classList.remove('hiding');
   card.classList.add('visible');
 
-  // Progression
   progress.style.transition = 'none';
   progress.style.transform  = 'scaleX(1)';
   void progress.offsetWidth;
@@ -774,11 +778,56 @@ function showItem(data) {
   }, DISPLAY_MS);
 }
 
-// ── Corps ─────────────────────────────────────────────────────────────────────
+function rendreEffetEmplacement(effets) {
+  if (!effets || !effets.length) return '';
+  var connus = effets.filter(e => e && e.nom);
+  if (!connus.length) return '';
+
+  var notes = [];    // « un Do », « un Fourneau »
+
+  connus.forEach(e => {
+    notes.push(lib('uneNote').replace('{}', e.nom || e.code || ''));
+  });
+
+  var morceaux = [];
+  if (notes.length) morceaux.push(lib('surNotes').replace('{}', enumerer(notes)));
+
+  var lignes = connus.filter(e => e.texte).map(e =>
+    '<div class="se-ligne2"><b class="' + (CLASSE_NOTE[e.code] || '') + '">'
+    + esc(e.nom || e.code || '') + ' :</b> '
+    + colorize(e.texte) + '</div>');
+
+  return '<div class="socket-effect">'
+    + '<div class="se-ligne1">'
+      + esc(lib('estSur').replace('{}', morceaux.join(' ' + lib('et') + ' ')) + '.')
+      + '</div>'
+    + lignes.join('')
+    + '</div>';
+}
+
+function enumerer(liste) {
+  if (liste.length <= 1) return liste[0] || '';
+  return liste.slice(0, -1).join(', ') + ' ' + lib('et') + ' ' + liste[liste.length - 1];
+}
+
+const CLASSE_NOTE = {
+  C: 'kw-slow',   D: 'kw-shield', E: 'kw-heal',  F: 'kw-haste',
+  G: 'kw-tempo',  A: 'kw-damage', B: 'kw-burn',
+  Stove: 'kw-burn', Cooler: 'kw-freeze',
+};
+
+const NOTE_FR = {
+  'C Note': 'Note Do', 'D Note': 'Note Ré', 'E Note': 'Note Mi',
+  'F Note': 'Note Fa', 'G Note': 'Note Sol', 'A Note': 'Note La',
+  'B Note': 'Note Si', 'Stove': 'Fourneau', 'Cooler': 'Glacière',
+};
+
 function buildBody(tooltips, cooldowns, ammo, multicast, quests, isSkill, enchantTooltips, enchantColor) {
   const enchantMarked = (enchantTooltips || []).map(t => Object.assign({}, t, { isEnchant: true }));
   const allTooltips = tooltips.concat(enchantMarked);
-  if (!allTooltips.length) return '<div class="not-found">Aucune description.</div>';
+  if (!allTooltips.length && !(quests && quests.length)) {
+    return `<div class="not-found">${lib('sansDescription')}</div>`;
+  }
 
   const actives  = allTooltips.filter(t => t.type === 'Active');
   const passives = allTooltips.filter(t => t.type !== 'Active');
@@ -802,7 +851,6 @@ function buildBody(tooltips, cooldowns, ammo, multicast, quests, isSkill, enchan
     return Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.0','');
   }
 
-  // Ligne cooldown horizontale
   function cdLine() {
     if (cooldowns === null || cooldowns === undefined) return '';
 
@@ -817,7 +865,6 @@ function buildBody(tooltips, cooldowns, ammo, multicast, quests, isSkill, enchan
       return `<div class="cd-line"><span class="cd-label">${lib('delai')}</span><span class="cd-val">${fmtNum(entries[0][1])}</span><span class="cd-unit">${lib('sec')}</span></div>`;
     }
 
-    // Multi-tiers : valeurs inline avec points colorés et >
     const parts = entries.map(([tier, val], i) => {
       const c = TIER_COLORS[tier] || '#c0a070';
       const sep = i > 0 ? '<span class="cd-sep">&gt;</span>' : '';
@@ -831,7 +878,6 @@ function buildBody(tooltips, cooldowns, ammo, multicast, quests, isSkill, enchan
     html += cdLine();
     if (ammo !== null && ammo !== undefined) {
       if (typeof ammo === 'object') {
-        // Multi-tier : même affichage que cooldown multi-tier
         const TIER_COLORS = { Bronze:'#cd7f32', Silver:'#c8c8c8', Gold:'#f0c860', Diamond:'#a0d0f0' };
         const entries = Object.entries(ammo);
         const parts = entries.map(([tier, val], i) => {
@@ -870,7 +916,6 @@ function buildBody(tooltips, cooldowns, ammo, multicast, quests, isSkill, enchan
     });
   }
 
-  // Quêtes
   if (quests?.length) {
     html += `<div class="quests-section"><div class="quest-label">${lib('quetes')}</div>`;
     quests.forEach(q => {
@@ -887,9 +932,7 @@ function buildBody(tooltips, cooldowns, ammo, multicast, quests, isSkill, enchan
   return html;
 }
 
-// ── Colorisation ──────────────────────────────────────────────────────────────
 const KW_MAP = [
-  // Ordre : plus long d'abord pour éviter les conflits partiels
   [/\bCrit Chance\b/g,   'kw-crit'],
   [/\bMax Health\b/g,    'kw-health'],
   [/\b[Ll]ifesteal\b/g, 'kw-life'],
@@ -926,29 +969,15 @@ const KW_MAP = [
   [/\bRage\b/g,          'kw-rage'],
 ];
 
-// ── Coloration FR ────────────────────────────────────────────────────────────
-// Le texte des tooltips est maintenant en français ; KW_MAP (ci-dessus) ne
-// matche que l'anglais et devient inoffensif mais inutile sur ce texte.
-// IMPORTANT : \b en JS ne reconnaît que les lettres ASCII comme "caractère de
-// mot" — un mot commençant/finissant par un accent (Éthéré, Gèle...) ne serait
-// PAS détecté correctement avec \b. On utilise donc des lookaround Unicode.
 function wb(str) {
   const esc = str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`(?<![\\p{L}\\p{N}_])(?:${esc})(?![\\p{L}\\p{N}_])`, 'gu');
 }
 
-// Une entrée par forme trouvée (variantes/conjugaisons incluses) → même classe
-// que l'équivalent anglais dans KW_MAP, pour rester visuellement cohérent.
-// Certains mots-clés (Lifesteal, Value, Gold, Quest) n'étaient pas dans le CSV
-// fourni : traduction probable ajoutée, À CONFIRMER. Gold/"Or" est volontairement
-// désactivé (collision avec la conjonction française "or" très fréquente).
 const KW_MAP_FR = [
-  // Plus long/spécifique d'abord pour éviter qu'un terme court ne matche en premier
   [['Chances de Crit', 'Coup Crit', 'Crit'],                         'kw-crit'],
   [['Vol de Vie'],                                                   'kw-life'],
   [['Répétition'],                                                   'kw-multi'],
-  // "Tempo" : supposé non traduit (terme musical déjà français) — À CONFIRMER
-  // une fois translations_fr.csv mis à jour ; corriger la forme ici si besoin.
   [['Tempo'],                                                        'kw-tempo'],
   [['Détruit', 'Détruits', 'Détruite', 'Détruites', 'Détruisez'],    'kw-destroy'],
   [['Destruction'],                                                  'kw-destroy'],
@@ -981,7 +1010,6 @@ const KW_MAP_FR = [
   [['Munitions', 'Munition', 'Munition(s)'],                         'kw-ammo'],
   [['Quête', 'Quêtes'],                                              'kw-quest'],
   [['Volant', 'Volante', 'Volants', 'Volantes', 'Vole', 'Volent', 'Voler'], 'kw-fly'],
-  // Tags (mêmes mots que les badges d'en-tête), pour les mentions inline dans le texte
   [['Accessoire', 'Accessoires'],                                    'kw-tag'],
   [['Aquatique', 'Aquatiques'],                                      'kw-tag'],
   [['Cœur', 'Cœurs'],                                                'kw-tag'],
@@ -1002,14 +1030,9 @@ const KW_MAP_FR = [
   [['Véhicule', 'Véhicules'],                                        'kw-tag'],
   [['Arme', 'Armes'],                                                'kw-tag'],
   [['Tech'],                                                         'kw-tag'],
-  [['Délai d\'Activation', 'Délais d\'Activation'],                   'kw-charge'],
+  [['Délai d\'Activation', 'Délais d\'Activation'],                   'kw-tag'],
 ].flatMap(([forms, cls]) => forms.map(f => [wb(f), cls]));
 
-/* Un mot-clé publié est du texte quelconque : il peut contenir des caractères
-   qui ont un sens dans une expression régulière, et les limites de mot « \b »
-   ne fonctionnent pas hors alphabet latin — en japonais ou en chinois, elles
-   empêcheraient toute correspondance. On les n'applique donc que lorsque le mot
-   commence et finit par un caractère de mot. */
 const _regexMot = new Map();
 
 function motEntier(mot) {
@@ -1018,31 +1041,22 @@ function motEntier(mot) {
 
   const echappe = mot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // Les limites de mot ne valent que pour l'alphabet latin : en japonais ou en
-  // chinois, « \b » empêcherait toute correspondance. On ne les pose donc que
-  // si le mot commence, ou finit, par un caractère alphanumérique.
   const debut = /^\w/.test(mot) ? '\\b' : '';
   const fin   = /\w$/.test(mot) ? '\\b' : '';
 
-  re = new RegExp(debut + echappe + fin, 'g');
+  /* Insensible à la casse : l'allemand met une majuscule à ses noms et en
+     début de phrase, si bien que « Verbrennt » ne correspondait pas à
+     « verbrennt » et n'était jamais coloré. Le problème vaut pour toutes les
+     langues, à des degrés divers. */
+  re = new RegExp(debut + echappe + fin, 'gi');
   _regexMot.set(mot, re);
   return re;
 }
 
 function colorize(html) {
   if (!html) return '';
-  // Coût en Tempo écrit en toutes lettres par le jeu (pas de jeton {} pour
-  // cette valeur, ex. "spend 1 Tempo and remove it") — même convention que
-  // pour les valeurs résolues via token : icône juste avant le nombre.
   html = outside(html, /\b(\d+)(?=\s+Tempo\b)/g,
     n => `<svg class="kw-icon" viewBox="0 0 18 18" style="color:#c060f0"><use href="#tempo"/></svg>${n}`);
-  // KW_MAP_FR d'abord : une regex ne connaît pas la langue, et un mot-clé
-  // anglais isolé (ex. "Crit") matcherait aussi bien dans une phrase FR
-  // ("Chances de Crit"), la coupant en deux avant que la phrase FR complète
-  // n'ait sa chance de matcher. Cf. règle générale : le plus spécifique d'abord.
-  /* Mots-clés publiés avec les données, traduits par le jeu lui-même. Ils
-     couvrent toutes les langues ; les listes intégrées ci-dessous ne servent
-     plus que de secours pour le français et l'anglais. */
   const p = publies();
   if (p && Array.isArray(p.mots_cles) && p.mots_cles.length) {
     for (const [mot, cls] of p.mots_cles) {
@@ -1053,10 +1067,6 @@ function colorize(html) {
       html = outside(html, re, m => `<span class="${cls}">${m}</span>`);
     }
   }
-  /* La passe anglaise ne s'applique QUE faute de glossaire publié. Exécutée
-     après lui, elle coloriait « Crit » à l'intérieur de « Chance de Crit »,
-     empêchant le mot-clé complet d'être reconnu. C'est le conflit de découpe
-     déjà rencontré avec « Santé Max ». */
   if (!(p && Array.isArray(p.mots_cles) && p.mots_cles.length)) {
     for (const [re, cls] of KW_MAP) {
       html = outside(html, re, m => `<span class="${cls}">${m}</span>`);
@@ -1069,9 +1079,9 @@ function colorize(html) {
   return html;
 }
 
-// Applique fn seulement hors des <span> existants
 function outside(html, re, fn) {
-  return html.split(/(<span[^>]*>[\s\S]*?<\/span>)/g)
+  const PROTEGE = /(<span[^>]*>[\s\S]*?<\/span>|<svg[\s\S]*?<\/svg>|<[^>]+>)/g;
+  return html.split(PROTEGE)
     .map((p, i) => i % 2 === 1 ? p : p.replace(re, fn))
     .join('');
 }
@@ -1080,7 +1090,6 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── SSE ───────────────────────────────────────────────────────────────────────
 function connect() {
   const es = new EventSource('http://localhost:3000/events');
   es.onmessage = e => {

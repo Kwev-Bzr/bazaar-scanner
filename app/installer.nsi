@@ -18,6 +18,11 @@ ${StrRep}
 Name "Bazaar Scanner"
 OutFile "BazaarScanner_setup.exe"
 InstallDir "$PROGRAMFILES64\Bazaar Scanner"
+; Version installée, passée par build.sh depuis le fichier VERSION.
+!ifndef VERSION_APP
+  !define VERSION_APP "0.0.0"
+!endif
+
 InstallDirRegKey HKLM "Software\BazaarScanner" "InstallDir"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
@@ -78,8 +83,11 @@ Var GameDir
 LangString TITRE_BIENVENUE   ${LANG_ENGLISH} "Welcome to the Bazaar Scanner setup"
 LangString TITRE_BIENVENUE   ${LANG_FRENCH}  "Bienvenue dans l'installation de Bazaar Scanner"
 
-LangString TEXTE_BIENVENUE   ${LANG_ENGLISH} "This wizard will install Bazaar Scanner, the Twitch overlay for The Bazaar, along with BepInEx and the mod it needs inside the game.$\r$\n$\r$\nPlease close the game and OBS before continuing."
-LangString TEXTE_BIENVENUE   ${LANG_FRENCH}  "Cet assistant va installer Bazaar Scanner, l'extension Twitch pour The Bazaar, ainsi que BepInEx et le mod nécessaires côté jeu.$\r$\n$\r$\nFerme le jeu et OBS avant de continuer."
+LangString TEXTE_BIENVENUE   ${LANG_ENGLISH} "This wizard will install Bazaar Scanner, the Twitch overlay for The Bazaar, along with BepInEx and the mod it needs inside the game.$\r$\n$\r$\nIMPORTANT: Bazaar Scanner only works with the STEAM version of The Bazaar. It cannot read the game from any other source.$\r$\n$\r$\nPlease close the game and OBS before continuing."
+LangString TEXTE_BIENVENUE   ${LANG_FRENCH}  "Cet assistant va installer Bazaar Scanner, l'extension Twitch pour The Bazaar, ainsi que BepInEx et le mod nécessaires côté jeu.$\r$\n$\r$\nIMPORTANT : Bazaar Scanner ne fonctionne qu'avec la version STEAM de The Bazaar. Il ne peut pas lire le jeu installé autrement.$\r$\n$\r$\nFerme le jeu et OBS avant de continuer."
+
+LangString REMPLACER_VERSION ${LANG_ENGLISH} "Bazaar Scanner is already installed.$\r$\n$\r$\nThe previous version will be removed before the new one is installed. Your settings and the game folder are kept.$\r$\n$\r$\nContinue?"
+LangString REMPLACER_VERSION ${LANG_FRENCH}  "Bazaar Scanner est déjà installé.$\r$\n$\r$\nLa version précédente va être retirée avant l'installation de la nouvelle. Tes réglages et le dossier du jeu sont conservés.$\r$\n$\r$\nContinuer ?"
 
 LangString TITRE_LISEZMOI    ${LANG_ENGLISH} "Please read before installing"
 LangString TITRE_LISEZMOI    ${LANG_FRENCH}  "À lire avant l'installation"
@@ -139,6 +147,22 @@ Function CheckSteamRoot
 FunctionEnd
 
 Function .onInit
+  ; ── Version déjà installée ──
+  ; On désinstalle avant de réinstaller : sans cela, les fichiers d'une
+  ; ancienne version subsistent à côté des nouveaux.
+  ReadRegStr $R9 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BazaarScanner" "UninstallString"
+  StrCmp $R9 "" pasDeVersion
+
+  ReadRegStr $R8 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BazaarScanner" "DisplayVersion"
+  MessageBox MB_YESNO|MB_ICONQUESTION "$(REMPLACER_VERSION)" IDNO pasDeVersion
+
+  ReadRegStr $R7 HKLM "Software\BazaarScanner" "InstallDir"
+  ; « _? » garde le désinstallateur en place le temps qu'il finisse.
+  ExecWait '"$R9" /S _?=$R7'
+  Delete "$R7\Uninstall.exe"
+
+pasDeVersion:
+
   ; ── Détection automatique du dossier du jeu ──
   StrCpy $GameDir ""
 
@@ -270,6 +294,7 @@ Section "Bazaar Scanner" SecMain
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BazaarScanner" "DisplayIcon" "$INSTDIR\icon.ico"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BazaarScanner" "UninstallString" "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BazaarScanner" "Publisher" "Kwev"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BazaarScanner" "DisplayVersion" "${VERSION_APP}"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BazaarScanner" "DisplayVersion" "1.0.0"
 SectionEnd
 

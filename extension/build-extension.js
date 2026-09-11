@@ -119,6 +119,13 @@ const transformations = [
     nom: 'exposition de showItem',
     de: /$/,
     vers: '\n\nwindow.showItem = showItem;\nwindow.showError = showError;\n'
+        + '\n/* Pour la recherche : elle propose les héros et les types en\n'
+        + '   filtres, et doit les nommer comme la fiche. */\n'
+        + 'window.HERO_PORTRAITS = HERO_PORTRAITS;\n'
+        + 'window.TAG_FR = TAG_FR;\n'
+        + 'window.trad = trad;\n'
+        + 'window.ENCHANT_FR = ENCHANT_FR;\n'
+        + 'window.ENCHANTMENT_COLORS = ENCHANTMENT_COLORS;\n'
   }
 ];
 

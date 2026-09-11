@@ -4,6 +4,18 @@ BAZAAR SCANNER
 Permet a tes spectateurs de survoler les cartes de ton plateau pendant ton
 stream pour en lire la description, dans leur langue.
 
+IMPORTANT : Bazaar Scanner ne fonctionne qu'avec la version STEAM du jeu.
+Il lit The Bazaar depuis le dossier Steam et ne peut pas fonctionner avec
+une installation venant d'ailleurs.
+
+AVERTISSEMENT ANTIVIRUS : l'installation depose winhttp.dll a la racine du
+jeu. Ce fichier appartient a BepInEx, le chargeur de mods, et porte le nom
+d'un composant systeme afin que Windows le charge au demarrage du jeu. Ce
+procede etant aussi employe par des logiciels malveillants, certains
+antivirus le signalent. L'installateur n'est pas signe numeriquement, ce qui
+declenche egalement un avertissement SmartScreen. Ces alertes sont attendues.
+Le code source est publie : https://github.com/Kwev-Bzr/bazaar-scanner
+
 
 INSTALLATION
 ------------
@@ -41,6 +53,47 @@ correspond bien a ta partie.
 Fermer la fenetre ferme l'outil.
 
 
+REGLAGES
+--------
+
+La fenetre CONFIGURATION regroupe les reglages transmis a l'extension :
+
+  Delai du stream
+     Decalage, en secondes, entre ce que tu vois et ce que voient tes
+     spectateurs.
+
+     En latence basse, 2 secondes suffisent. Sinon, compter 30 secondes.
+     Des boutons proposent les valeurs courantes ; « Autre » applique le
+     nombre de secondes saisi dans la case voisine.
+
+  Langue de l'interface
+     Huit langues sont disponibles. Le spectateur peut en changer de son
+     cote sans affecter les autres.
+
+
+CE QUE VOIENT TES SPECTATEURS
+-----------------------------
+
+Survol d'une carte
+   La fiche s'affiche : description traduite, valeurs par palier, mots-cles
+   colores, variantes d'enchantement.
+
+Bouton Loupe
+   Recherche dans le catalogue complet. Le spectateur consulte n'importe
+   quel objet ou talent, meme absent du plateau, avec filtres par heros,
+   type, taille, rarete et effet.
+
+Bouton Options
+   Emplacement de la fiche, taille du texte, teinte et police. Ces reglages
+   appartiennent au spectateur : le streamer n'a pas a en decider.
+
+Bouton Globe
+   Langue d'affichage.
+
+Un rappel s'affiche a la premiere visite et peut etre rouvert depuis les
+options.
+
+
 LE VOYANT
 ---------
 
@@ -60,6 +113,10 @@ Pas d'etat de combat, pas de points de vie, pas d'or, pas de donnees
 personnelles. Tout ce qui est transmis est deja visible a l'ecran de tes
 spectateurs.
 
+L'extension telecharge par ailleurs les descriptions de cartes depuis
+bazaar-scanner.pages.dev. Ces donnees sont publiques et identiques pour
+tous ; elles ne contiennent rien qui te concerne.
+
 L'autorisation Twitch sert uniquement a identifier ta chaine. Elle ne donne
 acces ni a ton compte, ni a ton chat, ni a tes revenus, et se revoque a tout
 moment depuis les parametres de ton compte Twitch.
@@ -72,7 +129,7 @@ FICHIERS
 
   BazaarScanner.exe   l'application
   interface.html      sa fenetre
-  config.ini          cree au premier lancement
+  config.ini          cree au premier lancement, contient tes reglages
 
 
 PROBLEMES COURANTS

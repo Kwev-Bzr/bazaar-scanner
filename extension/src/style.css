@@ -62,13 +62,30 @@ html, body {
 /* Le panneau n'est qu'un point d'ancrage : la carte générée depuis
    overlay.html porte déjà son propre cadre, son fond et sa typographie.
    Tout style ajouté ici se verrait en double. */
+/* La fiche se place en haut à gauche ou en haut à droite, au choix du streamer :
+   sa webcam occupe souvent l'un des deux. Le coin est transmis avec le plateau,
+   comme le cadrage, et posé en attribut sur #root.
+
+   Les coins BAS sont volontairement absents : la barre de contrôle de Twitch et
+   le titre du stream y passent par-dessus dès que le spectateur bouge la souris,
+   masquant la fiche au moment où il la lit. */
 #card-panel {
   position: absolute;
-  top: 1.5%;
-  left: 1%;
   pointer-events: none;
   animation: panel-in 120ms ease-out;
+  top: 1.5%;
+  left: 1%;
 }
+
+/* Même marge qu'à gauche. Depuis que l'origine de la mise à l'échelle suit
+   l'ancrage, le bord droit de la carte tombe exactement sur cette valeur : les
+   deux côtés sont donc symétriques, et l'élargir la décalait vers l'intérieur. */
+#root[data-coin="hd"] #card-panel { left: auto; right: 1%; }
+
+/* La carte est mise à l'échelle depuis son coin haut GAUCHE. Ancrée à droite,
+   elle se réduisait donc vers l'intérieur en laissant un large vide à droite :
+   la fiche paraissait posée n'importe où. L'origine suit l'ancrage. */
+#root[data-coin="hd"] #card-panel #card { transform-origin: top right; }
 
 @keyframes panel-in {
   from { opacity: 0; transform: translateY(-4px); }
@@ -129,8 +146,8 @@ html, body {
 #lang-switch.visible.deplie { opacity: 1; }
 
 #lang-switch button {
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -138,7 +155,7 @@ html, body {
   border-radius: 50%;
   background: rgba(10, 8, 14, .55);
   color: #fff;
-  font: 600 10px/1 'Rajdhani', Arial, sans-serif;
+  font: 600 12px/1 'Rajdhani', Arial, sans-serif;
   letter-spacing: .04em;
   cursor: pointer;
   backdrop-filter: blur(3px);
@@ -160,7 +177,7 @@ html, body {
 }
 
 #lang-switch.deplie .choix {
-  width: 26px;
+  width: 34px;
   border-width: 1px;
   margin-left: 0;
   opacity: 1;

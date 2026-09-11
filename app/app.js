@@ -1,26 +1,3 @@
-/* ============================================================================
-   BAZAAR SCANNER
-
-   Application destinée aux streamers de The Bazaar. Elle lit l'état du plateau
-   écrit par le mod BepInEx et le diffuse vers l'extension Twitch, où les
-   spectateurs peuvent survoler une carte pour en lire la description.
-
-   Ce qu'elle fait, en entier :
-     - lit board_state.json une fois par seconde ;
-     - en extrait la position, la taille, la qualité et l'enchantement de
-       chaque carte, plus son identifiant ;
-     - diffuse cela vers Twitch ;
-     - sert une petite fenêtre locale montrant le plateau et l'état de la
-       liaison.
-
-   Elle ne transporte que des identifiants de carte. Les descriptions et les
-   illustrations sont récupérées par l'extension elle-même, ce qui évite
-   d'embarquer ici la moindre donnée de jeu.
-
-   Trois fichiers suffisent : l'exécutable, interface.html, et config.ini —
-   ce dernier étant créé au premier lancement.
-   ========================================================================= */
-
 'use strict';
 
 const fs    = require('node:fs');
@@ -30,34 +7,17 @@ const { spawn, execFileSync } = require('node:child_process');
 
 const pubsub = require('./twitch-pubsub');
 
-// En exécutable autonome (SEA), __dirname pointe à l'intérieur du binaire :
-// on prend le dossier de l'exe. Lancé par `node app.js`, celui du script.
-const APP_DIR = require('node:module').isSEA
-  ? path.dirname(process.execPath)
-  : __dirname;
+function estAutonome() {
+  try {
+    return require('node:sea').isSea();
+  } catch (e) {
+    return !/^node(\.exe)?$/i.test(path.basename(process.execPath));
+  }
+}
 
-// Adresse du relais. Identique pour tous les utilisateurs, ce n'est pas un
-// réglage : elle est donc en dur plutôt que dans config.ini, où elle n'aurait
-// fait qu'ajouter un champ incompréhensible.
-//
-// Une valeur présente dans config.ini l'emporte malgré tout. C'est la porte de
-// sortie si le relais devait déménager : sans elle, tous les exécutables déjà
-// distribués deviendraient inutilisables.
+const APP_DIR = estAutonome() ? path.dirname(process.execPath) : __dirname;
+
 const RELAIS_PAR_DEFAUT = 'https://bazaar-relais.kwev-stream.workers.dev';
-
-/* --- traduction des noms affichés ------------------------------------------
-   board_state.json ne contient que de l'anglais : le mod ne traduit plus, sa
-   détection de langue se trompait dès que le jeu tournait dans une autre langue
-   que Windows.
-
-   L'aperçu du plateau est donc traduit ici, dans la langue choisie par le
-   streamer avec le sélecteur — une seule langue affichée, décidée à un seul
-   endroit.
-
-   La source est la base du jeu : un fichier SQLite par langue, où la clé est
-   md5(texte anglais). Aucune dépendance : node:sqlite est intégré depuis
-   Node 22.
-   ----------------------------------------------------------------------- */
 
 const LOCALES = {
   en: 'en-US', fr: 'fr-FR', de: 'de-DE', es: 'es-ES', it: 'it-IT',
@@ -69,14 +29,6 @@ let _requeteTrad = null;
 let _connexionTrad = null;
 const _cacheTrad = new Map();
 
-/* Le jeu ne télécharge que les langues qu'il a eu besoin d'afficher : la
-   branche publique n'en contenait que huit, sans le russe, l'ukrainien ni le
-   japonais. On cherche donc dans toutes les branches présentes, la publique
-   d'abord.
-
-   C'est sans conséquence ici : cet aperçu est LOCAL, il ne sert qu'au streamer
-   pour vérifier ce qu'il diffuse, et rien n'en sort. La restriction à la
-   branche publique reste entière côté serveur, où les fiches sont publiées. */
 function fichiersTraduction(langue) {
   const bas = process.env.LOCALAPPDATA
     ? path.join(process.env.LOCALAPPDATA, '..', 'LocalLow')
@@ -98,7 +50,6 @@ function ouvrirTraductions(langue) {
   _cacheTrad.clear();
   _langueAffichage = langue;
 
-  // L'anglais est la langue source : rien à traduire.
   if (langue === 'en') return;
 
   const fichier = fichiersTraduction(langue)[0];
@@ -132,8 +83,6 @@ const PORT       = 3210;
 const CONFIG_INI = path.join(APP_DIR, 'config.ini');
 const INTERVALLE = 1000;
 
-/* --- configuration -------------------------------------------------------- */
-
 const CONFIG_DEFAUT = [
   '# Bazaar Scanner — configuration',
   '#',
@@ -148,6 +97,11 @@ const CONFIG_DEFAUT = [
   'TWITCH_NOM=',
   'BAZAAR_PATH=',
   'CADRE=',
+  'TAILLE=m',
+  '# DELAI_STREAM : délai de ton stream, en secondes.',
+  '#               Il s\'AJOUTE au retard de l\'extension. À régler si tu',
+  '#               diffuses en différé, en tournoi par exemple.',
+  'DELAI_STREAM=0',
   '',
 ].join('\r\n');
 
@@ -181,8 +135,6 @@ function ecrireConfig(maj) {
   return fusion;
 }
 
-/* --- détection du jeu ----------------------------------------------------- */
-
 function jeuValide(dossier) {
   return !!dossier && fs.existsSync(path.join(dossier, 'TheBazaar_Data'));
 }
@@ -190,7 +142,6 @@ function jeuValide(dossier) {
 function detecterJeu() {
   const candidats = [];
 
-  // Chemin d'installation de Steam, via le registre.
   try {
     const sortie = execFileSync('reg',
       ['query', 'HKCU\\Software\\Valve\\Steam', '/v', 'SteamPath'],
@@ -200,7 +151,6 @@ function detecterJeu() {
       const steam = m[1].trim().replace(/\//g, '\\');
       candidats.push(path.join(steam, 'steamapps', 'common', 'The Bazaar'));
 
-      // Bibliothèques secondaires déclarées dans libraryfolders.vdf.
       const vdf = path.join(steam, 'steamapps', 'libraryfolders.vdf');
       if (fs.existsSync(vdf)) {
         const texte = fs.readFileSync(vdf, 'utf8');
@@ -222,18 +172,19 @@ function detecterJeu() {
   return candidats.find(jeuValide) || null;
 }
 
-/* --- état, unique point de vérité pour l'interface ------------------------ */
-
 const etat = {
   code: 'demarrage',
   detail: '',
   objets: 0,
   talents: 0,
-  // Aperçu lisible du plateau, pour que le streamer vérifie d'un coup d'œil
-  // que ce qui est diffusé correspond à sa partie. Les noms viennent de
-  // board_state.json : aucune requête réseau.
   plateau: [],
   listeTalents: [],
+
+  face: [],
+  faceTalents: [],
+  reserve: [],
+  faceTitre: '',
+  faceCentree: false,
 };
 
 const abonnes = new Set();
@@ -250,26 +201,54 @@ function diffuserEtat() {
   for (const r of abonnes) { try { r.write(charge); } catch (e) { /* client parti */ } }
 }
 
-/* --- lecture du plateau --------------------------------------------------- */
+const LARGEUR_PAR_TAILLE = { Small: 5.1, Medium: 9.8, Large: 14.5 };
 
 const SLOTS_PAR_TAILLE = { Small: 1, Medium: 2, Large: 3 };
 
-function toCompact(state) {
-  if (!state || !Array.isArray(state.Board)) return [];
-  return state.Board
+function cartesCompactes(liste, avecPosition) {
+  if (!Array.isArray(liste)) return [];
+  return liste
     .filter(c => c && c.TemplateId)
     .sort((a, b) => (a.Socket || 0) - (b.Socket || 0))
     .map(c => {
       const it = { s: c.Socket || 0, n: SLOTS_PAR_TAILLE[c.Size] || 1, id: c.TemplateId };
       if (c.Enchantment && c.Enchantment !== 'None') it.e = c.Enchantment;
       if (c.Tier) it.q = c.Tier;
+
+      const type = String(c.Type || '');
+      const rencontre = /Encounter$/.test(type);
+
+      if (/Encounter/.test(type)) it.k = 'e';
+      else if (type === 'Skill')  it.k = 's';
+      if ((avecPosition || rencontre) && typeof c.X === 'number') {
+        it.x = Math.round(c.X * 10) / 10;
+        if (typeof c.W === 'number') it.w = Math.round(c.W * 10) / 10;
+
+        if (typeof c.Y === 'number') it.y = Math.round(c.Y * 10) / 10;
+        if (typeof c.H === 'number') it.h = Math.round(c.H * 10) / 10;
+      }
+      if (rencontre) it.r = 1;
+
+      if (Array.isArray(c.SocketEffects) && c.SocketEffects.length) {
+        it.se = c.SocketEffects.map(e => {
+          const [id, code] = String(e).split('|');
+          return code ? { i: id, k: code } : { i: id };
+        });
+      }
+
+      if (type === 'PvpEncounter')    { it.vs = 'pvp'; it.nm = c.Name || ''; }
+      if (type === 'CombatEncounter') { it.vs = 'pve'; it.nm = c.Name || ''; }
       return it;
     });
 }
 
-function skillsToCompact(state) {
-  if (!state || !Array.isArray(state.Skills)) return [];
-  return state.Skills
+function toCompact(state) {
+  return cartesCompactes(state && state.Board, false);
+}
+
+function talentsCompacts(liste) {
+  if (!Array.isArray(liste)) return [];
+  return liste
     .filter(c => c && c.TemplateId)
     .map((c, i) => {
       const sk = { s: typeof c.Socket === 'number' ? c.Socket : i, id: c.TemplateId };
@@ -279,19 +258,52 @@ function skillsToCompact(state) {
     .sort((a, b) => a.s - b.s);
 }
 
-// Distinct de toCompact(), qui ne transporte que des identifiants vers Twitch.
-function apercuPlateau(state) {
-  if (!state || !Array.isArray(state.Board)) return [];
-  return state.Board
+function skillsToCompact(state) {
+  return talentsCompacts(state && state.Skills);
+}
+
+function apercuCartes(liste) {
+  if (!Array.isArray(liste)) return [];
+  return liste
     .filter(c => c && c.TemplateId)
     .sort((a, b) => (a.Socket || 0) - (b.Socket || 0))
     .map(c => ({
       s: c.Socket || 0,
       n: SLOTS_PAR_TAILLE[c.Size] || 1,
-      nom: traduire(c.Name) || '?',
+      nom: (c.Type === 'PvpEncounter') ? 'PVP' : (traduire(c.Name) || '?'),
       tier: c.Tier || '',
       ench: (c.Enchantment && c.Enchantment !== 'None') ? c.Enchantment : '',
+
+      se: (c.SocketEffects || [])
+        .map(e => String(e).split('|')[1])
+        .filter(Boolean),
+      x: (typeof c.X === 'number') ? c.X : null,
+      y: (typeof c.Y === 'number') ? c.Y : null,
+      w: LARGEUR_PAR_TAILLE[c.Size] || 5.2,
+      h: (typeof c.H === 'number') ? c.H : null,
+      rencontre: /Encounter$/.test(String(c.Type || '')),
     }));
+}
+
+function apercuPlateau(state) {
+  return apercuCartes(state && state.Board);
+}
+
+function titreDeLaBande(state) {
+  if (Array.isArray(state.Reserve) && state.Reserve.length) return 'Stash';
+
+  const cartes = Array.isArray(state.Face) ? state.Face : [];
+  const rencontre = cartes.filter(c => /Encounter$/.test(String(c.Type || '')));
+
+  if (rencontre.some(c => c.Type === 'PvpEncounter')) return 'PVP';
+  if (rencontre.some(c => c.Type === 'CombatEncounter')) return 'PVE';
+
+  if (rencontre.length >= 2) return 'Choices';
+
+  const nomme = rencontre.find(c => c.Name);
+  if (nomme) return traduire(nomme.Name) || nomme.Name;
+
+  return cartes.length ? '' : '';
 }
 
 function apercuTalents(state) {
@@ -306,24 +318,101 @@ function apercuTalents(state) {
     .sort((a, b) => a.s - b.s);
 }
 
-// « 12,34,56,78 » → [12, 34, 56, 78], ou null si absent ou incohérent.
 function lireCadre() {
   const brut = (config.CADRE || '').trim();
   if (!brut) return null;
   const v = brut.split(',').map(x => parseFloat(x));
   if (v.length !== 4 || v.some(x => !isFinite(x))) return null;
   if (v[2] <= 0 || v[3] <= 0) return null;
-  // Plein cadre : autant ne rien transmettre.
   if (v[0] === 0 && v[1] === 0 && v[2] === 100 && v[3] === 100) return null;
   return v.map(x => Math.round(x * 100) / 100);
+}
+
+/* Version de cette application, inscrite à la construction depuis le fichier
+   VERSION. C'est la seule source : l'export et l'installateur le lisent aussi,
+   de sorte que les trois ne peuvent plus diverger. */
+/* global __VERSION__ */
+const VERSION = (() => {
+  // Inscrite à la construction par esbuild.
+  if (typeof __VERSION__ === 'string') return __VERSION__;
+
+  /* Lancée depuis les sources — « node app.js » —, cette constante n'existe
+     pas. On lit alors le fichier VERSION, faute de quoi l'application se
+     croit périmée et affiche le bandeau de mise à jour à tort. */
+  try {
+    const v = fs.readFileSync(path.join(__dirname, 'VERSION'), 'utf8').trim();
+    if (v) return v;
+  } catch (e) { /* tant pis */ }
+
+  return null;   // version inconnue : on ne compare pas
+})();
+
+/* Dernière version publiée, relevée au démarrage puis toutes les six heures.
+
+   Le fichier est celui que l'export publie déjà : y ajouter un champ évite un
+   service à maintenir. Une absence de réponse ne change rien — mieux vaut ne
+   rien dire que de crier au loup parce que le réseau a hoqueté. */
+let versionEnLigne = null;
+
+async function releverVersion() {
+  try {
+    const base = (config.DATA_BASE_URL || 'https://bazaar-scanner.pages.dev')
+      .replace(/\/+$/, '');
+    const r = await fetch(base + '/index.json', { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return;
+    const i = await r.json();
+    if (i && typeof i.version_app === 'string') versionEnLigne = i.version_app;
+  } catch (e) { /* hors ligne : on n'affirme rien */ }
+}
+
+function lireDelaiStream() {
+  const n = parseInt(config.DELAI_STREAM, 10);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.min(n, 86400);   // une journée : simple garde-fou
+}
+
+const CHEMIN_SESSION = path.join(APP_DIR, 'session.jsonl');
+let _enregistre = null;          // null = pas encore vérifié
+let _derniereEmpreinte = null;
+
+function enregistrementDemande() {
+  if (_enregistre === null) {
+    _enregistre = fs.existsSync(path.join(APP_DIR, 'enregistrer-session'));
+    if (_enregistre) console.log('[Session] enregistrement actif → ' + CHEMIN_SESSION);
+  }
+  return _enregistre;
+}
+
+function noterSession() {
+  if (!enregistrementDemande()) return;
+
+  const empreinte = JSON.stringify([
+    etat.code,
+    etat.face.map(c => c.nom + '@' + Math.round(c.x || 0)),
+    etat.faceTalents.map(c => c.nom),
+    etat.plateau.map(c => c.nom),
+  ]);
+  if (empreinte === _derniereEmpreinte) return;
+  _derniereEmpreinte = empreinte;
+
+  const ligne = JSON.stringify({
+    t: Date.now(),
+    code: etat.code,
+    face: etat.face,
+    faceTalents: etat.faceTalents,
+    faceCentree: etat.faceCentree,
+    plateau: etat.plateau,
+    listeTalents: etat.listeTalents,
+  });
+
+  try { fs.appendFileSync(CHEMIN_SESSION, ligne + '\n'); }
+  catch (e) { /* disque occupé : on réessaiera au prochain changement */ }
 }
 
 function cheminEtatPlateau(cfg) {
   return path.join(cfg.BAZAAR_PATH || '', 'BepInEx', 'plugins',
                    'BazaarScannerBridge', 'board_state.json');
 }
-
-/* --- boucle --------------------------------------------------------------- */
 
 let config = {};
 let actif = false;
@@ -339,8 +428,6 @@ function appliquerConfig() {
   actif = pubsub.configure({
     relayUrl: adresseRelais(),
     token:    config.RELAY_TOKEN,
-    // Les messages partent dans la console : indispensable pour diagnostiquer
-    // un refus, et invisible pour l'utilisateur en version fenêtrée.
     log:      (niveau, message) => console.log('[' + niveau + '] ' + message),
     onEtat:   (ok, raison) => {
       if (!ok) definirEtat('erreur', raison);
@@ -371,6 +458,11 @@ function cycle() {
     etat.objets = etat.talents = 0;
     etat.plateau = [];
     etat.listeTalents = [];
+    etat.face = [];
+    etat.faceTalents = [];
+    etat.faceCentree = false;
+    etat.reserve = [];
+    etat.faceTitre = '';
     return definirEtat('attente', 'le jeu n\u2019est pas lancé');
   }
 
@@ -382,17 +474,40 @@ function cycle() {
     etat.objets = etat.talents = 0;
     etat.plateau = [];
     etat.listeTalents = [];
+    etat.face = [];
+    etat.faceTalents = [];
+    etat.faceCentree = false;
+    etat.reserve = [];
+    etat.faceTitre = '';
     return definirEtat('attente', 'aucune partie en cours');
   }
 
   const objets  = toCompact(state);
   const talents = skillsToCompact(state);
+
+  const enFace   = cartesCompactes(state.Face, !!state.FaceCentree);
+  const reserve  = cartesCompactes(state.Reserve, false);
+  const talentsAdverses = talentsCompacts(state.FaceSkills);
   etat.objets  = objets.length;
   etat.talents = talents.length;
   etat.plateau = apercuPlateau(state);
   etat.listeTalents = apercuTalents(state);
+  etat.face = apercuCartes(state.Face);
+  etat.reserve = apercuCartes(state.Reserve);
+  etat.faceTalents = apercuCartes(state.FaceSkills);
+  etat.faceCentree = !!state.FaceCentree;
 
-  pubsub.publishBoard(objets, talents, lireCadre());
+  etat.faceTitre = titreDeLaBande(state);
+
+  noterSession();
+
+  pubsub.publishBoard(objets, talents, lireCadre(), null, {
+    delaiStream: lireDelaiStream(),
+    face: enFace,
+    reserve: reserve,
+    faceTalents: talentsAdverses,
+    faceCentree: !!state.FaceCentree,
+  });
 
   const liaison = pubsub.etat();
   if (liaison.connecte === false) definirEtat('erreur', liaison.erreur);
@@ -400,19 +515,7 @@ function cycle() {
   diffuserEtat();               // les compteurs bougent même quand l'état ne change pas
 }
 
-/* --- sélection d'un dossier ----------------------------------------------
-   Une page web ne peut pas obtenir un chemin absolu : les navigateurs
-   l'interdisent. On ouvre donc le vrai sélecteur de Windows via PowerShell,
-   qui est présent sur toutes les machines visées.
-
-   -STA est indispensable : les boîtes de dialogue Windows Forms refusent de
-   s'ouvrir depuis un thread multithreadé.
-   ----------------------------------------------------------------------- */
-
 function choisirDossier(depart, callback) {
-  // La boîte s'ouvrait DERRIÈRE le navigateur : sans fenêtre propriétaire,
-  // Windows la place au fond de la pile. On lui en donne une, invisible et
-  // marquée TopMost, qui la force au premier plan.
   const script = [
     'Add-Type -AssemblyName System.Windows.Forms',
     '$f = New-Object System.Windows.Forms.Form',
@@ -442,20 +545,12 @@ function choisirDossier(depart, callback) {
     ps.on('error', () => fini(null));          // pas de PowerShell : on abandonne
     ps.on('close', () => fini(sortie.trim() || null));
 
-    // Garde-fou : si la fenêtre reste ouverte indéfiniment, on ne bloque pas
-    // la requête HTTP pour autant.
     setTimeout(() => { if (!termine) { try { ps.kill(); } catch (e) {} fini(null); } },
       120000);
   } catch (e) {
     fini(null);
   }
 }
-
-/* --- ouverture du navigateur ---------------------------------------------
-   spawn signale un échec par un ÉVÈNEMENT, pas par une exception : sans
-   gestionnaire, l'absence d'un navigateur ferait planter l'application au
-   lieu d'essayer le suivant.
-   ----------------------------------------------------------------------- */
 
 function ouvrirNavigateur(url, ongletNormal) {
   const tentatives = ongletNormal
@@ -483,7 +578,8 @@ function ouvrirNavigateur(url, ongletNormal) {
   })(0);
 }
 
-/* --- interface ------------------------------------------------------------ */
+releverVersion();
+setInterval(releverVersion, 6 * 60 * 60 * 1000);
 
 const serveur = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1');
@@ -508,8 +604,6 @@ const serveur = http.createServer((req, res) => {
     abonnes.add(res);
     req.on('close', () => {
       abonnes.delete(res);
-      // Fermer la fenêtre ferme l'application : pas d'icône fantôme dans la
-      // barre des tâches, pas de processus oublié.
       if (abonnes.size === 0) setTimeout(() => {
         if (abonnes.size === 0) process.exit(0);
       }, 3000);
@@ -517,14 +611,10 @@ const serveur = http.createServer((req, res) => {
     return;
   }
 
-  // Le relais renvoie ici après la connexion Twitch, avec le jeton en clair
-  // dans l'adresse. Rien ne sort de la machine : c'est un aller-retour local.
   if (url.pathname === '/oauth') {
     const jeton  = url.searchParams.get('jeton');
     const pseudo = url.searchParams.get('pseudo') || '';
     if (jeton) {
-      // Le nom de chaîne est conservé pour l'afficher : un identifiant
-      // numérique ne dit rien à personne.
       ecrireConfig({ RELAY_TOKEN: jeton, TWITCH_NOM: pseudo });
       appliquerConfig();
     }
@@ -547,7 +637,6 @@ const serveur = http.createServer((req, res) => {
       res.end(JSON.stringify({ ok, message: message || '' }));
     };
 
-    // Ne peut arriver qu'avec une RELAY_URL manuelle erronée dans config.ini.
     if (!/^https:\/\//.test(relais)) {
       return repondre(false, 'Adresse du relais invalide dans config.ini.');
     }
@@ -568,7 +657,6 @@ const serveur = http.createServer((req, res) => {
     return;
   }
 
-  // L'interface annonce sa langue : l'aperçu du plateau suit le sélecteur.
   if (url.pathname === '/langue' && req.method === 'GET') {
     const l = (url.searchParams.get('l') || 'en').slice(0, 2).toLowerCase();
     if (l !== _langueAffichage) ouvrirTraductions(l);
@@ -583,6 +671,9 @@ const serveur = http.createServer((req, res) => {
       TWITCH_NOM:  config.TWITCH_NOM  || '',
       BAZAAR_PATH: config.BAZAAR_PATH || '',
       CADRE:       config.CADRE       || '',
+      VERSION,
+      VERSION_EN_LIGNE: versionEnLigne,
+      DELAI_STREAM: lireDelaiStream(),
     }));
   }
 
@@ -592,11 +683,9 @@ const serveur = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const recu = JSON.parse(corps);
-        // Seules les clés réellement transmises sont modifiées : l'interface
-        // n'envoie que le dossier du jeu, le jeton ne doit pas être effacé.
         const maj = {};
         for (const cle of ['RELAY_URL', 'RELAY_TOKEN', 'TWITCH_NOM',
-                           'BAZAAR_PATH', 'CADRE']) {
+                           'BAZAAR_PATH', 'CADRE', 'DELAI_STREAM']) {
           if (typeof recu[cle] === 'string') maj[cle] = recu[cle].trim();
         }
         ecrireConfig(maj);
@@ -613,8 +702,6 @@ const serveur = http.createServer((req, res) => {
 
   res.writeHead(404).end();
 });
-
-/* --- démarrage ------------------------------------------------------------ */
 
 if (!fs.existsSync(CONFIG_INI)) fs.writeFileSync(CONFIG_INI, CONFIG_DEFAUT, 'utf8');
 

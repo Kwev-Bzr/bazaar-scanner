@@ -32,16 +32,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* La marge basse réserve la place du sélecteur de langue, en position
-       fixe : sans elle, le dernier réglage passerait dessous au défilement. */
     padding: 24px 22px 54px;
     overflow-y: auto;
     overflow-x: hidden;
     user-select: none;
     -webkit-font-smoothing: antialiased;
   }
-
-  /* ── Titre ─────────────────────────────────────────────── */
 
   h1 {
     font-family: 'Cinzel', Georgia, serif;
@@ -70,23 +66,45 @@
     background: linear-gradient(90deg, transparent, var(--trait), transparent);
   }
 
-  /* ── Plateau miniature ──────────────────────────────────
-     Dix cases, un objet occupant une à trois d'entre elles selon
-     sa taille, comme dans le jeu. Les noms viennent directement de
-     board_state.json : aucune requête réseau, donc rien qui puisse
-     échouer ni coûter quoi que ce soit. */
-
-  /* Le plateau profite de toute la largeur disponible, mais reste borné :
-     au-delà, les cases deviennent des rectangles étirés sans rapport avec
-     celles du jeu. */
   .plateau {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     gap: 4px;
     width: 100%;
-    max-width: 820px;
-    margin-bottom: 12px;
   }
+
+  .cadre {
+    position: relative;
+    width: 100%;
+    max-width: 820px;
+    border: 1px solid var(--trait);
+    border-radius: 7px;
+    padding: 15px 12px 11px;
+    margin: 0 auto 11px;
+  }
+
+  .cadre > h2 {
+    position: absolute;
+    top: -9px;
+    left: 13px;
+    margin: 0;
+    padding: 0 7px;
+    background: var(--fond);
+    font: 600 10.5px/1 'Rajdhani', Arial, sans-serif;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--laiton);
+    white-space: nowrap;
+    max-width: calc(100% - 40px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cadre.adverse { border-color: #2c3f4a; }
+  .cadre.adverse > h2 { color: #8fb4c9; }
+
+  .cadre .plateau { min-height: 54px; }
+  .cadre .talents { min-height: 30px; }
 
   .case {
     height: 54px;
@@ -97,6 +115,7 @@
 
   .objet {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 3px 4px;
@@ -114,11 +133,53 @@
 
   .objet.t-Bronze    { border-color: #cd7f32; }
   .objet.t-Silver    { border-color: #c8c8c8; }
+  .ench {
+    display: block;
+    width: 100%;
+    font-size: 10px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--laiton-bas);
+    margin-bottom: 1px;
+  }
+
   .objet.t-Gold      { border-color: #f0c060; }
   .objet.t-Diamond   { border-color: #a8d8f8; }
   .objet.t-Legendary { border-color: #f08040; }
 
-  .objet.enchante { box-shadow: inset 0 0 0 1px rgba(192, 96, 240, .55); }
+  .objet.enchante { box-shadow: inset 0 0 0 1px var(--ench, rgba(192,96,240,.55)); }
+  .objet.enchante .ench { color: var(--ench, var(--laiton-bas)); }
+
+  .emplacement {
+    display: block;
+    font-size: 9px;
+    letter-spacing: .02em;
+    opacity: .9;
+  }
+
+  .em-C { color: #c69c6c; }   /* ralentissement */
+  .em-D { color: #f0c820; }   /* bouclier */
+  .em-E { color: #88e830; }   /* soin */
+  .em-F { color: #68e8c0; }   /* hâte */
+  .em-G { color: #c060f0; }   /* tempo */
+  .em-A { color: #f05038; }   /* dégâts */
+  .em-B { color: #f89840; }   /* brûlure */
+  .em-Stove  { color: #f89840; }
+  .em-Cooler { color: #38c8f0; }
+
+  .e-Golden      { --ench: #f0c060; }
+  .e-Heavy       { --ench: #9a8f7a; }
+  .e-Icy         { --ench: #7fd3ff; }
+  .e-Turbo       { --ench: #4fe0a0; }
+  .e-Shielded    { --ench: #ffd24a; }
+  .e-Restorative { --ench: #7ee08a; }
+  .e-Toxic       { --ench: #7ad13f; }
+  .e-Fiery       { --ench: #ff7a3c; }
+  .e-Shiny       { --ench: #e8e0ff; }
+  .e-Deadly      { --ench: #ff5a6e; }
+  .e-Radiant     { --ench: #fff3b0; }
+  .e-Obsidian    { --ench: #b06cff; }
+  .e-Mossy       { --ench: #8fbf6a; }
 
   .talents {
     display: flex;
@@ -126,11 +187,14 @@
     justify-content: center;
     gap: 4px;
     width: 100%;
-    max-width: 820px;
-    margin-bottom: 12px;
   }
 
   .talent {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 34px;
     padding: 3px 8px;
     border: 1px solid var(--trait);
     border-radius: 9px;
@@ -139,9 +203,13 @@
     color: var(--discret);
   }
 
-  .talent.t-Gold    { border-color: #8a6a34; color: #d8bd86; }
-  .talent.t-Diamond { border-color: #5d7d95; color: #bcd8ea; }
-  .talent.t-Silver  { border-color: #6a6a6a; color: #d0d0d0; }
+  /* Les cinq paliers. Le bronze et le légendaire manquaient : un talent
+     légendaire prenait donc l'apparence neutre, indistinguable d'un bronze. */
+  .talent.t-Bronze    { border-color: #7a4e28; color: #c99a6a; }
+  .talent.t-Silver    { border-color: #6a6a6a; color: #d0d0d0; }
+  .talent.t-Gold      { border-color: #8a6a34; color: #d8bd86; }
+  .talent.t-Diamond   { border-color: #5d7d95; color: #bcd8ea; }
+  .talent.t-Legendary { border-color: #a05428; color: #f0a070; }
 
   .vide {
     font-size: 12px;
@@ -149,8 +217,6 @@
     margin-bottom: 10px;
     height: 15px;
   }
-
-  /* ── État ───────────────────────────────────────────────── */
 
   .etat {
     display: flex;
@@ -184,8 +250,6 @@
   .libelle { font-size: 15px; font-weight: 600; letter-spacing: .04em; }
   .precision { font-size: 12px; color: var(--discret); margin-top: 7px; min-height: 15px; }
 
-  /* ── Configuration ──────────────────────────────────────── */
-
   .pousse { flex: 1 }
 
   .lien {
@@ -200,8 +264,6 @@
   }
   .lien:hover { color: var(--laiton); }
 
-  /* Le chevron pointe vers le haut quand la configuration est fermée — il
-     indique ce qui va s'ouvrir — et pivote vers le bas une fois ouverte. */
   #bascule {
     display: inline-flex;
     align-items: center;
@@ -274,9 +336,6 @@
 
   .lien.discret { display: block; width: 100%; text-align: center; margin-top: 7px; }
 
-  /* L'enregistrement était un lien discret, au point qu'on ne le voyait pas.
-     C'est l'action qui valide toute la configuration : elle mérite d'être
-     franche. */
   button.avec-icone {
     display: flex;
     align-items: center;
@@ -286,9 +345,6 @@
     transition: background .2s ease, border-color .2s ease, color .2s ease;
   }
 
-  /* Trois états, pour qu'on sache d'un coup d'œil s'il reste quelque chose à
-     faire : éteint quand rien n'a bougé, vif quand une modification attend
-     d'être enregistrée, vert quand c'est fait. */
   #enregistrer {
     background: #16100a;
     border-color: var(--trait);
@@ -311,65 +367,99 @@
     cursor: default;
   }
 
-  /* Quatre vignettes figurant l'écran, avec la fiche dans un coin : plus
-     parlant qu'une liste déroulante « haut gauche / haut droite ». */
-  .coins { display: flex; gap: 10px; justify-content: center; }
+  #alerte-version {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    padding: 7px 14px;
+    background: #2a1608;
+    border-bottom: 1px solid var(--laiton-bas);
+    color: var(--laiton);
+    font-size: 12px;
+    text-align: center;
+  }
+  #alerte-version a { color: var(--laiton); margin-left: 10px; }
 
-  .coins button {
-    position: relative;
-    width: 64px;
-    height: 36px;
-    padding: 0;
+  .delai { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+
+  .delai button {
+    padding: 4px 10px;
+    border: 1px solid var(--trait);
+    border-radius: 2px;
+    background: transparent;
+    color: var(--discret);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .delai button:hover { color: var(--laiton); border-color: var(--laiton-bas); }
+  .delai button.actif {
+    color: var(--laiton);
+    border-color: var(--laiton);
+    background: #241706;
+  }
+  /* Les petites flèches natives du champ numérique sont laides et inutiles :
+     on saisit un nombre de secondes, on ne l'incrémente pas une par une. */
+  .delai input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  .delai input[type="number"]::-webkit-outer-spin-button,
+  .delai input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .delai input[type="number"] {
+    width: 58px;
+    padding: 3px 4px;
     border: 1px solid var(--trait);
     border-radius: 2px;
     background: #0d0703;
-    cursor: pointer;
+    color: var(--laiton);
+    font-family: inherit;
+    text-align: right;
   }
-  .coins button::after {
-    content: '';
-    position: absolute;
-    width: 24px;
-    height: 13px;
-    border-radius: 1px;
-    background: var(--discret);
-  }
-  .coins button[data-coin="hg"]::after { top: 4px;    left: 4px; }
-  .coins button[data-coin="hd"]::after { top: 4px;    right: 4px; }
-
-  /* Le choix retenu doit se voir d'un coup d'œil : un simple changement de
-     teinte ne suffisait pas à distinguer « sélectionné » de « survolé ». */
-  .coins button {
-    opacity: .5;
-    transition: opacity .15s, border-color .15s, box-shadow .15s;
-  }
-  .coins button:hover { opacity: .8; border-color: var(--laiton-bas); }
-
-  .coins button.actif {
-    opacity: 1;
-    border-color: var(--laiton);
-    border-width: 2px;
-    background: #241706;
-    box-shadow: 0 0 0 1px rgba(198, 160, 74, .35);
-  }
-  .coins button.actif::after { background: var(--laiton); }
-
-  /* Une pastille cochée lève toute ambiguïté, même sans distinguer les teintes. */
-  .coins button.actif::before {
-    content: '✓';
-    position: absolute;
-    top: -7px;
-    right: -7px;
-    width: 15px;
-    height: 15px;
-    line-height: 15px;
-    text-align: center;
-    font-size: 10px;
-    border-radius: 50%;
-    background: var(--laiton);
-    color: #1a1005;
-  }
+  .delai-bout { font-size: 10px; color: var(--discret); white-space: nowrap; }
+  .delai-unite { font-size: 11px; color: var(--discret); }
 
   .aide { font-size: 11px; color: var(--discret); margin-top: 6px; text-align: center; }
+
+  .adverse .objet,
+  .adverse .talent { background: #0a1116; }
+  .adverse .case { border-color: #24333c; background: #080d11; }
+
+  .plateau.centre {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+  }
+  .plateau.centre .objet { flex: 0 0 auto; min-width: 92px; }
+
+  .adverse .objet.rencontre {
+    border-style: dashed;
+    opacity: .82;
+  }
+
+  .plateau.libre {
+    display: block;
+    position: relative;
+    height: 54px;
+  }
+  .plateau.libre .objet {
+    position: absolute;
+    top: 0;
+    height: 36px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .talents {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 5px;
+    justify-content: center;
+  }
+
+  .plateau.reserve .objet { border-style: dotted; }
 
   .ligne-champ { display: flex; gap: 5px; }
   .ligne-champ input { flex: 1; min-width: 0; }
@@ -389,10 +479,6 @@
   }
   .parcourir:hover { color: var(--laiton); border-color: var(--laiton-bas); }
   .parcourir:disabled { opacity: .5; cursor: default; }
-
-  /* ── Calibrage ───────────────────────────────────────────
-     Occupe toute la fenêtre : encadrer une capture demande de
-     la place, et l'opération est ponctuelle. */
 
   .calibrage {
     position: fixed;
@@ -414,11 +500,6 @@
   }
   .cal-consigne { font-size: 12px; color: var(--discret); margin-top: 3px; min-height: 15px; }
 
-  /* Twitch n'accepte que le 16/9 : on impose ce rapport en permanence. La
-     scène rétrécit proportionnellement dans la place disponible au lieu de
-     s'écraser, ce qui déformerait les repères et fausserait le calibrage.
-     « flex: none » est indispensable : sans lui, le conteneur étire la scène
-     en hauteur et le rapport est ignoré. */
   .cal-scene {
     position: relative;
     flex: none;
@@ -434,7 +515,6 @@
     user-select: none;
   }
 
-  /* Placée en haut : au centre, les rectangles de repère la recouvraient. */
   .cal-vide {
     position: absolute;
     inset: 0 0 auto 0;
@@ -448,10 +528,6 @@
   }
   .cal-scene.remplie .cal-vide { display: none; }
 
-  /* Sans cette règle, le bouton héritait de .lien — 12 px et un interlettrage
-     large — ce qui tranchait avec la phrase juste au-dessus. */
-  /* Recoller une autre image fonctionne, mais rien ne l'indique : une croix
-     rend le retrait explicite. */
   .cal-retirer {
     position: absolute;
     top: 8px;
@@ -479,8 +555,6 @@
     text-underline-offset: 3px;
   }
 
-  /* Rectangle déplaçable. Le fond reste transparent pour ne pas masquer
-     l'image qu'on est en train de cadrer. */
   .cal-cadre {
     position: absolute;
     border: 2px solid var(--laiton);
@@ -500,14 +574,9 @@
   .poignee.sw { left: -8px; bottom: -8px; cursor: nesw-resize; }
   .poignee.se { right: -8px; bottom: -8px; cursor: nwse-resize; }
 
-  /* Zones calculées, superposées en direct : c'est ce qui rend le réglage
-     évident, le streamer ajuste jusqu'à ce qu'elles tombent sur ses cartes. */
   .cal-zones { position: absolute; inset: 0; pointer-events: none; }
   .cal-zones div {
     position: absolute;
-    /* La bordure doit être COMPRISE dans les dimensions calculées : en
-       content-box elle ajoutait 2 px à chaque repère, ce qui se voit sur les
-       petits carrés des talents. */
     box-sizing: border-box;
     padding: 0;
     border: 1px solid rgba(110, 224, 138, .9);
@@ -515,16 +584,11 @@
     border-radius: 2px;
   }
 
-  /* Repère de talent. Il portait la classe « talent », déjà utilisée par les
-     pastilles de l'aperçu du plateau : leur remplissage de 3 px sur 8
-     s'ajoutait aux dimensions et transformait le carré en rectangle. */
   .cal-zones div.zone-talent {
     border-color: rgba(240,192,96,.9);
     background: rgba(240,192,96,.16);
   }
 
-  /* Repères fixes du jeu : ni verts ni ambrés, pour qu'on ne les confonde pas
-     avec les zones de survol. Ils ne servent qu'à s'aligner. */
   .cal-zones div.repere { border: 0; background: none; }
   .cal-zones div.cercle {
     border: 1px solid rgba(255, 90, 120, .95);
@@ -546,11 +610,6 @@
   .avis { font-size: 12px; margin-top: 8px; min-height: 15px; color: var(--attente); }
   .avis.bon { color: var(--vif); }
 
-  /* Choix de langue. La détection automatique suffit à la plupart des gens,
-     mais elle se trompe pour qui utilise un Windows dans une autre langue que
-     la sienne. */
-  /* Ancré dans le coin, hors du flux : il ne doit pas décaler le reste ni
-     attirer l'œil, mais rester trouvable. */
   .langues {
     position: fixed;
     left: 10px;
@@ -587,8 +646,30 @@
   <div class="signature">BY KWEV</div>
   <div class="filet"></div>
 
-  <div class="plateau" id="plateau"></div>
-  <div class="talents" id="talents"></div>
+  <!-- Ce qui fait face au joueur, au-dessus de son propre plateau : d'abord
+       les talents de l'adversaire, puis la bande de dix emplacements qui sert
+       tour à tour de boutique, de plateau adverse ou d'événement. -->
+  <!-- Quatre cadres fixes plutôt que des rangées qui apparaissent et
+       disparaissent : la fenêtre ne bouge plus, et l'œil sait où regarder. -->
+  <section class="cadre adverse" id="cadre-face-talents">
+    <h2 id="titre-face-talents">Talents adverses</h2>
+    <div class="talents adverse" id="face-talents"></div>
+  </section>
+
+  <section class="cadre adverse" id="cadre-face">
+    <h2 id="titre-face">—</h2>
+    <div class="plateau adverse" id="face"></div>
+  </section>
+
+  <section class="cadre" id="cadre-plateau">
+    <h2 id="titre-plateau">Ton plateau</h2>
+    <div class="plateau" id="plateau"></div>
+  </section>
+
+  <section class="cadre" id="cadre-talents">
+    <h2 id="titre-talents">Tes talents</h2>
+    <div class="talents" id="talents"></div>
+  </section>
   <div class="vide" id="vide"></div>
 
   <div class="etat" id="etat" data-code="demarrage">
@@ -618,6 +699,7 @@
         <div class="compte" id="compte">non connecté</div>
         <button class="parcourir" id="connecter">SE CONNECTER</button>
       </div>
+      <div class="avis" id="avis"></div>
     </div>
     <div>
       <label for="jeu" id="l-jeu">DOSSIER DU JEU</label>
@@ -627,20 +709,23 @@
       </div>
     </div>
     <div>
-      <label id="l-coin">EMPLACEMENT DE LA FICHE</label>
-      <div class="coins" id="coins">
-        <button type="button" data-coin="hg"></button>
-        <button type="button" data-coin="hd"></button>
+      <label id="l-delai">DÉLAI DE TON STREAM</label>
+      <div class="delai" id="delai">
+        <button type="button" data-delai="0"></button>
+        <button type="button" data-delai="2"></button>
+        <button type="button" data-delai="10"></button>
+        <button type="button" data-delai="30"></button>
+        <button type="button" data-delai="60"></button>
+        <button type="button" data-delai="libre" id="b-libre"></button>
+        <input type="number" id="n-delai" min="0" step="1" value="0">
+        <span class="delai-unite">s</span>
       </div>
-      <div class="aide" id="coin-aide"></div>
+      <div class="aide" id="delai-aide"></div>
     </div>
     <div>
       <label id="l-cadrage">CADRAGE</label>
       <div id="etat-cadre" hidden></div>
       <button class="valider" id="calibrer">CALIBRER L'AFFICHAGE</button>
-    </div>
-    <div>
-      <div class="avis" id="avis"></div>
     </div>
   </div>
 
@@ -682,12 +767,22 @@
 (function () {
   'use strict';
 
-  /* La langue suit celle du navigateur, donc celle de Windows dans la
-     pratique. Aucun réglage à proposer : un utilisateur anglophone ne devrait
-     pas avoir à chercher comment passer l'interface en anglais. */
-
   var TEXTES = {
     fr: {
+      versionAncienne: "Une version plus récente est disponible ({}).",
+      versionLien: "Télécharger",
+      delaiTitre: "DÉLAI DE TON STREAM",
+      delaiImmediat: "Immédiat",
+      delaiMinute: "1 minute",
+      delaiLibre: "Autre",
+      delaiAide: ["Ajustez le délai entre l'affichage des cartes en stream et sur l'application.", "Pour un stream en latence basse, 2 secondes suffisent. Sinon, préférez 30 secondes.", "« Autre » applique la valeur, en secondes, saisie dans la case."],
+      tailleTitre: "TAILLE DES FICHES",
+      tailleAide: "Le corps du texte chez tes spectateurs. Ils peuvent le changer.",
+      titreChoix: "Choix",
+      titrePlateau: "Ton plateau",
+      titreTalents: "Tes talents",
+      titreTalentsAdverses: "Talents adverses",
+      titreReserve: "Réserve",
       coinTitre: "EMPLACEMENT DE LA FICHE",
       coinAide: "Où la description apparaît chez tes spectateurs.",
       calRetirer: "Retirer la capture",
@@ -727,6 +822,20 @@
       arretee:       'Application arrêtée',
     },
     en: {
+      versionAncienne: "A newer version is available ({}).",
+      versionLien: "Download",
+      delaiTitre: "YOUR STREAM DELAY",
+      delaiImmediat: "Instant",
+      delaiMinute: "1 minute",
+      delaiLibre: "Custom",
+      delaiAide: ["Set the delay between the cards on stream and in the app.", "Low-latency streams need about 2 seconds. Otherwise, go for 30.", "\"Custom\" applies the value, in seconds, typed in the box."],
+      tailleTitre: "CARD TEXT SIZE",
+      tailleAide: "Text size for your viewers. They can change it.",
+      titreChoix: "Event Choices",
+      titrePlateau: "Your board",
+      titreTalents: "Your skills",
+      titreTalentsAdverses: "Opponent skills",
+      titreReserve: "Stash",
       coinTitre: "CARD POSITION",
       coinAide: "Where the description appears for your viewers.",
       calRetirer: "Remove the screenshot",
@@ -766,6 +875,20 @@
       arretee:       'Application stopped',
     },
     es: {
+      versionAncienne: "Hay una versión más reciente ({}).",
+      versionLien: "Descargar",
+      delaiTitre: "RETRASO DE TU DIRECTO",
+      delaiImmediat: "Inmediato",
+      delaiMinute: "1 minuto",
+      delaiLibre: "Otro",
+      delaiAide: ["Ajusta el desfase entre las cartas del directo y las de la aplicación.", "Con latencia baja bastan 2 segundos. Si no, mejor 30.", "«Otro» aplica el valor, en segundos, escrito en la casilla."],
+      tailleTitre: "TAMAÑO DEL TEXTO",
+      tailleAide: "Tamaño del texto para tus espectadores. Pueden cambiarlo.",
+      titreChoix: "Opciones",
+      titrePlateau: "Tu tablero",
+      titreTalents: "Tus habilidades",
+      titreTalentsAdverses: "Habilidades del rival",
+      titreReserve: "Reserva",
       coinTitre: "POSICIÓN DE LA FICHA",
       coinAide: "Dónde aparece la descripción para tus espectadores.",
       calRetirer: "Quitar la captura",
@@ -805,6 +928,20 @@
       arretee: "Aplicación detenida",
     },
     it: {
+      versionAncienne: "È disponibile una versione più recente ({}).",
+      versionLien: "Scarica",
+      delaiTitre: "RITARDO DELLA DIRETTA",
+      delaiImmediat: "Immediato",
+      delaiMinute: "1 minuto",
+      delaiLibre: "Altro",
+      delaiAide: ["Regola il ritardo tra le carte in diretta e quelle nell'app.", "Con bassa latenza bastano 2 secondi, altrimenti meglio 30.", "«Altro» applica il valore, in secondi, scritto nella casella."],
+      tailleTitre: "DIMENSIONE TESTO",
+      tailleAide: "Dimensione del testo per i tuoi spettatori. Possono cambiarla.",
+      titreChoix: "Scelte",
+      titrePlateau: "Il tuo tavolo",
+      titreTalents: "Le tue abilità",
+      titreTalentsAdverses: "Abilità avversarie",
+      titreReserve: "Riserva",
       coinTitre: "POSIZIONE DELLA SCHEDA",
       coinAide: "Dove appare la descrizione per i tuoi spettatori.",
       calRetirer: "Rimuovi l'immagine",
@@ -844,6 +981,20 @@
       arretee: "Applicazione arrestata",
     },
     de: {
+      versionAncienne: "Eine neuere Version ist verfügbar ({}).",
+      versionLien: "Herunterladen",
+      delaiTitre: "DEINE STREAM-VERZÖGERUNG",
+      delaiImmediat: "Sofort",
+      delaiMinute: "1 Minute",
+      delaiLibre: "Andere",
+      delaiAide: ["Stelle die Verzögerung zwischen Stream und App ein.", "Bei niedriger Latenz genügen 2 Sekunden, sonst eher 30.", "„Andere“ übernimmt den Wert in Sekunden aus dem Feld."],
+      tailleTitre: "SCHRIFTGRÖSSE",
+      tailleAide: "Textgröße für deine Zuschauer. Sie können sie ändern.",
+      titreChoix: "Auswahl",
+      titrePlateau: "Dein Spielfeld",
+      titreTalents: "Deine Fähigkeiten",
+      titreTalentsAdverses: "Gegnerische Fähigkeiten",
+      titreReserve: "Lager",
       coinTitre: "POSITION DER KARTE",
       coinAide: "Wo die Beschreibung für deine Zuschauer erscheint.",
       calRetirer: "Screenshot entfernen",
@@ -883,6 +1034,20 @@
       arretee: "Anwendung beendet",
     },
     pt: {
+      versionAncienne: "Está disponível uma versão mais recente ({}).",
+      versionLien: "Transferir",
+      delaiTitre: "ATRASO DA TUA STREAM",
+      delaiImmediat: "Imediato",
+      delaiMinute: "1 minuto",
+      delaiLibre: "Outro",
+      delaiAide: ["Ajusta o desfasamento entre as cartas na stream e na aplicação.", "Em latência baixa bastam 2 segundos. Caso contrário, prefere 30.", "«Outro» aplica o valor, em segundos, escrito na caixa."],
+      tailleTitre: "TAMANHO DO TEXTO",
+      tailleAide: "Tamanho do texto para os teus espectadores. Podem alterá-lo.",
+      titreChoix: "Escolhas",
+      titrePlateau: "O teu tabuleiro",
+      titreTalents: "As tuas perícias",
+      titreTalentsAdverses: "Perícias do adversário",
+      titreReserve: "Reserva",
       coinTitre: "POSIÇÃO DA FICHA",
       coinAide: "Onde a descrição aparece para os teus espectadores.",
       calRetirer: "Remover a captura",
@@ -922,6 +1087,20 @@
       arretee: "Aplicação parada",
     },
     zh: {
+      versionAncienne: "有新版本可用（{}）。",
+      versionLien: "下载",
+      delaiTitre: "你的直播延迟",
+      delaiImmediat: "即时",
+      delaiMinute: "1 分钟",
+      delaiLibre: "自定义",
+      delaiAide: ["调整直播与应用中卡牌显示的时间差。", "低延迟直播约 2 秒即可，否则建议 30 秒。", "“自定义”会套用框中填写的秒数。"],
+      tailleTitre: "字号",
+      tailleAide: "观众看到的文字大小。观众可以自行更改。",
+      titreChoix: "选择",
+      titrePlateau: "你的物品栏",
+      titreTalents: "你的技能",
+      titreTalentsAdverses: "对手技能",
+      titreReserve: "储藏",
       coinTitre: "卡片位置",
       coinAide: "描述在观众端显示的位置。",
       calRetirer: "移除截图",
@@ -961,6 +1140,20 @@
       arretee: "应用已停止",
     },
     ko: {
+      versionAncienne: "새 버전이 있습니다 ({}).",
+      versionLien: "다운로드",
+      delaiTitre: "방송 지연 시간",
+      delaiImmediat: "즉시",
+      delaiMinute: "1분",
+      delaiLibre: "직접 입력",
+      delaiAide: ["방송과 앱에 카드가 표시되는 시간 차를 맞추세요.", "저지연 방송은 2초면 충분하고, 그렇지 않으면 30초를 권장합니다.", "‘직접 입력’은 칸에 적은 초 단위 값을 적용합니다."],
+      tailleTitre: "글자 크기",
+      tailleAide: "시청자에게 표시되는 글자 크기입니다. 시청자가 변경할 수 있습니다.",
+      titreChoix: "선택",
+      titrePlateau: "내 보드",
+      titreTalents: "내 스킬",
+      titreTalentsAdverses: "상대 스킬",
+      titreReserve: "보관함",
       coinTitre: "카드 위치",
       coinAide: "시청자에게 설명이 표시되는 위치입니다.",
       calRetirer: "캡처 삭제",
@@ -1022,42 +1215,25 @@
     attente: T.attente, pret: T.pret, erreur: T.erreur,
   };
 
-  // Libellés fixes de la page.
   document.getElementById('bascule-texte').textContent = T.configuration;
   document.getElementById('l-compte').textContent  = T.compteTwitch;
   document.getElementById('connecter').textContent = T.seConnecter;
   document.getElementById('l-jeu').textContent     = T.dossierJeu;
   document.getElementById('jeu').placeholder       = T.detecte;
   document.getElementById('parcourir').textContent   = T.parcourir;
-  // Le texte initial est écrit en dur dans la page : sans ceci, un utilisateur
-  // anglophone verrait « Démarrage… » jusqu'au premier message du serveur.
   document.getElementById('libelle').textContent     = T.demarrage;
 
-  // Recharger est plus simple et plus sûr que de repeindre chaque libellé :
-  // la page est locale, le rechargement est instantané, et l'état revient
-  // aussitôt par le flux.
-  // Nom natif de chaque langue : un anglophone perdu dans une interface
-  // coréenne doit pouvoir retrouver la sienne sans deviner un code.
   var NOMS_LANGUE = {
     en: 'English', fr: 'Français', de: 'Deutsch',    es: 'Español',
     it: 'Italiano', pt: 'Português', ko: '한국어', zh: '中文',
   };
 
-  // Ordre d'affichage : les deux langues d'origine en tête, le reste ensuite.
-  /* Le russe, l'ukrainien et le japonais sont retirés : le jeu ne publie leurs
-     traductions que sur sa branche de test, sous accord de confidentialité.
-     Les proposer afficherait des cartes en anglais, et laisserait entendre
-     l'existence de contenu non public. Leurs traductions d'interface sont
-     conservées hors dépôt, prêtes à revenir le jour où le jeu les publiera. */
   var ORDRE = ['en', 'fr', 'de', 'es', 'it', 'pt', 'ko', 'zh'];
 
   (function construireLangues() {
     var boite = document.getElementById('langues');
     var dispo = ORDRE.filter(function (l) { return TEXTES[l]; });
 
-    // Une liste déroulante dès qu'il y a trop de langues pour des boutons.
-    // Une planète en fil de fer : repère universel pour qui s'est trompé de
-    // langue et ne sait plus lire l'interface.
     boite.insertAdjacentHTML('beforeend',
       '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" '
       + 'stroke="currentColor" stroke-width="1.4" class="globe">'
@@ -1082,6 +1258,8 @@
   })();
 
   var elPlateau = document.getElementById('plateau');
+  var elFace = document.getElementById('face');
+  var elFaceTalents = document.getElementById('face-talents');
   var elVide    = document.getElementById('vide');
 
   var elEtat      = document.getElementById('etat');
@@ -1095,19 +1273,126 @@
     return d;
   }
 
-  // Reproduit le plateau : chaque objet occupe le nombre de cases de sa taille,
-  // les emplacements libres restent vides. Le streamer vérifie ainsi d'un coup
-  // d'œil que ce qui est diffusé correspond bien à sa partie.
-  function dessinerPlateau(objets) {
+  function dessinerBande(cartes, choix, centre) {
+    if (choix && choix.length >= 2) {
+      var ordonnes = choix.slice().sort(function (a, b) {
+        return (a.x || 0) - (b.x || 0);
+      });
+      var debut = Math.max(0, Math.floor((10 - ordonnes.length * 2) / 2));
+      var places = ordonnes.map(function (o, i) {
+        return { s: debut + i * 2, n: 2, nom: o.nom, tier: o.tier, ench: o.ench,
+                 rencontre: true };
+      });
+      dessinerPlateau(places, elFace, false);
+      return;
+    }
+
+    var aPlacer = cartes;
+    if (centre && cartes.length && cartes.every(function (o) {
+          return typeof o.x === 'number'; })) {
+      var B = GEOMETRIE.BOARD;
+      aPlacer = cartes.slice()
+        .sort(function (a, b) { return a.x - b.x; })
+        .map(function (o) {
+          var n = Math.max(1, Math.min(3, o.n || 1));
+          var colonne = (o.x - B.left) * 10 / B.width - n / 2;
+          return Object.assign({}, o, {
+            s: Math.max(0, Math.min(10 - n, Math.round(colonne))),
+          });
+        });
+    }
+    dessinerPlateau(aPlacer, elFace, false);
+  }
+
+  function poserNom(el, o) {
+    el.textContent = '';
+    if (o.ench) {
+      var e = document.createElement('span');
+      e.className = 'ench';
+      e.textContent = nomEnchantement(o.ench);
+      el.appendChild(e);
+    }
+    el.appendChild(document.createTextNode(o.nom));
+
+    if (o.se && o.se.length) {
+      var bloc = document.createElement('span');
+      bloc.className = 'emplacement';
+      o.se.forEach(function (code, i) {
+        if (i) bloc.appendChild(document.createTextNode(' · '));
+        var n = document.createElement('span');
+        n.className = 'em-' + code;
+        n.textContent = nomEmplacement(code);
+        bloc.appendChild(n);
+      });
+      el.appendChild(bloc);
+    }
+  }
+
+  function dessinerPlateau(objets, ou, centre) {
+    var elPlateau = ou || document.getElementById('plateau');
     elPlateau.textContent = '';
     var occupe = 0;
+
+    var placees = centre && objets.length && objets.every(function (o) {
+      return typeof o.x === 'number';
+    });
+
+    elPlateau.classList.toggle('centre', !!centre && !placees);
+    elPlateau.classList.toggle('libre', !!placees);
+
+    if (placees) {
+      var ys = objets.map(function (o) { return typeof o.y === 'number' ? o.y : 0; });
+      var yMin = Math.min.apply(null, ys);
+      var yMax = Math.max.apply(null, ys);
+      var etendue = yMax - yMin;
+
+      var B = GEOMETRIE.BOARD;
+      var versPlateau = function (xJeu) { return (xJeu - B.left) * 100 / B.width; };
+
+      objets.forEach(function (o) {
+        var d = document.createElement('div');
+        d.className = 'objet t-' + (o.tier || '')
+          + (o.ench ? ' enchante e-' + o.ench : '')
+          + (o.rencontre ? ' rencontre' : '');
+        poserNom(d, o);
+        d.title = o.nom + (o.ench ? ' — ' + o.ench : '') + (o.tier ? ' (' + o.tier + ')' : '');
+
+        var larg = Math.max(1, Math.min(3, o.n || 1)) * 10 - 1.4;
+        var gauche = versPlateau(o.x) - larg / 2;
+        d.style.left = Math.max(-2, Math.min(102 - larg, gauche)) + '%';
+        d.style.width = larg + '%';
+
+        if (etendue > 0.5) {
+          var part = (typeof o.y === 'number') ? (o.y - yMin) / etendue : 0;
+          d.style.top = Math.round(part * 14) + 'px';
+        }
+        elPlateau.appendChild(d);
+      });
+      return;
+    }
+
+    if (centre) {
+      objets.forEach(function (o) {
+        var d = document.createElement('div');
+        d.className = 'objet t-' + (o.tier || '')
+          + (o.ench ? ' enchante e-' + o.ench : '')
+          + (o.rencontre ? ' rencontre' : '');
+        d.style.gridColumn = 'span ' + Math.max(1, Math.min(3, o.n || 1));
+        poserNom(d, o);
+        d.title = o.nom + (o.ench ? ' — ' + o.ench : '') + (o.tier ? ' (' + o.tier + ')' : '');
+        elPlateau.appendChild(d);
+      });
+      return;
+    }
 
     objets.forEach(function (o) {
       while (occupe < o.s) { elPlateau.appendChild(caseVide()); occupe++; }
       var d = document.createElement('div');
-      d.className = 'objet t-' + (o.tier || '') + (o.ench ? ' enchante' : '');
+      d.className = 'objet t-' + (o.tier || '')
+        + (o.ench ? ' enchante e-' + o.ench : '')
+        + (o.rencontre ? ' rencontre' : '');
       d.style.gridColumn = 'span ' + Math.max(1, Math.min(3, o.n || 1));
-      d.textContent = o.nom;
+      poserNom(d, o);
       d.title = o.nom + (o.ench ? ' — ' + o.ench : '') + (o.tier ? ' (' + o.tier + ')' : '');
       elPlateau.appendChild(d);
       occupe += (o.n || 1);
@@ -1116,8 +1401,10 @@
     while (occupe < 10) { elPlateau.appendChild(caseVide()); occupe++; }
   }
 
-  function dessinerTalents(talents) {
+  function dessinerTalents(talents, ou) {
+    var elTalents = ou || document.getElementById('talents');
     elTalents.textContent = '';
+
     talents.forEach(function (t) {
       var d = document.createElement('div');
       d.className = 'talent t-' + (t.tier || '');
@@ -1125,6 +1412,102 @@
       d.title = t.nom + (t.tier ? ' (' + t.tier + ')' : '');
       elTalents.appendChild(d);
     });
+  }
+
+  var ENCHANTEMENTS = {
+    fr: { Golden: 'Doré', Heavy: 'Lourd', Icy: 'Glacé', Turbo: 'Turbo',
+          Shielded: 'Blindé', Restorative: 'Guérisseur', Toxic: 'Toxique',
+          Fiery: 'Ardent', Shiny: 'Brillant', Deadly: 'Mortel',
+          Radiant: 'Radieux', Obsidian: 'Obsidienne', Mossy: 'Moussu' },
+    de: { Golden: 'Golden', Heavy: 'Schwer', Icy: 'Eisig', Turbo: 'Turbo',
+          Shielded: 'Geschützt', Restorative: 'Heilend', Toxic: 'Giftig',
+          Fiery: 'Feurig', Shiny: 'Glänzend', Deadly: 'Tödlich',
+          Radiant: 'Strahlend', Obsidian: 'Obsidian', Mossy: 'Moosig' },
+    es: { Golden: 'Dorado', Heavy: 'Pesado', Icy: 'Helado', Turbo: 'Turbo',
+          Shielded: 'Blindado', Restorative: 'Restaurador', Toxic: 'Tóxico',
+          Fiery: 'Ardiente', Shiny: 'Brillante', Deadly: 'Mortal',
+          Radiant: 'Radiante', Obsidian: 'Obsidiana', Mossy: 'Musgoso' },
+    it: { Golden: 'Dorato', Heavy: 'Pesante', Icy: 'Ghiacciato', Turbo: 'Turbo',
+          Shielded: 'Schermato', Restorative: 'Ristoratore', Toxic: 'Tossico',
+          Fiery: 'Infuocato', Shiny: 'Lucente', Deadly: 'Letale',
+          Radiant: 'Radioso', Obsidian: 'Ossidiana', Mossy: 'Muschioso' },
+    pt: { Golden: 'Dourado', Heavy: 'Pesado', Icy: 'Gelado', Turbo: 'Turbo',
+          Shielded: 'Blindado', Restorative: 'Restaurador', Toxic: 'Tóxico',
+          Fiery: 'Flamejante', Shiny: 'Brilhante', Deadly: 'Mortal',
+          Radiant: 'Radiante', Obsidian: 'Obsidiana', Mossy: 'Musgoso' },
+    ko: { Golden: '황금', Heavy: '무거운', Icy: '얼음', Turbo: '터보',
+          Shielded: '보호', Restorative: '회복', Toxic: '유독',
+          Fiery: '화염', Shiny: '광휘', Deadly: '치명',
+          Radiant: '찬란', Obsidian: '흑요석', Mossy: '이끼' },
+    zh: { Golden: '黄金', Heavy: '沉重', Icy: '冰寒', Turbo: '涡轮',
+          Shielded: '护盾', Restorative: '恢复', Toxic: '剧毒',
+          Fiery: '炽焰', Shiny: '闪耀', Deadly: '致命',
+          Radiant: '辉光', Obsidian: '黑曜', Mossy: '苔藓' },
+  };
+
+  function nomEnchantement(nom) {
+    var t = ENCHANTEMENTS[LANGUE];
+    return (t && t[nom]) || nom;
+  }
+
+  var NOTES_LETTRES = { C: 'C', D: 'D', E: 'E', F: 'F', G: 'G', A: 'A', B: 'B' };
+  var NOTES_SYLLABES = { C: 'Do', D: 'Ré', E: 'Mi', F: 'Fa', G: 'Sol', A: 'La', B: 'Si' };
+
+  var EMPLACEMENTS = {
+    fr: { notes: NOTES_SYLLABES, Stove: 'Fourneau',  Cooler: 'Glacière' },
+    en: { notes: NOTES_LETTRES,  Stove: 'Stove',     Cooler: 'Cooler' },
+    de: { notes: NOTES_LETTRES,  Stove: 'Herd',      Cooler: 'Kühler' },
+    es: { notes: NOTES_SYLLABES, Stove: 'Hornillo',  Cooler: 'Nevera' },
+    it: { notes: NOTES_SYLLABES, Stove: 'Fornello',  Cooler: 'Frigo' },
+    pt: { notes: NOTES_SYLLABES, Stove: 'Fogão',     Cooler: 'Geleira' },
+    ko: { notes: NOTES_LETTRES,  Stove: '화로',       Cooler: '냉각기' },
+    zh: { notes: NOTES_LETTRES,  Stove: '炉灶',       Cooler: '冷藏箱' },
+  };
+
+  function nomEmplacement(code) {
+    var t = EMPLACEMENTS[LANGUE] || EMPLACEMENTS.en;
+    if (t.notes[code]) {
+      return (LANGUE === 'fr') ? ('Note ' + t.notes[code])
+           : (t.notes[code] + ' Note');
+    }
+    return t[code] || code;
+  }
+
+  /* Prévient le streamer qu'une version plus récente existe. On ne compare que
+     des versions connues : hors ligne, on ne dit rien. */
+  function majAlerteVersion(ici, enLigne) {
+    var el = document.getElementById('alerte-version');
+    // Sans version connue de part et d'autre, on ne dit rien.
+    if (!ici || !enLigne || ici === enLigne) { if (el) el.remove(); return; }
+    if (el) return;
+
+    el = document.createElement('div');
+    el.id = 'alerte-version';
+    el.textContent = (T.versionAncienne || '').replace('{}', enLigne);
+
+    var lien = document.createElement('a');
+    lien.href = 'https://github.com/Kwev-Bzr/bazaar-scanner/releases/latest';
+    lien.target = '_blank';
+    lien.rel = 'noopener';
+    lien.textContent = T.versionLien || 'Télécharger';
+    el.appendChild(lien);
+
+    document.body.appendChild(el);
+  }
+
+  /* Reflète le délai courant : la boîte et le bouton retenu. */
+  function majDelai(d) {
+    var n = document.getElementById('n-delai');
+    if (n) n.value = d;
+
+    var connu = false;
+    [].forEach.call(document.querySelectorAll('#delai button'), function (b) {
+      var pris = (b.dataset.delai === String(d));
+      if (pris) connu = true;
+      b.classList.toggle('actif', pris);
+    });
+    var libre = document.getElementById('b-libre');
+    if (libre) libre.classList.toggle('actif', !connu);
   }
 
   function peindre(e) {
@@ -1135,13 +1518,38 @@
     var enPartie = e.code === 'pret';
     dessinerPlateau(enPartie ? (e.plateau || []) : []);
     dessinerTalents(enPartie ? (e.listeTalents || []) : []);
+
+    var toutFace = enPartie ? (e.face || []) : [];
+    var titreFace = enPartie ? (e.faceTitre || '') : '';
+    var faceTalents = enPartie ? (e.faceTalents || []) : [];
+    var reserve = enPartie ? (e.reserve || []) : [];
+
+    var rencontres = toutFace.filter(function (o) { return o.rencontre; });
+    var face = toutFace.filter(function (o) { return !o.rencontre; });
+
+    var reserveOuverte = reserve.length > 0;
+    var bandeHaute = reserveOuverte ? reserve : face;
+
+    elFace.classList.toggle('reserve', reserveOuverte);
+
+    var choix = reserveOuverte ? [] : rencontres.filter(function (o) {
+      return o.rencontre && !/^(PVP|PVE)$/.test(o.nom);
+    });
+
+    dessinerBande(bandeHaute, choix, e.faceCentree && !reserveOuverte);
+    dessinerTalents(faceTalents, elFaceTalents);
+
+    document.getElementById('cadre-face-talents').style.display =
+      (!reserveOuverte && faceTalents.length) ? '' : 'none';
+
+    document.getElementById('titre-face').textContent =
+        (titreFace === 'Stash')   ? T.titreReserve
+      : (titreFace === 'Choices') ? T.titreChoix
+      : (titreFace || '—');
+
     elVide.textContent = enPartie ? '' : T.attentePartie;
   }
 
-  /* Edge et Chrome ignorent --window-size quand une instance tourne déjà : la
-     fenêtre reprend alors la taille de la précédente. On rattrape une seule
-     fois par session — sinon un changement de langue, qui recharge la page,
-     annulerait le redimensionnement fait à la main par l'utilisateur. */
   try {
     if (!window.sessionStorage.getItem('bazaar-taille-ajustee')) {
       window.sessionStorage.setItem('bazaar-taille-ajustee', '1');
@@ -1149,8 +1557,6 @@
     }
   } catch (e) { /* refusé selon le contexte, sans conséquence */ }
 
-  // On annonce la langue au serveur pour que l'aperçu du plateau soit traduit
-  // dans la même langue que l'interface.
   fetch('/langue?l=' + encodeURIComponent(LANGUE)).catch(function () {});
 
   var flux = new EventSource('/etat');
@@ -1163,9 +1569,6 @@
     elPrecision.textContent = '';
   };
 
-  // ── Configuration ──────────────────────────────────────────
-  /* La configuration reste ouverte au rechargement provoqué par un changement
-     de langue : la refermer obligerait à rouvrir puis à retrouver son réglage. */
   var CLE_REGLAGES = 'bazaar-reglages-ouverts';
   var reglages = document.getElementById('reglages');
 
@@ -1183,8 +1586,6 @@
 
   var elBascule = document.getElementById('bascule');
 
-  // Une seule fonction décide de l'état, pour que la flèche ne puisse pas
-  // désigner le contraire de ce que fait le panneau.
   function afficherReglages(ouvert) {
     reglages.classList.toggle('ouvert', ouvert);
     elBascule.classList.toggle('ouvert', ouvert);
@@ -1197,12 +1598,6 @@
 
   var elCompte = document.getElementById('compte');
 
-
-  /* Dernière valeur enregistrée du dossier du jeu. Elle sert à ne rien
-     réécrire quand le champ est quitté sans avoir changé. Sa déclaration avait
-     disparu avec le bouton « Enregistrer » alors que deux endroits l'utilisent
-     encore : le script s'interrompait dès la première lecture de la
-     configuration, et plus rien ne s'affichait ensuite. */
   var dossierEnregistre = null;
 
   function relireConfig() {
@@ -1210,23 +1605,16 @@
       document.getElementById('jeu').value = c.BAZAAR_PATH;
       dossierEnregistre = (c.BAZAAR_PATH || '').trim();
       var lie = !!c.RELAY_TOKEN;
-      // Le nom de chaîne, jamais l'identifiant numérique : il ne dit rien à
-      // personne. Faute de nom — configuration antérieure à sa mémorisation,
-      // ou réponse incomplète de Twitch — on se contente de « connecté ».
       elCompte.textContent = lie
         ? (c.TWITCH_NOM || T.connecteSansNom)
         : T.nonConnecte;
 
-      // Le cadre courant n'est pas affiché — « calibré » n'apprend rien — mais
-      // il est conservé pour rouvrir l'outil sur le réglage existant.
-      // La vignette du coin choisi est mise en évidence.
-      [].forEach.call(document.querySelectorAll('#coins button'), function (b) {
-        b.classList.toggle('actif', b.dataset.coin === (c.COIN || 'hg'));
-      });
+      majAlerteVersion(c.VERSION, c.VERSION_EN_LIGNE);
+
+      majDelai(Math.max(0, Math.min(86400, parseInt(c.DELAI_STREAM, 10) || 0)));
 
       document.getElementById('etat-cadre').dataset.cadre = c.CADRE || '';
       elCompte.classList.toggle('lie', lie);
-      // Premier lancement : la configuration s'ouvre d'elle-même.
       if (!lie) afficherReglages(true);
       return c;
     });
@@ -1250,7 +1638,6 @@
   });
 
   function surveillerJeton(b) {
-    // Le jeton arrive par le navigateur : on surveille jusqu'à le voir.
     var essais = 0;
     var minuteur = setInterval(function () {
       relireConfig().then(function (c) {
@@ -1269,17 +1656,6 @@
     }, 1000);
   }
 
-
-  /* ── Calibrage du cadrage ─────────────────────────────────────────────
-     Le streamer encadre son jeu dans une capture de sa scène OBS. Toutes les
-     coordonnées d'emplacements étant relatives au jeu, ce seul rectangle
-     recale l'ensemble : les dix cases du plateau comme les talents, qui
-     conservent leurs positions relatives.
-     ------------------------------------------------------------------- */
-
-  // MIROIR de twitch-extension/extension/config.js. Ces valeurs décrivent où
-  // le JEU place ses cartes ; elles ne changent que si le jeu change son
-  // interface. En cas de modification là-bas, reporter ici.
   var GEOMETRIE = {
     /* <<< GÉOMÉTRIE — engendré par tools/sync-geometrie.js */
     // Ne pas modifier ici : la source est
@@ -1309,26 +1685,14 @@
     /* GÉOMÉTRIE >>> */
   };
 
-  /* Le rectangle manipulé est LE PLATEAU, pas le jeu entier : « encadre le
-     jeu » est une consigne floue — les bordures décoratives n'ont pas de
-     limite nette — alors que la rangée d'objets offre des repères francs.
-
-     Le cadre du jeu s'en déduit : on connaît la place qu'occupe le plateau à
-     l'intérieur du jeu, donc l'un donne l'autre. C'est ce cadre qui est
-     enregistré et diffusé, l'extension restant inchangée. */
-
   var calPlateau = null;                              // en % de la scène
   var calImage   = null;
 
-  // Position du plateau quand le jeu occupe tout le cadre. Sur une capture qui
-  // n'est pas en 16/9, le jeu est encadré de bandes : les valeurs nominales
-  // restent le meilleur point de départ, le streamer ajuste ensuite.
   function plateauParDefaut() {
     var B = GEOMETRIE.BOARD;
     return { l: B.left, t: B.top, w: B.width, h: B.height };
   }
 
-  // Plateau (scène) → cadre du jeu (scène).
   function cadreCalcule() {
     var B = GEOMETRIE.BOARD;
     var p = calPlateau || plateauParDefaut();
@@ -1337,7 +1701,6 @@
     return { l: p.l - B.left * w / 100, t: p.t - B.top * h / 100, w: w, h: h };
   }
 
-  // Cadre du jeu → plateau, pour rouvrir sur un calibrage existant.
   function plateauDepuisCadre(c) {
     var B = GEOMETRIE.BOARD;
     return {
@@ -1363,8 +1726,24 @@
   document.getElementById('cal-aide').textContent     = T.calAide;
   document.getElementById('cal-retirer').title        = T.calRetirer;
   document.getElementById('l-cadrage').textContent    = T.cadrage;
-  document.getElementById('l-coin').textContent       = T.coinTitre;
-  document.getElementById('coin-aide').textContent    = T.coinAide;
+  document.getElementById('titre-plateau').textContent = T.titrePlateau;
+  document.getElementById('titre-talents').textContent = T.titreTalents;
+  document.getElementById('titre-face-talents').textContent = T.titreTalentsAdverses;
+  document.getElementById('l-delai').textContent     = T.delaiTitre;
+  [].forEach.call(document.querySelectorAll('#delai button'), function (b) {
+    var v = b.dataset.delai;
+    b.textContent = (v === 'libre') ? T.delaiLibre
+      : (v === '0') ? T.delaiImmediat
+      : (v === '60') ? T.delaiMinute
+      : v + ' s';
+  });
+  var aide = document.getElementById('delai-aide');
+  aide.textContent = '';
+  (Array.isArray(T.delaiAide) ? T.delaiAide : [T.delaiAide]).forEach(function (t) {
+    var l = document.createElement('div');
+    l.textContent = t;
+    aide.appendChild(l);
+  });
   document.getElementById('calibrer').textContent     = T.calibrer;
 
   function pct(v) { return v + '%'; }
@@ -1378,7 +1757,6 @@
     dessinerZones();
   }
 
-  // Projette une coordonnée exprimée en % du jeu vers un % de la scène.
   function projX(x) { var c = cadreCalcule(); return c.l + x * c.w / 100; }
   function projY(y) { var c = cadreCalcule(); return c.t + y * c.h / 100; }
   function projL(w) { return w * cadreCalcule().w / 100; }
@@ -1389,8 +1767,6 @@
     var B = GEOMETRIE.BOARD;
     var pas = B.width / B.slots;
 
-    // Les dix divisions à l'intérieur du rectangle : elles montrent où
-    // tombent les séparations entre cases, ce qui permet un alignement fin.
     for (var i = 0; i < B.slots; i++) {
       var d = document.createElement('div');
       d.style.left   = pct(projX(B.left + i * pas));
@@ -1400,8 +1776,6 @@
       elZones.appendChild(d);
     }
 
-    // Repères fixes : ils ne dépendent pas de ce que possède le joueur, donc
-    // ils restent alignables même sur un plateau presque vide.
     (GEOMETRIE.REPERES.cercles || []).forEach(function (c) {
       var d = document.createElement('div');
       d.className = 'repere cercle';
@@ -1422,8 +1796,6 @@
       elZones.appendChild(d);
     });
 
-    // La première disposition de talents, la plus courante, suffit à vérifier
-    // que le bas de l'écran est bien cadré.
     var L = GEOMETRIE.SKILL_LAYOUTS[0];
     L.slots.forEach(function (p) {
       var d = document.createElement('div');
@@ -1442,10 +1814,6 @@
 
     dessinerCadre();
 
-    /* La scène reste en 16/9 quoi qu'il arrive. Si la capture ne l'est pas,
-       « contain » la centrerait en laissant des bandes et les pourcentages ne
-       désigneraient plus les mêmes points : on prévient plutôt que de calibrer
-       faux en silence. */
     var sonde = new Image();
     sonde.onload = function () {
       var r = sonde.naturalWidth / sonde.naturalHeight;
@@ -1467,7 +1835,6 @@
     elScene.style.backgroundImage = '';
     elScene.classList.remove('remplie');
     elRetirer.hidden = true;
-    // Le rectangle reste : il montre toujours ce qu'on attend.
     dessinerCadre();
   }
 
@@ -1483,7 +1850,6 @@
     lecteur.readAsDataURL(f);
   }
 
-  // Collage : la voie normale, un simple Ctrl+V après une capture d'écran.
   elScene.addEventListener('paste', function (ev) {
     var items = (ev.clipboardData || {}).items || [];
     for (var i = 0; i < items.length; i++) {
@@ -1501,8 +1867,6 @@
   document.getElementById('cal-input').addEventListener('change', function () {
     lireFichier(this.files[0]);
   });
-
-  /* --- déplacement et redimensionnement -------------------------------- */
 
   var saisie = null;
 
@@ -1534,19 +1898,9 @@
     if (!calPlateau) calPlateau = plateauParDefaut();
 
     if (!saisie.coin) {
-      // Déplacement : le rectangle reste entièrement dans la scène.
       calPlateau.l = Math.max(0, Math.min(100 - c.w, c.l + dx));
       calPlateau.t = Math.max(0, Math.min(100 - c.h, c.t + dy));
     } else {
-      /* Les proportions sont IMPOSÉES. Le plateau a une forme fixe dans le
-         jeu ; l'écraser produirait un cadre déformé, et donc des zones de
-         survol fausses en hauteur ou en largeur. On ne suit donc que le
-         déplacement horizontal de la poignée, et la hauteur en découle.
-         Le coin opposé reste immobile, comme on l'attend d'une poignée. */
-      /* Le rapport doit être calculé en PIXELS, pas en pourcentages : sur une
-         capture qui n'est pas en 16/9, un même pourcentage de largeur et de
-         hauteur ne représente pas la même distance à l'écran, et la contrainte
-         déformerait le rectangle. */
       var r = elScene.getBoundingClientRect();
       var aspectScene = (r.width && r.height) ? r.width / r.height : 16 / 9;
       var RAPPORT = (GEOMETRIE.BOARD.width / GEOMETRIE.BOARD.height) * (16 / 9) / aspectScene;
@@ -1556,7 +1910,6 @@
       if (la < MIN) la = MIN;
       var ha = la / RAPPORT;
 
-      // Ancrage : le coin diagonalement opposé ne bouge pas.
       var g = versLaDroite ? c.l : c.l + c.w - la;
       var hh = (saisie.coin.indexOf('s') >= 0) ? c.t : c.t + c.h - ha;
 
@@ -1570,12 +1923,6 @@
 
   document.addEventListener('mouseup', function () { saisie = null; });
 
-  /* --- déplacement au clavier -------------------------------------------
-     Les flèches déplacent le rectangle d'un pixel de la capture, ce qui donne
-     le réglage fin que la souris ne permet pas. Maintenir accélère : sans ça,
-     traverser l'image demanderait un millier d'appuis.
-     ------------------------------------------------------------------- */
-
   var FLECHES = { ArrowLeft: [-1, 0], ArrowRight: [1, 0],
                   ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
@@ -1587,20 +1934,16 @@
     if (!d) return;
     ev.preventDefault();
 
-    // Un « pixel » se mesure sur la capture affichée, pas sur l'écran : le pas
-    // reste ainsi le même quelle que soit la taille de la fenêtre.
     var r = elScene.getBoundingClientRect();
     var pasX = r.width  ? 100 / r.width  : 0.05;
     var pasY = r.height ? 100 / r.height : 0.09;
 
-    // Accélération progressive tant que la touche reste enfoncée.
     repetitions = ev.repeat ? repetitions + 1 : 0;
     var facteur = Math.min(1 + Math.pow(repetitions, 1.6) / 12, 40);
 
     if (!calPlateau) calPlateau = plateauParDefaut();
     var p = calPlateau;
 
-    // Le rectangle ne sort pas de la capture.
     p.l = Math.max(0, Math.min(100 - p.w, p.l + d[0] * pasX * facteur));
     p.t = Math.max(0, Math.min(100 - p.h, p.t + d[1] * pasY * facteur));
     dessinerCadre();
@@ -1608,20 +1951,11 @@
 
   document.addEventListener('keyup', function () { repetitions = 0; });
 
-  /* --- ouverture, fermeture, enregistrement ---------------------------- */
-
   function ouvrirCalibrage(cadreActuel) {
     calPlateau = cadreActuel ? plateauDepuisCadre(cadreActuel) : plateauParDefaut();
     elCal.classList.add('ouvert');
-    /* La consigne de cadrage est affichée DÈS L'OUVERTURE : elle explique ce
-       qu'on attend du streamer, ce qui donne un sens au collage demandé juste
-       en dessous. Le cadre noir garde sa propre invitation à coller — les deux
-       textes sont distincts, il n'y a plus de répétition. */
     elConsigne.textContent = T.calEncadrer;
     elRetirer.hidden = !calImage;
-    // Le rectangle est montré dès l'ouverture, même sans capture : le streamer
-    // voit tout de suite ce qu'on attend de lui, et à quoi ressemble un
-    // cadrage plein écran.
     dessinerCadre();
     elScene.focus();
   }
@@ -1646,15 +1980,47 @@
     }).then(relireConfig).then(fermerCalibrage);
   });
 
-  [].forEach.call(document.querySelectorAll('#coins button'), function (b) {
-    b.addEventListener('click', function () {
+  (function () {
+    var n = document.getElementById('n-delai');
+    if (!n) return;
+
+    function borner(v) {
+      var x = parseInt(v, 10);
+      if (!isFinite(x) || x < 0) x = 0;
+      return Math.min(x, 86400);   // une journée, garde-fou
+    }
+
+    function poser(v, envoyer) {
+      var d = borner(v);
+      n.value = d;
+
+      /* Le bouton retenu est celui dont la valeur correspond ; à défaut,
+         c'est « Autre », qui renvoie à la saisie libre. */
+      var connu = false;
+      [].forEach.call(document.querySelectorAll('#delai button'), function (b) {
+        var pris = (b.dataset.delai === String(d));
+        if (pris) connu = true;
+        b.classList.toggle('actif', pris);
+      });
+      var libre = document.getElementById('b-libre');
+      if (libre) libre.classList.toggle('actif', !connu);
+      if (!envoyer) return;
       fetch('/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ COIN: b.dataset.coin })
+        body: JSON.stringify({ DELAI_STREAM: String(d) })
       }).then(relireConfig);
+    }
+
+    [].forEach.call(document.querySelectorAll('#delai button'), function (b) {
+      b.addEventListener('click', function () {
+        if (b.dataset.delai === 'libre') { n.focus(); n.select(); poser(n.value, true); }
+        else poser(b.dataset.delai, true);
+      });
     });
-  });
+
+    n.addEventListener('change', function () { poser(n.value, true); });
+  })();
 
   document.getElementById('calibrer').addEventListener('click', function () {
     var c = (document.getElementById('etat-cadre').dataset.cadre || '')
@@ -1669,15 +2035,12 @@
     elAvis.className = 'avis';
     elAvis.textContent = '';
 
-    // La requête ne répond qu'une fois la fenêtre Windows refermée.
     fetch('/parcourir').then(function (r) { return r.json(); }).then(function (rep) {
       b.disabled = false;
       if (!rep.chemin) return;                 // annulé
       document.getElementById('jeu').value = rep.chemin;
       elAvis.textContent = rep.valide ? T.dossierOk : T.dossierNon;
       elAvis.className = 'avis' + (rep.valide ? ' bon' : '');
-      // Le dossier choisi par la boîte de dialogue est enregistré aussitôt :
-      // il vient d'être vérifié, il n'y a rien à confirmer.
       if (rep.valide) enregistrerDossier();
     }).catch(function () { b.disabled = false; });
   });
@@ -1690,9 +2053,6 @@
     }).then(relireConfig);
   }
 
-  /* Le dossier s'enregistre en quittant le champ. Un bouton dédié n'avait plus
-     de sens : c'était le seul réglage à ne pas se sauvegarder tout seul, et
-     l'oublier laissait une configuration à moitié appliquée. */
   document.getElementById('jeu').addEventListener('change', function () {
     var champ = this.value.trim();
     if (champ === dossierEnregistre) return;

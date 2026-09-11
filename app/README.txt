@@ -4,6 +4,18 @@ BAZAAR SCANNER
 Lets your viewers hover the cards on your board during your stream and read
 what they do, in their own language.
 
+IMPORTANT: Bazaar Scanner only works with the STEAM version of the game.
+It reads The Bazaar from the Steam folder and cannot work with an
+installation from anywhere else.
+
+ANTIVIRUS NOTICE: setup places winhttp.dll in the game folder. That file
+belongs to BepInEx, the mod loader, and carries the name of a system
+component so that Windows loads it when the game starts. Because malware
+uses the same technique, some antivirus products flag it. The installer is
+not digitally signed either, which triggers a SmartScreen warning. Both
+alerts are expected. The source code is published:
+https://github.com/Kwev-Bzr/bazaar-scanner
+
 
 SETUP
 -----
@@ -41,6 +53,46 @@ broadcast matches your game.
 Closing the window closes the tool.
 
 
+SETTINGS
+--------
+
+The CONFIGURATION window holds the settings sent to the extension:
+
+  Stream delay
+     Offset, in seconds, between what you see and what your viewers see.
+
+     Low-latency streams need about 2 seconds; otherwise count 30. Buttons
+     offer the common values; "Custom" applies the number of seconds typed
+     in the adjacent box.
+
+  Interface language
+     Eight languages are available. Viewers may switch on their side
+     without affecting anyone else.
+
+
+WHAT YOUR VIEWERS SEE
+---------------------
+
+Hovering a card
+   The card sheet appears: translated description, per-tier values,
+   coloured keywords, enchantment variants.
+
+Magnifier button
+   Search across the full catalogue. Viewers can look up any item or skill,
+   even one not on the board, with filters by hero, type, size, rarity and
+   effect.
+
+Options button
+   Card placement, text size, colour and font. These settings belong to the
+   viewer; the streamer has no say in them.
+
+Globe button
+   Display language.
+
+A short hint appears on the first visit and can be reopened from the
+options menu.
+
+
 THE INDICATOR
 -------------
 
@@ -58,6 +110,10 @@ enchantment. Nothing else.
 
 No combat state, no health, no gold, no personal data. Everything sent is
 already visible on your viewers' screens.
+
+The extension also downloads card descriptions from
+bazaar-scanner.pages.dev. That data is public and identical for everyone;
+it holds nothing about you.
 
 The Twitch authorisation only identifies your channel. It gives no access to
 your account, your chat or your revenue, and can be revoked at any time from

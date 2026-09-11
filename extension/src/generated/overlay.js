@@ -27,7 +27,7 @@ const HERO_INITIAL = { Pygmalien:'P', Vanessa:'V', Stelle:'S', Dooley:'D', Jules
 // Couleurs par enchantement (mêmes teintes thématiques que les mots-clés du jeu).
 const ENCHANTMENT_COLORS = {
   Golden:      '#f0c060',
-  Heavy:       '#999999',
+  Heavy:       '#c69c6c',   // même gris-brun que le ralentissement qu'il inflige
   Icy:         '#9fc5e8',
   Turbo:       '#00ffff',
   Shielded:    '#ffff00',
@@ -94,11 +94,17 @@ const LIBELLES = {
     actif: 'Actif', passif: 'Passif', talent: 'Talent',
     delai: 'Délai d\'Activation :', sec: 'sec',
     munitions: 'Munitions', quetes: 'Quêtes', multicast: 'Répétition',
+    sansDescription: 'Aucune description.',
+    estSur: 'Cet objet est {}', surNotes: 'sur {}',
+    uneNote: 'un {}', et: 'et',
   },
   en: {
     actif: 'Active', passif: 'Passive', talent: 'Skill',
     delai: 'Cooldown:', sec: 'sec',
     munitions: 'Ammo', quetes: 'Quests', multicast: 'Multicast',
+    sansDescription: 'No description.',
+    estSur: 'This item is {}', surNotes: 'on {}',
+    uneNote: 'a {}', et: 'and',
   },
 };
 
@@ -115,6 +121,10 @@ const TAG_FR = {
   Loot: 'Butin', Potion: 'Potion', Property: 'Propriété', Ray: 'Rayon',
   Reagent: 'Réactif', Relic: 'Relique', Tech: 'Tech', Tool: 'Outil',
   Toy: 'Jouet', Trap: 'Piège', Vehicle: 'Véhicule', Weapon: 'Arme',
+  Merchant: 'Marchand', Burn: 'Brûlure', Poison: 'Poison', Freeze: 'Gel',
+  Heal: 'Soin', Shield: 'Bouclier', Regen: 'Régénération', Haste: 'Hâte',
+  Slow: 'Ralentissement', Crit: 'Critique', Charge: 'Charge', Economy: 'Économie',
+  Flying: 'Volant', Unsellable: 'Invendable',
 };
 const SIZE_FR = { Small: 'Petit', Medium: 'Moyen', Large: 'Grand' };
 const TIER_FR = { Bronze: 'Bronze', Silver: 'Argent', Gold: 'Or', Diamond: 'Diamant', Legendary: 'Légendaire' };
@@ -194,7 +204,17 @@ function showItem(data) {
   // Image
   if (data.image) {
     const imgDir = data.isSkill ? 'skills' : 'items';
-    itemImg.src = `${window.BAZAAR_CONFIG.DATA_BASE_URL}/images/${data.image}` + (window.BAZAAR_SUFFIXE_CACHE || '');
+    const source = `${window.BAZAAR_CONFIG.DATA_BASE_URL}/images/${data.image}` + (window.BAZAAR_SUFFIXE_CACHE || '');
+
+    /* L'image est masquée pendant son chargement, sauf si c'est la même :
+       il n'y aurait rien à attendre, et le clignotement serait pire. */
+    if (itemImg.src !== source) {
+      itemImg.style.visibility = 'hidden';
+      itemImg.onload = () => { itemImg.style.visibility = ''; };
+      itemImg.src = source;
+    } else {
+      itemImg.style.visibility = '';
+    }
     itemImg.alt = data.name;
     // Le cadre porte la qualité MINIMALE de l'objet (celle à laquelle il
     // apparaît en boutique), pas celle de l'exemplaire possédé : c'est une
@@ -208,7 +228,8 @@ function showItem(data) {
 
   // Badges
   badgesRow.innerHTML = '';
-  if (data.tier) badgesRow.innerHTML += `<span class="badge badge-tier ${esc(data.tier)}">${esc(trad(TIER_FR, data.tier, 'qualites'))}</span>`;
+
+  // La TAILLE d'abord : c'est elle qui dit la place occupée sur le plateau.
   if (data.isSkill) badgesRow.innerHTML += `<span class="badge badge-size">${lib('talent')}</span>`;
   else if (data.size) badgesRow.innerHTML += `<span class="badge badge-size">${esc(trad(SIZE_FR, data.size, 'tailles'))}</span>`;
   if (data.tags?.length) {
@@ -222,7 +243,16 @@ function showItem(data) {
   const existingBottom = document.getElementById('hero-portraits-bottom');
   if (existingBottom) existingBottom.remove();
 
-  if (!data.isSkill) {
+  /* Au-delà de deux héros, les portraits passent sur leur propre ligne.
+
+     Posés à côté du titre, ils lui prennent sa place : un événement qui
+     concerne cinq héros voyait son nom tronqué. La ligne dédiée existe déjà
+     pour les talents, on la réutilise. */
+  const PORTRAITS_EN_HAUT_MAX = 2;
+  const enLigneDediee = data.isSkill
+    || (data.heroes && data.heroes.length > PORTRAITS_EN_HAUT_MAX);
+
+  if (!enLigneDediee) {
     // Items : portraits en haut à droite comme avant
     const heroes = data.heroes?.length ? data.heroes : ['Common'];
     heroes.forEach(hero => {
@@ -239,11 +269,16 @@ function showItem(data) {
   // Corps
   bodyEl.innerHTML = buildBody(data.tooltips || [], data.cooldowns, data.ammo, data.multicast, data.quests, data.isSkill, data.enchantmentTooltips, enchantColor);
 
-  // Portraits en bas pour les skills — insérés avant bottom-bar
-  if (data.isSkill && data.heroes?.length) {
+  /* L'objet est-il posé sur un emplacement spécial ? Le cas échéant, une
+     seconde fiche vient s'accoler sous la première. */
+  bodyEl.innerHTML += rendreEffetEmplacement(data.socketEffect);
+
+  // Ligne dédiée : talents, et objets à plus de deux héros.
+  if (enLigneDediee && data.heroes?.length) {
     const bottomDiv = document.createElement('div');
     bottomDiv.id = 'hero-portraits-bottom';
-    bottomDiv.className = 'hero-portraits-bottom';
+    bottomDiv.className = 'hero-portraits-bottom'
+      + (data.heroes.length > 4 ? ' serres' : '');
     data.heroes.forEach(hero => {
       const div = document.createElement('div');
       div.className = 'hero-portrait';
@@ -276,10 +311,81 @@ function showItem(data) {
 }
 
 // ── Corps ─────────────────────────────────────────────────────────────────────
+/* Effets d'emplacement, en DEUX lignes.
+
+   Un objet large couvre plusieurs cases, chacune pouvant porter sa note : la
+   première ligne les énumère, la seconde donne la description de chacune.
+
+   Les appareils décrivent un état — « Chauffé » — et les notes un lieu :
+   deux tournures, assemblées en une phrase. */
+function rendreEffetEmplacement(effets) {
+  if (!effets || !effets.length) return '';
+  var connus = effets.filter(e => e && e.nom);
+  if (!connus.length) return '';
+
+  var notes = [];    // « un Do », « un Fourneau »
+
+  /* Notes et appareils se disent de la même façon : « sur un Do », « sur un
+     Fourneau ». L'état — « Chauffé » — décrivait l'effet plutôt que le lieu. */
+  connus.forEach(e => {
+    notes.push(lib('uneNote').replace('{}', e.nom || e.code || ''));
+  });
+
+  /* Une seule introduction, quels que soient les cas présents : « Cet objet
+     est Chauffé », « Cet objet est sur une Note Do », ou les deux enchaînés. */
+  var morceaux = [];
+  if (notes.length) morceaux.push(lib('surNotes').replace('{}', enumerer(notes)));
+
+  /* Le nom en tête de chaque description est mis en gras et coloré, comme le
+     mot-clé auquel la note se rattache. */
+  var lignes = connus.filter(e => e.texte).map(e =>
+    '<div class="se-ligne2"><b class="' + (CLASSE_NOTE[e.code] || '') + '">'
+    + esc(e.nom || e.code || '') + ' :</b> '
+    // Les mots-clés sont colorés comme partout ailleurs dans la fiche.
+    + colorize(e.texte) + '</div>');
+
+  return '<div class="socket-effect">'
+    + '<div class="se-ligne1">'
+      + esc(lib('estSur').replace('{}', morceaux.join(' ' + lib('et') + ' ')) + '.')
+      + '</div>'
+    + lignes.join('')
+    + '</div>';
+}
+
+/* « a, b et c » — la conjonction varie selon la langue. */
+function enumerer(liste) {
+  if (liste.length <= 1) return liste[0] || '';
+  return liste.slice(0, -1).join(', ') + ' ' + lib('et') + ' ' + liste[liste.length - 1];
+}
+
+
+
+/* Chaque note porte la couleur du mot-clé qu'elle renforce. */
+const CLASSE_NOTE = {
+  C: 'kw-slow',   D: 'kw-shield', E: 'kw-heal',  F: 'kw-haste',
+  G: 'kw-tempo',  A: 'kw-damage', B: 'kw-burn',
+  Stove: 'kw-burn', Cooler: 'kw-freeze',
+};
+
+/* Les sept notes et les deux appareils. Le jeu les nomme en anglais, et son
+   titre porte l'effet entre parenthèses : « C Note (Slow) ». On ne garde que
+   le nom, la description venant de la fiche publiée. */
+const NOTE_FR = {
+  'C Note': 'Note Do', 'D Note': 'Note Ré', 'E Note': 'Note Mi',
+  'F Note': 'Note Fa', 'G Note': 'Note Sol', 'A Note': 'Note La',
+  'B Note': 'Note Si', 'Stove': 'Fourneau', 'Cooler': 'Glacière',
+};
+
 function buildBody(tooltips, cooldowns, ammo, multicast, quests, isSkill, enchantTooltips, enchantColor) {
   const enchantMarked = (enchantTooltips || []).map(t => Object.assign({}, t, { isEnchant: true }));
   const allTooltips = tooltips.concat(enchantMarked);
-  if (!allTooltips.length) return '<div class="not-found">Aucune description.</div>';
+  /* Une carte peut n'avoir AUCUNE infobulle et tout dire dans ses quêtes —
+     Fortune Cookie, dont le seul effet est la récompense d'une quête. Sortir
+     ici les rendait invisibles. On ne renonce donc que si la carte n'a rien
+     du tout, et le message suit la langue comme le reste. */
+  if (!allTooltips.length && !(quests && quests.length)) {
+    return `<div class="not-found">${lib('sansDescription')}</div>`;
+  }
 
   const actives  = allTooltips.filter(t => t.type === 'Active');
   const passives = allTooltips.filter(t => t.type !== 'Active');
@@ -503,7 +609,7 @@ const KW_MAP_FR = [
   [['Véhicule', 'Véhicules'],                                        'kw-tag'],
   [['Arme', 'Armes'],                                                'kw-tag'],
   [['Tech'],                                                         'kw-tag'],
-  [['Délai d\'Activation', 'Délais d\'Activation'],                   'kw-charge'],
+  [['Délai d\'Activation', 'Délais d\'Activation'],                   'kw-tag'],
 ].flatMap(([forms, cls]) => forms.map(f => [wb(f), cls]));
 
 /* Un mot-clé publié est du texte quelconque : il peut contenir des caractères
@@ -571,8 +677,16 @@ function colorize(html) {
 }
 
 // Applique fn seulement hors des <span> existants
+/* Applique un remplacement au TEXTE seulement, jamais au balisage.
+
+   Les zones protégées sont les <span> déjà colorés — pour ne pas colorer deux
+   fois — et les <svg> des icônes, dont les attributs contiennent des mots
+   (« use », « href », « multicast ») qu'un mot-clé peut fortuitement
+   rencontrer. Ne protéger que les <span> corrompait l'icône de Répétition dès
+   que la phrase la mentionnait. */
 function outside(html, re, fn) {
-  return html.split(/(<span[^>]*>[\s\S]*?<\/span>)/g)
+  const PROTEGE = /(<span[^>]*>[\s\S]*?<\/span>|<svg[\s\S]*?<\/svg>|<[^>]+>)/g;
+  return html.split(PROTEGE)
     .map((p, i) => i % 2 === 1 ? p : p.replace(re, fn))
     .join('');
 }

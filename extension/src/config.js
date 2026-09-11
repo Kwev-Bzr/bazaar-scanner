@@ -31,6 +31,64 @@ window.BAZAAR_CONFIG = {
     slots:  10,
   },
 
+  /* La bande d'en face, et celle des rencontres.
+
+     CARTES — une seule bande accueille TOUT ce qui n'est pas le plateau du
+     joueur : le plateau adverse en combat, les objets d'une boutique, et la
+     réserve quand elle s'ouvre. Même hauteur, même étendue horizontale, mêmes
+     dix emplacements que le plateau.
+
+     Nuance qui compte : le plateau adverse et la réserve occupent réellement
+     ces emplacements, alors qu'une boutique CENTRE ses objets tout en les
+     numérotant 0, 1, 2. Pour elle seule, les abscisses doivent voyager dans le
+     message ; pour les deux autres, la grille suffit.
+
+     RENCONTRE — le portrait de l'adversaire ou le choix d'événement, plus haut
+     et plus petit. Une seule carte à la fois, au centre.
+
+     Relevé le 25/08/2026 depuis le jeu, carte par carte et non en résumé : mes
+     premières mesures agrégeaient ces deux bandes en un seul chiffre et se
+     contredisaient d'une situation à l'autre. */
+  CARTES: {
+    left:   21.0003,
+    top:    29.54,
+    width:  58.2494,
+    height: 20.37,
+    slots:  10,
+  },
+
+  RENCONTRE: {
+    top:     8.50,
+    height: 14.20,
+  },
+
+  /* Les talents de l'ADVERSAIRE se déduisent des tiens par symétrie autour du
+     milieu de l'écran : une position à y = 82,3 devient y = 100 − 82,3 = 17,7.
+     Les abscisses et les tailles ne changent pas.
+
+     Le jeu les trie de la même façon — par rareté, puis par ordre d'obtention —
+     et leur disposition suit les mêmes paliers selon leur nombre.
+
+     Dériver plutôt que relever évite un second jeu de mesures, et garantit que
+     les deux côtés restent cohérents si l'un d'eux change.
+
+     VÉRIFIÉ le 26/08/2026 sur deux captures 2560×1440 : les talents du joueur
+     occupent 80,6 % et 88,2 % de la hauteur, ceux de l'adversaire 19,8 % et
+     12,2 % — les compléments à 100 à quatre dixièmes de point près, soit
+     l'imprécision d'une lecture à l'écran. Les abscisses sont identiques.
+
+     L'ordre des rangées s'inverse au passage, ce qu'une symétrie produit et
+     qu'une coïncidence n'expliquerait pas. */
+  /* Les talents de l'adversaire occupent la MÊME disposition que les tiens,
+     simplement remontée en haut de l'écran. Pas une symétrie : le décalage
+     interne est conservé — le talent du milieu est plus bas des deux côtés.
+
+     Une symétrie l'inversait, et plaçait le milieu plus haut que ses voisins.
+     Relevé sur capture avec zones visibles le 28/08/2026 : tes talents à
+     82,3 et 88,5 ; ceux de l'adversaire à 12,5 et 18,7. L'écart vaut 69,8
+     dans les deux cas. */
+  TALENTS_ADVERSES_DECALAGE: 69.8,
+
   // Emplacements des TALENTS, relevés au pixel près sur des captures 2560×1440.
   // Le jeu change de disposition selon le nombre de talents possédés :
   //   1 à 5   → une ligne en zigzag
@@ -64,6 +122,24 @@ window.BAZAAR_CONFIG = {
       { x: 68.789, y: 72.708, w: 10.703, h: 19.653, coin: 'tl' },
     ],
   },
+
+  /* Retard anti-divulgation, en millisecondes. Le flux vidéo arrive chez le
+     spectateur avec quelques secondes de décalage : appliquer le plateau tout
+     de suite le lui révélerait en avance.
+
+     Le début d'un combat PVP demande plus, pour ne pas dévoiler le plateau
+     adverse avant la rencontre. Réglables ici, notamment pour les tests. */
+  RETARD_MS: 2000,
+  RETARD_PVP_MS: 13000,
+
+  /* Axe de la symétrie des talents adverses, au-delà de cinq talents.
+
+     Jusqu'à cinq, ils sont simplement remontés (TALENTS_ADVERSES_DECALAGE).
+     Au-delà, ils s'organisent en rangées et c'est une symétrie : la rangée du
+     haut chez le joueur devient celle du bas en face.
+
+     Déplacer l'axe de d déplace la rangée de 2d. */
+  TALENTS_ADVERSES_AXE: 50.7,
 
   SKILL_LAYOUTS: [
     // 1 à 5 talents
