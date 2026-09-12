@@ -52,13 +52,19 @@ channel to the next.
 The extension needs to know what is on the board, and only the game knows that.
 A BepInEx mod supplies it.
 
-Once per second, it reads `Data.Run.Player.Hand`, `.Skills` and `.Hero` by
-reflection and writes them to a JSON file. That file is the board the companion
-app broadcasts. Nothing else is read.
+Once per second, it reads the streamer's board, stash, skills and hero by
+reflection, along with the facing row — the opponent's board during a fight,
+and the cards a shop or an event puts on the table. It writes them to a JSON
+file, which is what the companion app broadcasts. Nothing else is read.
+
+Reading the facing row is new in 2.0; version 1.0.0 only read the streamer's
+own side. Everything captured is on the streamer's screen at the moment it is
+read, so viewers see nothing they could not see by watching the stream. Cards
+still hidden from the player — an unrevealed hand, an unopened chest — are not
+read.
 
 It does **not** write to the game, patch any code, hook game logic, intercept
-network traffic, read opponent data, or send any input. Everything it captures
-is already on the streamer's screen.
+network traffic, or send any input.
 
 The mod contains one further routine, **off by default**, which enumerates the
 game's card catalogue. It only runs when an empty file named
@@ -105,9 +111,10 @@ fan-out.
 
 ## Delays
 
-The opponent's board is held back for fifteen seconds from the start of a fight
-between players. Everything else — the streamer's own board, stash, skills,
-shops and events — is sent without delay, since it is already on screen.
+The opponent's board is held back for ten seconds from the start of a fight
+between players, and two seconds against a monster. Everything else — the
+streamer's own board, stash, skills, shops and events — is sent without delay,
+since it is already on screen.
 
 A streamer who broadcasts on a delay declares it in the app, and that delay adds
 to the hold.
@@ -151,6 +158,8 @@ relay/        Cloudflare Worker
 extension/    Twitch extension; src/ is generated from overlay.html
 docs/         technical disclosure, privacy policy, terms
 ```
+
+A French version of this file is in [LISEZMOI.md](LISEZMOI.md).
 
 The companion app builds into the executable that the installer ships, so anyone
 can rebuild it from this source and compare:
