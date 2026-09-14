@@ -1514,10 +1514,28 @@
 
   /* Prévient le streamer qu'une version plus récente existe. On ne compare que
      des versions connues : hors ligne, on ne dit rien. */
+  /* Compare deux numéros du genre « 2.0.1 ». Rend un nombre négatif si le
+     premier est le plus ancien. */
+  function comparerVersions(a, b) {
+    var x = String(a).split('.').map(Number);
+    var y = String(b).split('.').map(Number);
+    for (var i = 0; i < Math.max(x.length, y.length); i++) {
+      var d = (x[i] || 0) - (y[i] || 0);
+      if (d) return d;
+    }
+    return 0;
+  }
+
   function majAlerteVersion(ici, enLigne) {
     var el = document.getElementById('alerte-version');
-    // Sans version connue de part et d'autre, on ne dit rien.
-    if (!ici || !enLigne || ici === enLigne) { if (el) el.remove(); return; }
+
+    /* On n'alerte que si la version publiée est RÉELLEMENT plus récente.
+       Une simple différence suffisait auparavant : la 2.0.1 fraîchement
+       installée se croyait périmée face à la 2.0.0 encore publiée. */
+    if (!ici || !enLigne || comparerVersions(ici, enLigne) >= 0) {
+      if (el) el.remove();
+      return;
+    }
     if (el) return;
 
     el = document.createElement('div');
