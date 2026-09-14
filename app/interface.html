@@ -1570,7 +1570,10 @@
   function peindre(e) {
     elEtat.dataset.code = e.code;
     elLibelle.textContent = LIBELLES[e.code] || e.code;
-    elPrecision.textContent = e.detail || '';
+
+    /* En attente, le détail ne faisait que redire le libellé du voyant —
+       « le jeu n'est pas lancé » sous « En attente du jeu ». On le tait. */
+    elPrecision.textContent = (e.code === 'attente') ? '' : (e.detail || '');
 
     var enPartie = e.code === 'pret';
     dessinerPlateau(enPartie ? (e.plateau || []) : []);
@@ -1604,7 +1607,9 @@
       : (titreFace === 'Choices') ? T.titreChoix
       : (titreFace || '—');
 
-    elVide.textContent = enPartie ? '' : T.attentePartie;
+    /* Le voyant suffit à dire qu'on attend : l'inscrire aussi en travers du
+       plateau faisait trois messages pour une seule information. */
+    elVide.textContent = (enPartie || e.code === 'attente') ? '' : T.attentePartie;
   }
 
   try {

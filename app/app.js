@@ -409,6 +409,19 @@ function noterSession() {
   catch (e) { /* disque occupé : on réessaiera au prochain changement */ }
 }
 
+/* Le mod réécrit board_state.json chaque seconde tant que le jeu tourne. Dix
+   secondes de silence signifient donc que le jeu est fermé, et le contenu du
+   fichier décrit une partie révolue. */
+const PEREMPTION_MS = 10000;
+
+function plateauPerime(fichier) {
+  try {
+    return (Date.now() - fs.statSync(fichier).mtimeMs) > PEREMPTION_MS;
+  } catch (e) {
+    return true;   // illisible : autant le tenir pour absent
+  }
+}
+
 function cheminEtatPlateau(cfg) {
   return path.join(cfg.BAZAAR_PATH || '', 'BepInEx', 'plugins',
                    'BazaarScannerBridge', 'board_state.json');
@@ -444,7 +457,8 @@ function evaluerEtat() {
   if (!jeuValide(config.BAZAAR_PATH)) {
     return definirEtat('jeu', 'dossier du jeu introuvable');
   }
-  if (!fs.existsSync(cheminEtatPlateau(config))) {
+  const plateau = cheminEtatPlateau(config);
+  if (!fs.existsSync(plateau) || plateauPerime(plateau)) {
     return definirEtat('attente', 'le jeu n\u2019est pas lancé');
   }
 }
@@ -455,6 +469,20 @@ function cycle() {
 
   const fichier = cheminEtatPlateau(config);
   if (!fs.existsSync(fichier)) {
+    etat.objets = etat.talents = 0;
+    etat.plateau = [];
+    etat.listeTalents = [];
+    etat.face = [];
+    etat.faceTalents = [];
+    etat.faceCentree = false;
+    etat.reserve = [];
+    etat.faceTitre = '';
+    return definirEtat('attente', 'le jeu n\u2019est pas lancé');
+  }
+
+  /* Sans cette vérification, la fenêtre rouvrait sur le plateau de la partie
+     précédente, lu dans un fichier que plus personne n'écrit. */
+  if (plateauPerime(fichier)) {
     etat.objets = etat.talents = 0;
     etat.plateau = [];
     etat.listeTalents = [];
