@@ -615,7 +615,12 @@ const serveur = http.createServer((req, res) => {
     const jeton  = url.searchParams.get('jeton');
     const pseudo = url.searchParams.get('pseudo') || '';
     if (jeton) {
-      ecrireConfig({ RELAY_TOKEN: jeton, TWITCH_NOM: pseudo });
+      /* Le relais ne transmet pas toujours le pseudonyme. Sans cette
+         précaution, une reconnexion sans « pseudo » effaçait le nom déjà
+         connu, et la fenêtre n'affichait plus que « connecté ». */
+      const maj = { RELAY_TOKEN: jeton };
+      if (pseudo) maj.TWITCH_NOM = pseudo;
+      ecrireConfig(maj);
       appliquerConfig();
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
