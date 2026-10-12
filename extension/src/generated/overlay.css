@@ -9,18 +9,12 @@
       justify-content: flex-start;
       min-height: 100vh;
       padding: 12px;
-      /* Rajdhani : sans-serif compact, excellent en overlay */
       font-family: 'Rajdhani', 'Arial Narrow', Arial, sans-serif;
       overflow: hidden;
-      /* Netteté maximale dans le navigateur CEF d'OBS */
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
     }
 
-    /* ── Carte ─────────────────────────────────────────────── */
-    /* Teintes de l'ambiance. Elles valent l'or d'origine par défaut, et chaque
-       thème les redéfinit : nom de l'objet, étiquettes, filets, barre du haut
-       suivent alors la couleur choisie sans règle supplémentaire. */
     #card {
       --accent:      #f0c060;   /* titres, valeurs mises en avant */
       --accent-doux: #c09050;   /* étiquettes, filets */
@@ -41,10 +35,8 @@
     #card.visible { opacity:1; transform:none; }
     #card.hiding  { opacity:0; transform:translateY(-9px) scale(0.98); transition:opacity 0.3s ease-in, transform 0.3s ease-in; }
 
-    /* ── Barre dorée ──────────────────────────────────────── */
     .top-bar { height:2px; background:linear-gradient(90deg,transparent,var(--accent-sombre) 15%,var(--accent) 50%,var(--accent-sombre) 85%,transparent); }
 
-    /* ── En-tête ──────────────────────────────────────────── */
     .header {
       display: flex;
       align-items: center;
@@ -55,7 +47,6 @@
     }
     .header-left { flex:1; min-width:0; }
 
-    /* ── Image de l'objet ─────────────────────────────────── */
     .item-img-wrap {
       flex-shrink: 0;
       height: 94px;
@@ -66,12 +57,10 @@
       border-radius: 4px;
       overflow: hidden;
     }
-    /* Ratios fidèles au jeu (comme bazaardb.gg) */
     .item-img-wrap.size-Small  { width: 47px;  } /* 0.5 × 94 */
     .item-img-wrap.size-Medium { width: 94px;  } /* 1.0 × 94 */
     .item-img-wrap.size-Large  { width: 141px; } /* 1.5 × 94 */
 
-    /* Couleur de bordure selon le tier de départ */
     .item-img-wrap.tier-Bronze   { border-color: #cd7f32; box-shadow: 0 0 8px rgba(205,127,50,.5); }
     .item-img-wrap.tier-Silver   { border-color: #c8c8c8; box-shadow: 0 0 8px rgba(200,200,200,.5); }
     .item-img-wrap.tier-Gold     { border-color: #f0c060; box-shadow: 0 0 8px rgba(240,192,96,.5); }
@@ -105,7 +94,6 @@
       text-shadow: 0 0 18px rgba(190,115,5,.7), 1px 1px 3px rgba(0,0,0,0.9);
       line-height: 1.15;
       word-break: break-word;
-      /* Autorise 2 lignes ; au-delà (cas extrême), coupe proprement avec … */
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -114,8 +102,6 @@
 
     .badges-row { display:flex; gap:6px; margin-top:7px; flex-wrap:wrap; align-items:center; }
 
-    /* ── Badges : taille et tier unifiés ─────────────────── */
-    /* Base commune à TOUS les badges (tier, size, tag) */
     .badge, .badge-tag {
       font-family: 'Rajdhani', Arial, sans-serif;
       font-size: 13px;
@@ -128,7 +114,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Tier */
     .badge-tier            { border-color:rgba(185,115,8,.5); background:rgba(185,115,8,.12); }
     .badge-tier.Bronze     { color:#e08830; }
     .badge-tier.Silver     { color:#d0d0d0; }
@@ -136,38 +121,38 @@
     .badge-tier.Diamond    { color:#a8d8f8; }
     .badge-tier.Legendary  { color:#f08040; }
 
-    /* Taille */
     .badge-size { color:#b09060; border-color:rgba(176,144,96,.45); background:rgba(144,112,80,.1); }
+    /* Les tailles d'objet, qu'on voit sur chaque fiche : une couleur chacune.
+       Le badge « Talent » garde la couleur neutre ci-dessus. */
+    .badge-size.taille-Small  { color:#8fd0ff; border-color:rgba(143,208,255,.55); background:rgba(143,208,255,.12); }
+    .badge-size.taille-Medium { color:#ff9f3a; border-color:rgba(255,159,58,.55);  background:rgba(255,159,58,.12); }
+    .badge-size.taille-Large  { color:#ff5b4d; border-color:rgba(255,91,77,.55);   background:rgba(255,91,77,.12); }
 
-    /* Tags */
     .badge-tag { color:#c0a870; border-color:rgba(160,110,50,.55); background:rgba(100,65,25,.3); }
-    .badge-tag.Weapon   { color:#f07848; border-color:rgba(240,120,72,.55); background:rgba(240,96,48,.12); }
-    .badge-tag.Tool     { color:#d4b050; border-color:rgba(210,178,80,.55); background:rgba(200,168,72,.12); }
-    .badge-tag.Food     { color:#90d850; border-color:rgba(144,216,80,.55); background:rgba(128,200,64,.12); }
-    .badge-tag.Friend   { color:#e878d0; border-color:rgba(232,120,208,.55); background:rgba(224,96,192,.12); }
-    .badge-tag.Property { color:#f0c860; border-color:rgba(240,200,96,.55); background:rgba(240,192,96,.12); }
-    .badge-tag.Vehicle  { color:#b0d8f8; border-color:rgba(176,216,248,.55); background:rgba(160,208,240,.12); }
-    .badge-tag.Aquatic  { color:#50d8f8; border-color:rgba(80,216,248,.55); background:rgba(64,208,248,.12); }
-    .badge-tag.Core     { color:#e0b0f8; border-color:rgba(224,176,248,.55); background:rgba(216,160,248,.12); }
-    .badge-tag.Potion   { color:#90d850; border-color:rgba(144,216,80,.55); background:rgba(128,200,64,.12); }
+    .badge-tag.Instrument { color:#8fb3d9; border-color:rgba(143,179,217,.55); background:rgba(143,179,217,.12); }
+    .badge-tag.Weapon { color:#ff4d5a; border-color:rgba(255,77,90,.55); background:rgba(255,77,90,.12); }
+    .badge-tag.Tool { color:#d9a03a; border-color:rgba(217,160,58,.55); background:rgba(217,160,58,.12); }
+    .badge-tag.Food { color:#96e04e; border-color:rgba(150,224,78,.55); background:rgba(150,224,78,.12); }
+    .badge-tag.Friend { color:#ff4fa3; border-color:rgba(255,79,163,.55); background:rgba(255,79,163,.12); }
+    .badge-tag.Property { color:#f2ea5a; border-color:rgba(242,234,90,.55); background:rgba(242,234,90,.12); }
+    .badge-tag.Vehicle { color:#6f8cff; border-color:rgba(111,140,255,.55); background:rgba(111,140,255,.12); }
+    .badge-tag.Aquatic { color:#3aa8ff; border-color:rgba(58,168,255,.55); background:rgba(58,168,255,.12); }
+    .badge-tag.Core { color:#9b6bff; border-color:rgba(155,107,255,.55); background:rgba(155,107,255,.12); }
+    .badge-tag.Potion { color:#d86bff; border-color:rgba(216,107,255,.55); background:rgba(216,107,255,.12); }
 
-    /* Chaque tag porte la couleur de sa thématique : un coup d'œil suffit à
-       reconnaître une arme, un butin ou un marchand. */
-    .badge-tag.Apparel  { color:#d8a0c8; border-color:rgba(216,160,200,.55); background:rgba(208,144,192,.12); }
-    .badge-tag.Dinosaur { color:#88c060; border-color:rgba(136,192,96,.55); background:rgba(120,176,80,.12); }
-    .badge-tag.Dragon   { color:#f06060; border-color:rgba(240,96,96,.55); background:rgba(224,80,80,.12); }
-    .badge-tag.Drone    { color:#88b8d8; border-color:rgba(136,184,216,.55); background:rgba(120,168,200,.12); }
-    .badge-tag.Loot     { color:#f0d070; border-color:rgba(240,208,112,.55); background:rgba(232,196,96,.12); }
-    .badge-tag.Ray      { color:#a0e8e0; border-color:rgba(160,232,224,.55); background:rgba(144,216,208,.12); }
-    .badge-tag.Reagent  { color:#b890e8; border-color:rgba(184,144,232,.55); background:rgba(168,128,216,.12); }
-    .badge-tag.Relic    { color:#d0b088; border-color:rgba(208,176,136,.55); background:rgba(192,160,120,.12); }
-    .badge-tag.Tech     { color:#70d0c0; border-color:rgba(112,208,192,.55); background:rgba(96,192,176,.12); }
-    .badge-tag.Toy      { color:#f0a0d0; border-color:rgba(240,160,208,.55); background:rgba(232,144,192,.12); }
-    .badge-tag.Trap     { color:#c08850; border-color:rgba(192,136,80,.55); background:rgba(176,120,64,.12); }
-    .badge-tag.Merchant { color:#e8c890; border-color:rgba(232,200,144,.55); background:rgba(216,180,120,.14); }
+    .badge-tag.Apparel { color:#4f7cc2; border-color:rgba(79,124,194,.55); background:rgba(79,124,194,.12); }
+    .badge-tag.Dinosaur { color:#5cc94a; border-color:rgba(92,201,74,.55); background:rgba(92,201,74,.12); }
+    .badge-tag.Dragon { color:#ff7a3d; border-color:rgba(255,122,61,.55); background:rgba(255,122,61,.12); }
+    .badge-tag.Drone { color:#a99cff; border-color:rgba(169,156,255,.55); background:rgba(169,156,255,.12); }
+    .badge-tag.Loot { color:#ffd43b; border-color:rgba(255,212,59,.55); background:rgba(255,212,59,.12); }
+    .badge-tag.Ray { color:#6ff6ff; border-color:rgba(111,246,255,.55); background:rgba(111,246,255,.12); }
+    .badge-tag.Reagent { color:#36dc7e; border-color:rgba(54,220,126,.55); background:rgba(54,220,126,.12); }
+    .badge-tag.Relic { color:#3fb39a; border-color:rgba(63,179,154,.55); background:rgba(63,179,154,.12); }
+    .badge-tag.Tech { color:#2fd0e0; border-color:rgba(47,208,224,.55); background:rgba(47,208,224,.12); }
+    .badge-tag.Toy { color:#f78cff; border-color:rgba(247,140,255,.55); background:rgba(247,140,255,.12); }
+    .badge-tag.Trap { color:#ffa13c; border-color:rgba(255,161,60,.55); background:rgba(255,161,60,.12); }
+    .badge-tag.Merchant { color:#cde65a; border-color:rgba(205,230,90,.55); background:rgba(205,230,90,.12); }
 
-    /* Les tags d'EFFET reprennent la couleur que le mot-clé porte déjà dans le
-       corps de la fiche : la même notion garde la même teinte partout. */
     .badge-tag.Burn       { color:#f89840; border-color:rgba(248,152,64,.55);  background:rgba(232,140,56,.12); }
     .badge-tag.Poison     { color:#08b848; border-color:rgba(8,184,72,.55);    background:rgba(8,168,64,.12); }
     .badge-tag.Freeze     { color:#38c8f0; border-color:rgba(56,200,240,.55);  background:rgba(48,184,224,.12); }
@@ -182,9 +167,6 @@
     .badge-tag.Flying     { color:#b0e0f8; border-color:rgba(176,224,248,.55); background:rgba(160,208,240,.12); }
     .badge-tag.Unsellable { color:#909090; border-color:rgba(144,144,144,.55); background:rgba(128,128,128,.12); }
 
-    /* ── Effet d'emplacement ─────────────────────────────────
-       Une seconde fiche, plus petite, accolée sous la principale : l'objet
-       est posé sur un fourneau ou une note, et cela change ce qu'il fait. */
     .socket-effect {
       margin: 8px -14px -14px;
       padding: 8px 14px 10px;
@@ -192,7 +174,6 @@
       background: rgba(0,0,0,.28);
       border-radius: 0 0 6px 6px;
     }
-    /* Première ligne : la police des étiquettes de la fiche. */
     .socket-effect .se-ligne1 {
       font-family: 'Rajdhani', Arial, sans-serif;
       font-size: 13px;
@@ -201,7 +182,6 @@
       color: var(--accent-doux);
       margin-bottom: 4px;
     }
-    /* Seconde ligne : celle des descriptions de carte. */
     .socket-effect .se-ligne2 {
       font-family: 'Rajdhani', Arial, sans-serif;
       font-size: 15px;
@@ -209,7 +189,6 @@
       line-height: 1.35;
     }
 
-    /* ── Portrait héros ───────────────────────────────────── */
     .hero-portraits { display:flex; gap:5px; align-items:center; flex-shrink:0; }
     .hero-portrait {
       flex-shrink: 0;
@@ -231,10 +210,8 @@
       color: #c89040;
     }
 
-    /* ── Corps ────────────────────────────────────────────── */
     .body { padding:12px 16px 12px; display:flex; flex-direction:column; gap:0; }
 
-    /* ── Label de section ─────────────────────────────────── */
     .section-label {
       font-family: 'Rajdhani', Arial, sans-serif;
       font-size: 13px;
@@ -246,7 +223,6 @@
     }
     .section-label:first-child { margin-top: 0; }
 
-    /* ── Ligne tooltip ────────────────────────────────────── */
     .tooltip-row {
       display: flex;
       align-items: flex-start;
@@ -255,7 +231,6 @@
     }
     .tooltip-row:last-child { margin-bottom: 0; }
 
-    /* ── Ligne cooldown horizontale ──────────────────────── */
     .cd-line {
       display: flex;
       align-items: baseline;
@@ -301,7 +276,6 @@
     }
     .cd-sep { color:var(--accent-doux); font-weight:700; margin:0 3px; font-size:15px; }
 
-    /* ── Lignes actif / passif — identiques sauf couleur du > ── */
     .effect-row {
       display: flex;
       align-items: flex-start;
@@ -314,10 +288,6 @@
       padding-left: 7px;
       margin-left: -10px;
     }
-    /* Puce des effets. Volontairement DIFFÉRENTE du « > » qui sépare les
-       valeurs par palier (.cd-sep) : les deux se confondaient à la lecture,
-       surtout quand un effet passait à la ligne. Rajdhani ne contient pas ce
-       glyphe, on laisse donc une pile de polices qui l'a. */
     .effect-arrow {
       flex-shrink: 0;
       font-family: 'Segoe UI Symbol', 'DejaVu Sans', Arial, sans-serif;
@@ -327,7 +297,12 @@
       color: var(--accent-doux);
     }
 
-    /* ── Texte tooltip ────────────────────────────────────── */
+    /* Les couleurs de mots-clés ne sont plus ici : chaque span porte la
+       teinte publiée dans mots-cles.json, posée en style inline. Une famille
+       nouvelle se colore ainsi sans toucher au code.
+
+       Seules restent les classes qui ne sont pas des familles : l'icône, les
+       nombres, les durées. */
     .kw-icon {
       display: inline-block;
       width: 1em;
@@ -345,7 +320,6 @@
       text-shadow: 1px 1px 2px rgba(0,0,0,0.85);
       -webkit-font-smoothing: antialiased;
     }
-    /* Passif : même rendu que l'actif */
     .tooltip-row.passive .tooltip-text {
       color: #d8c898;
       font-weight: 700;
@@ -353,10 +327,8 @@
       text-shadow: 1px 1px 2px rgba(0,0,0,0.85);
     }
 
-    /* ── Pas trouvé ───────────────────────────────────────── */
     .not-found { color:#905030; font-style:italic; font-size:16px; padding:5px 0; }
 
-    /* ── Portraits héros en bas (skills) ──────────────────── */
     .hero-portraits-bottom {
       display: flex; gap: 8px; align-items: center; justify-content: center;
       padding: 8px 14px 10px;
@@ -372,7 +344,6 @@
     }
     .hero-portraits-bottom .hero-portrait img { width:44px; height:44px; border-radius:50%; object-fit:cover; }
 
-    /* Nombreux, ils se resserrent plutôt que de déborder. */
     .hero-portraits-bottom.serres { gap:3px; }
     .hero-portraits-bottom.serres .hero-portrait,
     .hero-portraits-bottom.serres .hero-portrait img { width:30px; height:30px; }
@@ -380,7 +351,6 @@
       font-family: 'Cinzel', serif; font-size:15px; font-weight:700; color:#c89040;
     }
 
-    /* ── Image skill ronde ────────────────────────────────── */
     .item-img-wrap.skill-img {
       width: 94px !important;
       height: 94px !important;
@@ -394,7 +364,6 @@
     }
     .kw-dynamic { color:#888; font-style:italic; } /* valeurs dynamiques en jeu */
 
-    /* ── Quêtes ───────────────────────────────────────────── */
     .quests-section { border-top: 1px solid rgba(120,70,20,.4); margin-top: 4px; padding-top: 4px; }
     .quest-label { font-size:14px; font-weight:700; letter-spacing:.15em; text-transform:uppercase;
                    color:#a07840; padding: 3px 14px 1px; }
@@ -410,54 +379,22 @@
       font-size: 11px;
     }
 
-    /* ── Bas ──────────────────────────────────────────────── */
     .bottom-bar {
       height: 2px;
       background: linear-gradient(90deg,transparent,color-mix(in srgb, var(--accent-sombre) 30%, transparent) 30%,color-mix(in srgb, var(--accent-sombre) 30%, transparent) 70%,transparent);
       margin: 0 21px 6px;
     }
-    .progress-wrap { height:2px; background:rgba(255,255,255,.04); }
-    #progress { height:100%; background:linear-gradient(90deg,var(--accent-sombre),var(--accent)); transform-origin:left; }
 
-    /* ══════════════════════════════════════════
-       COULEURS MOTS-CLÉS (palette officielle)
-    ══════════════════════════════════════════ */
     .kw-num     { color:#f0c060; font-weight:700; }
-    .kw-damage  { color:#f05038; font-weight:700; }
-    .kw-shield  { color:#f0c820; font-weight:700; }
-    .kw-heal    { color:#88e830; font-weight:700; }
-    .kw-health  { color:#88e830; font-weight:700; }
-    .kw-regen   { color:#88e830; font-weight:700; }
-    .kw-gold    { color:#f8c818; font-weight:700; }
-    .kw-value   { color:#f8c818; font-weight:700; }
-    .kw-poison  { color:#08b848; font-weight:700; }
-    .kw-burn    { color:#f89840; font-weight:700; }
-    .kw-heated  { color:#e69138; font-weight:700; }
-    .kw-freeze  { color:#38c8f0; font-weight:700; }
-    .kw-chilled { color:#9fc5e8; font-weight:700; }
-    .kw-slow    { color:#c69c6c; font-weight:700; }
-    .kw-haste   { color:#00e8c0; font-weight:700; }
-    .kw-charge  { color:#00e8c0; font-weight:700; }
-    .kw-transform { color:#00ffff; font-weight:700; }
-    .kw-crit    { color:#f05038; font-weight:700; }
-    .kw-multi   { color:#ffffff; font-weight:700; }
-    .kw-tempo   { color:#c060f0; font-weight:700; }
-    .kw-ammo    { color:#f88800; font-weight:700; }
-    .kw-reload  { color:#b45f06; font-weight:700; }
-    .kw-destroy { color:#8e7cc3; font-weight:700; }
-    .kw-fly     { color:#f0c820; font-weight:700; }
-    .kw-life    { color:#984868; font-weight:700; }
-    .kw-tag     { color:#809cff; font-weight:700; }
-    .kw-quest   { color:#ffff00; font-weight:700; }
-    .kw-rage    { color:#f01e60; font-weight:700; }
-    .kw-repair  { color:#94facf; font-weight:700; }
-    .kw-sec     { color:#c0b890; }
+    /* Les durées écrites en toutes lettres, « 1 second », se lisent comme le
+       reste du texte : leur beige grisé, hérité de l'ancien outil, les faisait
+       passer pour un effet comme le ralentissement. */
+    .kw-sec     { color: inherit; }
   
 
 /* ── Ajouts propres à l'extension Twitch (générés) ────────────────────── */
 
 /* Plus de minuteur : l'affichage est piloté par le survol. */
-#card-panel .progress-wrap { display: none !important; }
 
 /* Le bloc « body » d'overlay.html, renommé en #card-panel plus haut, apporte
    des règles de MISE EN PAGE prévues pour une page entière dans OBS :
@@ -487,7 +424,7 @@
 
 /* La mise à l'échelle est calculée en JavaScript (viewer.js) et posée en
    inline sur #card : en CSS pur, scale() exige un nombre sans unité, et
-   calc(100vw / 1920) produit une longueur — la règle serait ignorée. */
+   calc(100vw / 1920) produit une longueur - la règle serait ignorée. */
 #card-panel #card {
   transform-origin: top left;
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bazaar Scanner — Privacy Policy / Politique de confidentialité</title>
+<title>Bazaar Scanner - Privacy Policy / Politique de confidentialité</title>
 <style>
   body{background:#140c06;color:#e8dcc4;font:16px/1.65 system-ui,-apple-system,Segoe UI,sans-serif;
        margin:0;padding:48px 24px}
@@ -19,7 +19,7 @@
 <body><main>
 
 <h1>Privacy Policy</h1>
-<p class="maj">Twitch extension “Bazaar Scanner” — last updated: 11 September 2026</p>
+<p class="maj">Twitch extension “Bazaar Scanner”, last updated: 12 October 2026</p>
 
 <h2>Summary</h2>
 <p>This extension does not collect, store or transmit any personal data about
@@ -28,14 +28,19 @@ parties.</p>
 
 <h2>What the extension receives</h2>
 <p>It receives, from the streamer through Twitch's broadcast service, the layout
-of their game: the items on their board and in their stash, their skills, and
-whatever faces them — an opponent's board, a shop, an event's choices — with
-each card's position, tier and enchantment.</p>
+of their game: the hero they play, the items on their board and in their
+stash, their skills, and whatever faces them (an opponent's board and skills, a
+shop, an event's choices), with each card's position, tier and enchantment.
+For items, it also carries the values the game currently shows in their
+tooltip: crit chance, Multicast, quest progress and other numbers that change
+during a run. It also carries the counters the game always shows on screen:
+the number of victories, the remaining prestige, the current day, the result
+of each day already played, and whether the run is ranked or a tournament.</p>
 
 <p>The same message carries the streamer's display settings: where the game sits
-within their scene, where the card should appear, at what size, and the delay
-they broadcast with, if any. All of this concerns the streamer's current run and
-is already visible on screen. Nothing about you, the viewer, is included.</p>
+within their scene, and the delay they broadcast with, if any. All of this
+concerns the streamer's current run and is already visible on screen, or in the
+game's own tooltips. Nothing about you, the viewer, is included.</p>
 
 <h2>The search panel</h2>
 
@@ -46,23 +51,39 @@ stays in your browser and is sent nowhere.</p>
 
 <h2>What is stored on your device</h2>
 <p>Only your own display preferences: the language you choose, where the card
-appears, at what size, its colour theme, its font, and whether you have already seen
-the first-time hint. They are saved locally in your browser so they can be
+appears, at what size, its colour theme, its font, whether values are shown for
+all tiers or for the current one, how the stash drawer is shown (open or
+closed, position, colour), whether the win count row is shown, where, and at what size
+and colour, and whether you have already seen the first-time hint. They are saved locally in your browser so they can be
 restored on your next visit, on this channel and on any other channel using
 this extension.</p>
 
 <p>They are sent nowhere and are never linked to your Twitch account. Clearing
 your browser's site data removes them.</p>
 
+<h2>Your video delay</h2>
+<p>To show a card at the moment it appears in your video, the extension reads
+the delay of your video player, which Twitch provides to every extension. It
+is used on your device only, and is neither stored nor sent anywhere.</p>
+
 <h2>Network requests</h2>
 <p>The extension downloads card descriptions and artwork from
 <code>bazaar-scanner.pages.dev</code>, hosted by Cloudflare. These requests carry
 no identifier: they ask for a card, not for a person. Cloudflare may log
 incoming requests in accordance with its own policy.</p>
+<p>The fonts the extension offers are loaded from Google Fonts. As with any web
+font, your browser contacts Google to download them; Google may log these
+requests in accordance with its own policy. The extension sends Google nothing
+else.</p>
 
 <h2>Viewer identity</h2>
 <p>The extension does not request your Twitch identity. It uses neither the
 identity linking feature, nor Bits, nor any payment system.</p>
+
+<p>To show each card when it appears in your own video, the extension reads the
+delay of your video player, as Twitch provides it to every extension. This
+value is used in your browser only, to time the display, and is neither stored
+nor sent anywhere.</p>
 
 <h2>On the streamer's side</h2>
 <p>The software installed by the streamer transmits the cards described above
@@ -77,7 +98,7 @@ channel <strong>Kwev</strong>.</p>
 <hr>
 
 <h1 lang="fr">Politique de confidentialité</h1>
-<p class="maj" lang="fr">Extension Twitch « Bazaar Scanner » — dernière mise à jour : 11 septembre 2026</p>
+<p class="maj" lang="fr">Extension Twitch « Bazaar Scanner », dernière mise à jour : 12 octobre 2026</p>
 
 <div lang="fr">
 <h2>Résumé</h2>
@@ -87,15 +108,22 @@ publicitaire, et ne partage rien avec des tiers.</p>
 
 <h2>Ce que l'extension reçoit</h2>
 <p>Elle reçoit du streamer, via le service de diffusion de Twitch, la
-composition de sa partie : les objets de son plateau et de sa réserve, ses
-talents, et ce qui lui fait face — plateau adverse, boutique, choix d'un
-événement — avec la position, la qualité et l'enchantement de chaque carte.</p>
+composition de sa partie : le héros joué, les objets de son plateau et de sa
+réserve, ses talents, et ce qui lui fait face (plateau et talents adverses,
+boutique, choix d'un événement), avec la position, la qualité et
+l'enchantement de chaque carte. Pour les objets, il transporte aussi les valeurs
+que le jeu affiche à cet instant dans leur infobulle : chance de critique,
+Multicast, avancement des quêtes et autres nombres qui évoluent au cours d'une
+partie. Il transporte aussi les compteurs que le jeu affiche en permanence à
+l'écran : le nombre de victoires, le prestige restant, le jour en cours, le
+résultat de chaque jour déjà joué, et le fait que la partie soit classée ou un
+tournoi.</p>
 
 <p>Le même message transporte les réglages d'affichage du streamer : où se
-trouve le jeu dans sa scène, où doit apparaître la fiche, à quelle taille, et
-le délai avec lequel il diffuse, le cas échéant. Tout cela concerne la partie
-en cours du streamer et est déjà visible à l'écran. Aucune information sur
-vous, spectateur, n'y figure.</p>
+trouve le jeu dans sa scène, et le délai avec lequel il diffuse, le cas
+échéant. Tout cela concerne la partie en cours du streamer et est déjà visible
+à l'écran, ou dans les infobulles du jeu. Aucune information sur vous,
+spectateur, n'y figure.</p>
 
 <h2>L'outil de recherche</h2>
 
@@ -107,13 +135,22 @@ transmis nulle part.</p>
 
 <h2>Ce qui est conservé sur votre appareil</h2>
 <p>Uniquement vos préférences d'affichage : la langue que vous choisissez,
-l'emplacement et la taille de la fiche, sa teinte, sa police, et le fait que vous ayez
-déjà vu le message d'accueil. Elles sont enregistrées localement dans votre
+l'emplacement et la taille de la fiche, sa teinte, sa police, l'affichage des
+valeurs de tous les paliers ou du palier actuel, la présentation du tiroir de
+la réserve (ouvert ou fermé, position, couleur), l'affichage, la position, la
+taille et la couleur du compteur de victoires, et le fait que vous ayez déjà vu le message
+d'accueil. Elles sont enregistrées localement dans votre
 navigateur afin d'être retrouvées à votre prochaine visite, sur cette chaîne
 comme sur toute autre chaîne utilisant cette extension.</p>
 
 <p>Elles ne sont envoyées nulle part et ne sont jamais rattachées à votre
 compte Twitch. Vider les données de site de votre navigateur les efface.</p>
+
+<h2>Le retard de votre vidéo</h2>
+<p>Pour afficher une carte au moment où elle paraît dans votre vidéo,
+l'extension lit le retard de votre lecteur, que Twitch fournit à toutes les
+extensions. Il ne sert que sur votre appareil, et n'est ni conservé ni envoyé
+nulle part.</p>
 
 <h2>Requêtes réseau</h2>
 <p>L'extension télécharge les descriptions et illustrations des cartes depuis
@@ -121,10 +158,19 @@ compte Twitch. Vider les données de site de votre navigateur les efface.</p>
 contiennent aucun identifiant : elles demandent une carte, pas une personne.
 Cloudflare peut journaliser les requêtes reçues conformément à sa propre
 politique.</p>
+<p>Les polices proposées par l'extension sont chargées depuis Google Fonts.
+Comme pour toute police web, votre navigateur contacte Google pour les
+télécharger ; Google peut journaliser ces requêtes conformément à sa propre
+politique. L'extension n'envoie rien d'autre à Google.</p>
 
 <h2>Identité du spectateur</h2>
 <p>L'extension ne demande pas votre identité Twitch. Elle n'utilise ni la
 fonction d'identification, ni les Bits, ni aucun système de paiement.</p>
+
+<p>Pour montrer chaque carte au moment où elle paraît dans votre propre vidéo,
+l'extension lit le retard de votre lecteur, tel que Twitch le fournit à toute
+extension. Cette valeur sert uniquement dans votre navigateur, à régler
+l'affichage, et n'est ni conservée ni transmise.</p>
 
 <h2>Côté streamer</h2>
 <p>Le logiciel installé par le streamer transmet les cartes décrites plus haut

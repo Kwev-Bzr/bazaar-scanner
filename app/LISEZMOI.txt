@@ -1,12 +1,12 @@
-BAZAAR SCANNER
-==============
+BAZAAR SCANNER 3.0
+==================
 
-Permet a tes spectateurs de survoler les cartes de ton plateau pendant ton
+Permet a vos spectateurs de survoler les cartes de votre partie pendant votre
 stream pour en lire la description, dans leur langue.
 
-IMPORTANT : Bazaar Scanner ne fonctionne qu'avec la version STEAM du jeu.
-Il lit The Bazaar depuis le dossier Steam et ne peut pas fonctionner avec
-une installation venant d'ailleurs.
+Bazaar Scanner fonctionne avec The Bazaar installe par Steam comme par le
+client Tempo. L'installateur vous demandera lequel vous utilisez, et sait
+meme gerer les deux si vous passez de l'un a l'autre.
 
 AVERTISSEMENT ANTIVIRUS : l'installation depose winhttp.dll a la racine du
 jeu. Ce fichier appartient a BepInEx, le chargeur de mods, et porte le nom
@@ -22,8 +22,8 @@ INSTALLATION
 
 1. LE MOD
 
-   BepInEx doit etre installe dans le dossier du jeu, et le fichier
-   BazaarScannerBridge.dll place dans :
+   L'installateur place BepInEx dans le dossier du jeu, et le mod
+   BazaarScannerBridge.dll dans :
 
      <jeu>\BepInEx\plugins\BazaarScannerBridge\
 
@@ -31,70 +31,72 @@ INSTALLATION
 
 2. L'OUTIL
 
-   Lance BazaarScanner.exe. Une petite fenetre s'ouvre.
-   Clique sur CONFIGURATION puis SE CONNECTER AVEC TWITCH : ton navigateur
-   s'ouvre, tu autorises, c'est termine. Rien a copier, rien a saisir.
+   Lancez Bazaar Scanner. Au premier lancement, la fenetre vous demande de
+   vous connecter a Twitch : cliquez sur SE CONNECTER, autorisez dans votre
+   navigateur, et c'est tout : vous n'avez rien a copier ni a saisir.
 
    Le dossier du jeu est detecte automatiquement dans la plupart des cas.
 
 3. L'EXTENSION TWITCH
 
-   Depuis le gestionnaire d'extensions de ta chaine, installe Bazaar Scanner
-   et active-la dans un emplacement Overlay.
+   Depuis le gestionnaire d'extensions de votre chaine, installez Bazaar
+   Scanner et activez-la dans un emplacement Overlay.
 
 
 UTILISATION
 -----------
 
-Lance l'outil avant ou pendant ta partie, peu importe. La fenetre affiche ton
-plateau et tes talents : c'est ainsi que tu verifies que ce qui est diffuse
-correspond bien a ta partie.
+Lancez l'outil avant ou pendant votre partie, peu importe. Il doit tourner
+pendant tout le stream : l'extension n'affiche que ce qu'il lui envoie.
 
 Fermer la fenetre ferme l'outil.
 
 
-REGLAGES
---------
+LA FENETRE
+----------
 
-La fenetre CONFIGURATION regroupe les reglages transmis a l'extension :
+Le menu de gauche mene a six pages.
 
-  Delai du stream
-     Decalage, en secondes, entre ce que tu vois et ce que voient tes
-     spectateurs.
+  PARTIE
+     Ce que vos spectateurs peuvent survoler : le resume de la partie (une
+     pastille par jour, heros, victoires, defaites, prestige, mode), ce qui
+     vous fait face, votre plateau, votre reserve et vos talents. Dessous,
+     le journal de partie note les nouvelles parties, le resultat de chaque
+     jour et les talents qui montent de rarete.
 
-     En latence basse, 2 secondes suffisent. Sinon, compter 30 secondes.
-     Des boutons proposent les valeurs courantes ; « Autre » applique le
-     nombre de secondes saisi dans la case voisine.
+  COMPTE TWITCH
+     La chaine connectee, et le bouton pour se connecter.
 
-  Langue de l'interface
-     Huit langues sont disponibles. Le spectateur peut en changer de son
-     cote sans affecter les autres.
+  DOSSIER DU JEU
+     Steam ou client Tempo, et le dossier de chacun. Un voyant indique si le
+     mod est installe dans le jeu choisi.
+
+  DELAI
+     Le delai de tournoi : aucun, 1, 5, 10 ou 30 minutes, ou une valeur
+     libre en secondes. Si vous jouez dans un tournoi, ou dans tout autre
+     cadre qui impose un delai, reglez-le ici pour ne pas reveler votre main
+     trop tot. Si vous diffusez normalement, laissez-le a zero :
+     l'extension suit deja le lecteur de chaque spectateur.
+
+  CADRAGE
+     Si le jeu n'occupe pas toute votre scene OBS. Collez une capture de
+     votre APERCU OBS (Ctrl+V), placez le rectangle sur votre rangee
+     d'objets, puis VALIDER. ANNULER revient au cadrage enregistre.
+
+  DIAGNOSTIC
+     Tout ce qu'il faut verifier quand rien ne marche : versions, mod,
+     relais Twitch, messages envoyes. COPIER LE DIAGNOSTIC le copie en
+     texte, a coller dans un message si vous demandez de l'aide.
+
+En bas a gauche :
+
+  - un voyant dore "Mise a jour", seulement quand une version plus
+    recente est publiee. Un clic ouvre la page de telechargement ;
+  - le temoin d'etat, et sa precision dessous ;
+  - la langue de la fenetre.
 
 
-CE QUE VOIENT TES SPECTATEURS
------------------------------
-
-Survol d'une carte
-   La fiche s'affiche : description traduite, valeurs par palier, mots-cles
-   colores, variantes d'enchantement.
-
-Bouton Loupe
-   Recherche dans le catalogue complet. Le spectateur consulte n'importe
-   quel objet ou talent, meme absent du plateau, avec filtres par heros,
-   type, taille, rarete et effet.
-
-Bouton Options
-   Emplacement de la fiche, taille du texte, teinte et police. Ces reglages
-   appartiennent au spectateur : le streamer n'a pas a en decider.
-
-Bouton Globe
-   Langue d'affichage.
-
-Un rappel s'affiche a la premiere visite et peut etre rouvert depuis les
-options.
-
-
-LE VOYANT
+LE TEMOIN
 ---------
 
   vert    tout fonctionne
@@ -103,50 +105,94 @@ LE VOYANT
   rouge   probleme de liaison, le detail est affiche juste en dessous
 
 
+CE QUE VOIENT VOS SPECTATEURS
+-----------------------------
+
+Survol d'une carte
+   La fiche s'affiche : description traduite, valeurs par palier ou celles
+   de la partie en cours, mots-cles colores, variantes d'enchantement.
+
+Clic sur une carte
+   La fiche reste en place, avec un bouton par enchantement. Un nouveau
+   clic, ou un clic ailleurs, la libere.
+
+Tiroir de la reserve
+   Les dix emplacements de votre reserve, meme coffre ferme.
+
+Compteur de victoires
+   Une rangee en haut ou en bas de la video : le resultat de chaque jour
+   joue.
+
+Compteurs du jeu
+   Le survol du compteur de victoires, de la jauge de prestige, du revenu
+   ou de la banque les explique, avec le texte du jeu.
+
+Bouton Loupe
+   Recherche dans le catalogue complet, y compris dans le texte des
+   cartes, avec filtres par heros, type, taille, rarete et effet.
+
+Bouton Options
+   Langue d'affichage (parmi huit), theme, emplacement, taille et police de
+   la fiche, reserve, compteur de victoires. Ces reglages appartiennent au
+   spectateur.
+
+
 CE QUI EST TRANSMIS
 -------------------
 
-Uniquement la composition de ton plateau : quels objets, a quelle place, avec
-quelle qualite et quel enchantement. Rien d'autre.
+La composition de votre partie : les cartes de votre plateau, de votre
+reserve et de vos talents, et ce qui vous fait face, avec leur place, leur
+rarete, leur enchantement et les valeurs que le jeu affiche dans leur
+infobulle. S'y ajoutent les compteurs que le jeu montre en permanence :
+victoires, prestige, jour en cours, resultat de chaque jour, mode.
 
-Pas d'etat de combat, pas de points de vie, pas d'or, pas de donnees
-personnelles. Tout ce qui est transmis est deja visible a l'ecran de tes
-spectateurs.
+Les points de vie, l'or et vos donnees personnelles ne sont jamais
+transmis. Tout ce qui part est deja visible a l'ecran de vos spectateurs.
 
 L'extension telecharge par ailleurs les descriptions de cartes depuis
 bazaar-scanner.pages.dev. Ces donnees sont publiques et identiques pour
-tous ; elles ne contiennent rien qui te concerne.
+tous ; elles ne contiennent rien qui vous concerne.
 
-L'autorisation Twitch sert uniquement a identifier ta chaine. Elle ne donne
-acces ni a ton compte, ni a ton chat, ni a tes revenus, et se revoque a tout
-moment depuis les parametres de ton compte Twitch.
+L'autorisation Twitch sert uniquement a identifier votre chaine. Elle ne
+donne acces ni a votre compte, ni a votre chat, ni a vos revenus, et se
+revoque a tout moment depuis les parametres de votre compte Twitch.
 
-Ton jeton ne permet de diffuser que sur ta propre chaine.
+Votre jeton ne permet de diffuser que sur votre propre chaine.
 
 
 FICHIERS
 --------
 
-  BazaarScanner.exe   l'application
-  interface.html      sa fenetre
-  config.ini          cree au premier lancement, contient tes reglages
+  BazaarScanner.exe       l'application
+  interface.html          sa fenetre
+  config.ini              cree au premier lancement, contient vos reglages
+  partie-en-cours.json    l'historique de la partie en cours, pour qu'il
+                          survive a un redemarrage de l'outil
 
 
 PROBLEMES COURANTS
 ------------------
 
   "Jeu introuvable"
-     Ouvre CONFIGURATION et indique le dossier du jeu a la main. C'est celui
-     qui contient TheBazaar_Data.
+     Ouvrez DOSSIER DU JEU et indiquez le dossier du jeu a la main. C'est
+     celui qui contient TheBazaar.exe.
 
   "En attente du jeu" alors que le jeu tourne
-     Le mod n'est pas installe, ou pas au bon endroit. Verifie que
-     BazaarScannerBridge.dll est bien dans BepInEx\plugins\BazaarScannerBridge\
+     Le mod n'est pas installe, ou pas au bon endroit. Ouvrez DIAGNOSTIC :
+     la ligne "Version de la DLL" doit indiquer 3.0.0. Sinon, relancez
+     l'installateur.
+
+  "Version de la DLL" indiquee perimee
+     Le mod du jeu est plus ancien que l'outil. Relancez l'installateur.
 
   "Interrompu"
-     Le detail sous le voyant indique la cause. Un probleme de reseau se
+     Le detail sous le temoin indique la cause. Un probleme de reseau se
      resout tout seul des que la connexion revient.
 
   Rien ne s'affiche sur le stream
-     Verifie que l'extension est bien activee dans un emplacement Overlay de
-     ta chaine, et que le voyant de l'outil est vert.
+     Verifiez que l'extension est bien activee dans un emplacement Overlay
+     de votre chaine, et que le temoin de l'outil est vert.
+
+  Besoin d'aide
+     Ouvrez DIAGNOSTIC, cliquez sur COPIER LE DIAGNOSTIC, et collez le
+     texte dans votre message.
