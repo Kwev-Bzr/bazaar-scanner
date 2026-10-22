@@ -8,7 +8,7 @@
 <!-- GÉNÉRÉ depuis overlay.html par tools/build-extension.js.
      Ne pas modifier viewer.html à la main : édite viewer.template.html. -->
 
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Rajdhani:wght@500;600;700&family=Noto+Serif:wght@400;600&family=Nunito:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Comic+Neue:wght@400;700&family=Grenze+Gotisch:wght@500;700&family=Anton&family=Bebas+Neue&family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@400;600&family=Lora:wght@400;600&family=Merriweather:wght@400;700&family=Roboto:wght@400;600&family=Open+Sans:wght@400;600&family=Montserrat:wght@500;700&family=Oswald:wght@400;600&family=Playfair+Display:wght@500;700&family=Press+Start+2P&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
 
 <link rel="stylesheet" href="generated/overlay.css">
 <link rel="stylesheet" href="style.css">
@@ -19,6 +19,12 @@
 <body>
 
 <div id="root">
+  <!-- La réserve du joueur, en tiroir sur le bord gauche. Son contenu est
+       rempli par viewer.js ; le bouton la déplie et la replie. -->
+  <div id="tiroir-reserve" class="hidden" aria-hidden="true">
+    <button type="button" id="tiroir-bouton"><span id="tiroir-titre">Stash</span></button>
+    <div id="tiroir-contenu"></div>
+  </div>
 
   <div id="hotspots"></div>
 
@@ -122,7 +128,6 @@
   </div>
   <div class="body" id="item-body"></div>
   <div class="bottom-bar"></div>
-  <div class="progress-wrap"><div id="progress"></div></div>
 </div>
   </div>
 

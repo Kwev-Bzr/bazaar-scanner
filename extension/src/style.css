@@ -1,11 +1,3 @@
-/* ============================================================================
-   Feuille de style de l'extension.
-
-   Règle d'or : TOUT est transparent aux clics par défaut (pointer-events:none),
-   sauf les zones de survol. Sinon l'extension bloque les contrôles du lecteur
-   Twitch et la review sera refusée.
-   ========================================================================= */
-
 html, body {
   margin: 0;
   padding: 0;
@@ -16,15 +8,95 @@ html, body {
   font-family: "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
 }
 
+:root { --bouton-rond: clamp(28px, 4.9vh, 64px); }
+
+/* Texte des panneaux - options et recherche. Il ne suit PAS la taille choisie
+   pour les fiches : celle-ci vaut pour les cartes affichées en jeu, pas pour
+   les menus, qui doivent rester lisibles et stables. */
+
 #root {
+  --taille-menu: clamp(13px, 2.1vh, 18px);
   position: absolute;
   inset: 0;
   pointer-events: none;   /* laisse passer tous les clics vers le lecteur */
 }
 
-.hidden { display: none !important; }
+/* Une fiche épinglée reçoit les clics : ceux qui portent sur elle ou sur ses
+   boutons d'enchantement ne doivent pas la refermer. */
+#root[data-epingle] #card-panel { pointer-events: auto; }
 
-/* --- Zones de survol -------------------------------------------------- */
+/* Les boutons d'enchantement, en colonne contre la fiche épinglée.
+
+   En ligne au-dessus, la barre devenait plus large que la fiche et venait
+   buter contre le haut du lecteur Twitch, où elle était difficile à viser.
+   En colonne, elle reste dans la hauteur de la fiche. */
+
+#card-panel .ench-epingle {
+  /* À droite de la fiche, et rien d'autre que les boutons : un bandeau noir
+     derrière eux alourdissait l'image sans rien apporter.
+
+     Posée en absolu : la fiche porte une mise à l'échelle, dont la boîte de
+     mise en page ne suit pas le visuel. En flux normal, les boutons
+     mordaient dessus. Le rendu mesure la fiche et place la colonne au ras
+     de son bord droit. */
+  position: absolute;
+  top: 0;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* Une seule colonne, qui défile au-delà de la hauteur de la fiche. Deux
+     colonnes faisaient tout bouger dès qu'un enchantement changeait la
+     longueur de la description. */
+  flex-wrap: nowrap;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* L'ascenseur prend la couleur du cadre de la fiche, posée par le rendu.
+     Sa finesse ne suit pas la taille de la fiche : un ascenseur épais était
+     disgracieux. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--cadre-fiche, #7a5c2e) transparent;
+}
+
+#card-panel .ench-epingle::-webkit-scrollbar { width: 7px; }
+#card-panel .ench-epingle::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, .35);
+  border-radius: 4px;
+}
+#card-panel .ench-epingle::-webkit-scrollbar-thumb {
+  background: var(--cadre-fiche, #7a5c2e);
+  border-radius: 4px;
+}
+#card-panel .ench-epingle::-webkit-scrollbar-thumb:hover { opacity: .85; }
+
+#card-panel .ench-epingle button {
+  flex: 0 0 auto;
+  padding: 3px 11px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  /* Opaque : sur un fond presque transparent, les boutons se confondaient
+     avec la vidéo. */
+  background: #0a080e;
+  color: #9a8c74;
+  text-align: left;
+  white-space: nowrap;
+  font: 600 calc(var(--taille-menu) * .85)/1.3 'Rajdhani', Arial, sans-serif;
+  /* Pas d'« opacity » : elle rendait TOUT le bouton translucide, fond
+     compris, et le texte se perdait dans la vidéo. L'atténuation passe par
+     la couleur du texte et du liseré. */
+  color: #6f6450;
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+#card-panel .ench-epingle button:hover { color: #9a8c74; }
+#card-panel .ench-epingle button.actif {
+  color: #9a8c74;
+  background: currentColor;
+}
+#card-panel .ench-epingle button.actif span { color: #140c06; }
+
+.hidden { display: none !important; }
 
 #hotspots {
   position: absolute;
@@ -57,34 +129,815 @@ html, body {
   text-shadow: 0 1px 2px #000;
 }
 
-/* --- Panneau de la carte ---------------------------------------------- */
-
-/* Le panneau n'est qu'un point d'ancrage : la carte générée depuis
-   overlay.html porte déjà son propre cadre, son fond et sa typographie.
-   Tout style ajouté ici se verrait en double. */
-/* La fiche se place en haut à gauche ou en haut à droite, au choix du streamer :
-   sa webcam occupe souvent l'un des deux. Le coin est transmis avec le plateau,
-   comme le cadrage, et posé en attribut sur #root.
-
-   Les coins BAS sont volontairement absents : la barre de contrôle de Twitch et
-   le titre du stream y passent par-dessus dès que le spectateur bouge la souris,
-   masquant la fiche au moment où il la lit. */
 #card-panel {
   position: absolute;
-  pointer-events: none;
+  pointer-events: none;   /* le survol des cartes voisines doit rester libre */
   animation: panel-in 120ms ease-out;
   top: 1.5%;
   left: 1%;
+
+  /* La colonne d'enchantements se pose à côté de la fiche. */
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+
+  /* Au-dessus du tiroir de la réserve, qui est à 4 : une description qui
+     passerait derrière lui serait illisible. La position, nécessaire au
+     niveau d'empilement, est déjà posée plus haut. */
+  z-index: 10;
 }
 
-/* Même marge qu'à gauche. Depuis que l'origine de la mise à l'échelle suit
-   l'ancrage, le bord droit de la carte tombe exactement sur cette valeur : les
-   deux côtés sont donc symétriques, et l'élargir la décalait vers l'intérieur. */
+
+/* ── Les thèmes, un par héros ─────────────────────────────────────────────
+   Le dégradé est plus marqué sur les teintes sombres, où il se voyait à
+   peine. Les deux lignes, en haut et en bas de la fiche, suivent le thème :
+   elles restaient dorées quel que soit le choix. */
+#root[data-theme="vanessa"] #card,
+#root[data-theme="vanessa"] .apercu .fiche,
+#root[data-theme="vanessa"] .apercu .fiche #card {
+  background: linear-gradient(155deg, #180505 0%, #470f0e 55%, #180505 100%);
+  border-color: #761818;
+  box-shadow: 0 0 0 1px #2f0a0a, 0 0 41px #4c100f, inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+#root[data-theme="pygmalien"] #card,
+#root[data-theme="pygmalien"] .apercu .fiche,
+#root[data-theme="pygmalien"] .apercu .fiche #card {
+  background: linear-gradient(155deg, #061019 0%, #0e233a 55%, #061019 100%);
+  border-color: #2a5a86;
+  box-shadow: 0 0 0 1px #0d2438, 0 0 41px rgba(40, 110, 180, .35), inset 0 1px 0 rgba(150, 210, 255, .07);
+}
+
+#root[data-theme="dooley"] #card,
+#root[data-theme="dooley"] .apercu .fiche,
+#root[data-theme="dooley"] .apercu .fiche #card {
+  background: linear-gradient(155deg, #160f01 0%, #412d02 55%, #160f01 100%);
+  border-color: #9e6c06;
+  box-shadow: 0 0 0 1px #3f2b02, 0 0 41px #654504, inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+#root[data-theme="mak"] #card,
+#root[data-theme="mak"] .apercu .fiche,
+#root[data-theme="mak"] .apercu .fiche #card {
+  background: linear-gradient(155deg, #111508 0%, #2e3817 55%, #111508 100%);
+  border-color: #78913b;
+  box-shadow: 0 0 0 1px #303a18, 0 0 41px #4d5d26, inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+#root[data-theme="stelle"] #card,
+#root[data-theme="stelle"] .apercu .fiche,
+#root[data-theme="stelle"] .apercu .fiche #card {
+  background: linear-gradient(155deg, #1f1803 0%, #473707 55%, #1f1803 100%);
+  border-color: #b28b12;
+  box-shadow: 0 0 0 1px #473707, 0 0 41px #73590b, inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+#root[data-theme="jules"] #card,
+#root[data-theme="jules"] .apercu .fiche,
+#root[data-theme="jules"] .apercu .fiche #card {
+  background: linear-gradient(155deg, #18071f 0%, #49165f 55%, #18071f 100%);
+  border-color: #77249b;
+  box-shadow: 0 0 0 1px #300e3e, 0 0 41px #4c1763, inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+#root[data-theme="karnok"] #card,
+#root[data-theme="karnok"] .apercu .fiche,
+#root[data-theme="karnok"] .apercu .fiche #card {
+  background: linear-gradient(155deg, #000f0c 0%, #00342c 55%, #000f0c 100%);
+  border-color: #006958;
+  box-shadow: 0 0 0 1px #002a23, 0 0 41px #004438, inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+#root[data-theme="dragons"] #card,
+#root[data-theme="dragons"] .apercu .fiche,
+#root[data-theme="dragons"] .apercu .fiche #card {
+  background: linear-gradient(155deg, #05141a 0%, #0e3d4f 55%, #05141a 100%);
+  border-color: #2089b2;
+  box-shadow: 0 0 0 1px #0d3747, 0 0 41px #155873, inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+#root[data-theme="vanessa"] #card .top-bar, #root[data-theme="vanessa"] #card .bottom-bar, #root[data-theme="vanessa"] .apercu .fiche .top-bar, #root[data-theme="vanessa"] .apercu .fiche .bottom-bar { background: linear-gradient(90deg,transparent,#7f1a1a 15%,#c7706f 50%,#7f1a1a 85%,transparent); }
+#root[data-theme="pygmalien"] #card .top-bar, #root[data-theme="pygmalien"] #card .bottom-bar, #root[data-theme="pygmalien"] .apercu .fiche .top-bar, #root[data-theme="pygmalien"] .apercu .fiche .bottom-bar { background: linear-gradient(90deg,transparent,#204884 15%,#7598cc 50%,#204884 85%,transparent); }
+#root[data-theme="dooley"] #card .top-bar, #root[data-theme="dooley"] #card .bottom-bar, #root[data-theme="dooley"] .apercu .fiche .top-bar, #root[data-theme="dooley"] .apercu .fiche .bottom-bar { background: linear-gradient(90deg,transparent,#a97406 15%,#ecbd5e 50%,#a97406 85%,transparent); }
+#root[data-theme="mak"] #card .top-bar, #root[data-theme="mak"] #card .bottom-bar, #root[data-theme="mak"] .apercu .fiche .top-bar, #root[data-theme="mak"] .apercu .fiche .bottom-bar { background: linear-gradient(90deg,transparent,#819b3f 15%,#c9e090 50%,#819b3f 85%,transparent); }
+#root[data-theme="stelle"] #card .top-bar, #root[data-theme="stelle"] #card .bottom-bar, #root[data-theme="stelle"] .apercu .fiche .top-bar, #root[data-theme="stelle"] .apercu .fiche .bottom-bar { background: linear-gradient(90deg,transparent,#bfb613 15%,#fff76a 50%,#bfb613 85%,transparent); }
+#root[data-theme="jules"] #card .top-bar, #root[data-theme="jules"] #card .bottom-bar, #root[data-theme="jules"] .apercu .fiche .top-bar, #root[data-theme="jules"] .apercu .fiche .bottom-bar { background: linear-gradient(90deg,transparent,#8026a6 15%,#c87ae9 50%,#8026a6 85%,transparent); }
+#root[data-theme="karnok"] #card .top-bar, #root[data-theme="karnok"] #card .bottom-bar, #root[data-theme="karnok"] .apercu .fiche .top-bar, #root[data-theme="karnok"] .apercu .fiche .bottom-bar { background: linear-gradient(90deg,transparent,#00705e 15%,#59bbaa 50%,#00705e 85%,transparent); }
+#root[data-theme="dragons"] #card .top-bar, #root[data-theme="dragons"] #card .bottom-bar, #root[data-theme="dragons"] .apercu .fiche .top-bar, #root[data-theme="dragons"] .apercu .fiche .bottom-bar { background: linear-gradient(90deg,transparent,#2293bf 15%,#77d9ff 50%,#2293bf 85%,transparent); }
+
+/* Alerte destinée au STREAMER, pas aux spectateurs : elle ne paraît que sur
+   son aperçu, puisqu'elle vient d'un message que lui seul produit. */
+/* Sous le rappel de première visite, en haut. Les spectateurs sont ici le seul
+   canal capable d'atteindre un streamer resté sur une version ancienne : elle
+   ne disparaît donc que s'ils la ferment. */
+/* L'alerte de version, en haut à gauche, un peu à l'écart du bord : au
+   centre, elle recouvrait le guide du premier lancement. Elle tient dans une
+   zone de 360 × 220 pixels au plus. */
+#alerte-version {
+  position: absolute;
+  left: 2.5%;
+  /* Cent pixels plus bas : le bandeau de Twitch qui affiche le titre du live,
+     en mode Studio notamment, passe par-dessus le haut du lecteur et
+     empêchait de cliquer sur l'alerte. Des pixels, et non un pourcentage :
+     ce bandeau a la même hauteur quelle que soit la taille du lecteur. */
+  top: calc(4% + 100px);
+  z-index: 26;
+  /* La couche de l'extension laisse passer les clics vers le lecteur : sans
+     cela, la croix ne recevait rien, et le clic traversait jusqu'à la vidéo. */
+  pointer-events: auto;
+
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  box-sizing: border-box;
+  max-width: min(360px, 92vw);
+  max-height: 220px;
+  overflow: hidden;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid rgba(240, 80, 70, .7);
+  border-radius: 4px;
+  background: rgba(34, 8, 8, .94);
+  color: #ff8878;
+  font: 600 clamp(12px, 1.9vh, 16px)/1.3 'Rajdhani', Arial, sans-serif;
+}
+
+/* Le panneau « Attention » : un triangle rouge et son point d'exclamation. */
+#alerte-version .panneau {
+  flex: 0 0 auto;
+  width: 2.1em;
+  height: 2.1em;
+}
+#alerte-version .panneau .fond { fill: #e8352b; stroke: #fff; stroke-width: 1.2; stroke-linejoin: round; }
+#alerte-version .panneau .signe { fill: #fff; }
+
+#alerte-version span { flex: 1 1 auto; }
+
+#alerte-version .fermer {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(255, 140, 130, .4);
+  border-radius: 50%;
+  background: transparent;
+  color: #ff8878;
+  font: 400 15px/1 Arial, sans-serif;
+  cursor: pointer;
+}
+#alerte-version .fermer:hover { border-color: #ff8878; color: #fff; }
+
+#tuto {
+  position: absolute;
+  left: 50%;
+  top: 3%;                       /* en HAUT : le bas est occupé par le plateau */
+  transform: translateX(-50%) translateY(-6px);
+  z-index: 25;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 18px;
+  border: 1px solid rgba(240, 192, 96, .35);
+  border-radius: 3px;
+  background: #0a080e;
+  color: #e6dcc8;
+  font: 600 clamp(14px, 2.2vh, 20px)/1.3 'Rajdhani', Arial, sans-serif;
+  /* La largeur de son texte, dans la limite de l'écran. Centré par un décalage
+     de 50 %, le guide était sinon borné à la moitié du lecteur, et ses
+     lignes se coupaient au milieu d'une phrase. */
+  width: max-content;
+  max-width: 78vw;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s ease, transform .4s ease;
+}
+
+#tuto .corps { display: flex; flex-direction: column; gap: 8px; }
+
+#tuto .titre {
+  color: #f0c060;
+  font-size: 1.12em;
+  letter-spacing: .03em;
+}
+
+#tuto .lignes { display: flex; flex-direction: column; gap: 4px; }
+
+/* L'endroit où se trouvent les trois boutons, juste au-dessus de leur rangée. */
+#tuto .ou {
+  margin-top: 4px;
+  color: #b8a888;
+  font-size: .92em;
+}
+
+/* Les trois boutons, en colonnes égales : l'icône, et dessous sa légende, qui
+   peut tenir sur deux lignes. */
+#tuto .rangee {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 4px;
+  text-align: center;
+}
+
+#tuto .rangee .icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2em;
+  height: 2em;
+  border: 1px solid rgba(240, 192, 96, .35);
+  border-radius: 50%;
+  color: #f0c060;
+}
+
+#tuto .rangee .icone svg { width: 62%; height: 62%; }
+
+#tuto .rangee .legende {
+  margin-top: 4px;
+  font-size: .9em;
+  line-height: 1.2;
+}
+
+#tuto.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;          /* pour que la croix soit cliquable */
+}
+
+/* La croix, plus grande, et son décompte : un cercle qui s'efface dans le sens
+   des aiguilles d'une montre, depuis midi, pendant toute la durée du guide. */
+#tuto .fermer {
+  position: relative;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .06);
+  color: #f0e6d2;
+  font: 400 22px/1 Arial, sans-serif;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+#tuto .fermer:hover { background: rgba(255, 255, 255, .16); color: #fff; }
+#tuto .fermer span { position: relative; top: -1px; }
+
+#tuto .fermer .decompte {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+#tuto .fermer .decompte circle {
+  fill: none;
+  stroke: #f0c060;
+  stroke-width: 2.5;
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 0;
+  animation-name: decompte-tuto;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes decompte-tuto {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -100; }
+}
+
+/* Le titre et, à sa droite, les langues. */
+#tuto .entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+#tuto .entete .langues button.drapeau { width: 1.8em; height: 1.8em; }
+
+/* Deux boutons désormais : loupe et options. */
+#tuto .rangee { grid-template-columns: repeat(2, 1fr) !important; }
+
+/* Le bouton d'aide est hors des colonnes : la mise en forme des options ne
+   l'atteignait pas, et il gardait l'apparence native du navigateur - blanc.
+   On la lui donne en entier, pas seulement la couleur. */
+#viewer-options .pied button.revoir {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 2px;
+  background: transparent;
+  color: #cfc4b0;
+  font: 500 clamp(13px, 2.1vh, 18px)/1.25 'Rajdhani', Arial, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+#viewer-options .pied button.revoir:hover {
+  border-color: rgba(255, 255, 255, .3);
+}
+
+/* --- Recherche ----------------------------------------------------------
+   Une loupe au-dessus du menu, et un panneau qui s'ouvre vers la gauche : les
+   résultats à gauche, la fiche choisie à droite.
+   ----------------------------------------------------------------------- */
+
+#viewer-recherche {
+  position: absolute;
+  right: 2.4%;
+  bottom: calc(10.5% + 25px + 2 * var(--bouton-rond) + 16px + var(--decalage-boutons, 0px));
+  z-index: 21;
+
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-end;
+  gap: 6px;
+
+  height: var(--bouton-rond);
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+
+#viewer-recherche.visible { opacity: .5; pointer-events: auto; }
+#viewer-recherche.visible:hover,
+#viewer-recherche.deplie { opacity: 1; pointer-events: auto; }
+
+#viewer-recherche .loupe {
+  flex: 0 0 auto;
+  width: var(--bouton-rond);
+  height: var(--bouton-rond);
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 50%;
+  background: #0a080e;
+  color: #fff;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+#viewer-recherche .loupe:hover { border-color: #fff; background: #0a080e; }
+#viewer-recherche .loupe svg { width: 62%; height: 62%; }
+
+/* Replié par défaut : sans cette règle, le panneau et ses portraits
+   s'étalent sur toute la vidéo. */
+/* Le panneau est posé dans la vidéo, centré, indépendamment du bouton qui
+   l'ouvre : ancré sous lui, il déborderait par le haut. */
+#viewer-recherche .panneau {
+  position: fixed;
+  right: calc(2.4% + var(--bouton-rond) + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  /* Dimensions FIXES : la hauteur suivait le nombre de résultats, et le
+     panneau sautait à chaque frappe. */
+  width: min(84vw, 1100px);
+  height: 85vh;
+  max-height: 85vh;
+  box-sizing: border-box;
+  display: none;
+  flex-direction: column;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, .25);
+  border-radius: 4px;
+  /* Fonds pleins plutôt que des flous : « backdrop-filter » fait retraiter
+     chaque image du stream par le processeur graphique, y compris quand rien
+     ne change, pour un effet que ces fonds rendent invisible. */
+  background: #0a080e;
+}
+#viewer-recherche.deplie .panneau { display: flex; }
+
+#viewer-recherche .haut { display: flex; gap: 8px; margin-bottom: 8px; }
+
+#viewer-recherche .champ {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 11px;
+  border: 1px solid rgba(240, 192, 96, .45);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, .4);
+  color: #e6dcc8;
+  font: 500 var(--taille-menu)/1.3 'Rajdhani', Arial, sans-serif;
+}
+#viewer-recherche .champ:focus { outline: none; border-color: #f0c060; }
+
+#viewer-recherche .reinit {
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 3px;
+  background: transparent;
+  color: #d8cdb8;
+  font: 500 var(--taille-menu)/1.2 'Rajdhani', Arial, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+#viewer-recherche .reinit:hover { color: #fff; border-color: rgba(255, 255, 255, .35); }
+
+#viewer-recherche .filtres {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+/* Genre et tailles partagent une ligne, séparés par un filet. */
+#viewer-recherche .filtres.devant { margin: 0; }
+#viewer-recherche .filtres.devant + .filtres.devant {
+  padding-left: 12px;
+  margin-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, .12);
+}
+
+#viewer-recherche .filtres .titre {
+  /* Entre le blanc et la teinte des filtres : assez clair pour se détacher,
+     assez sourd pour ne pas leur voler l'attention. */
+  color: #d8cdb8;
+  font: 700 calc(var(--taille-menu) * .85)/1 'Rajdhani', Arial, sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-right: 6px;
+}
+
+#viewer-recherche .filtre {
+  padding: 4px 9px;
+  /* Bordure toujours présente : la faire apparaître à la sélection
+     agrandissait la rangée et déformait le panneau. */
+  border: 1px solid rgba(255, 255, 255, .15);
+  border-radius: 3px;
+  background: transparent;
+  font: 500 var(--taille-menu)/1.25 'Rajdhani', Arial, sans-serif;
+  cursor: pointer;
+}
+/* La teinte par défaut ne vaut ni pour les effets ni pour les raretés : ils
+   portent leur propre couleur, que cette règle écrasait. */
+#viewer-recherche .filtre:not([data-genre="k"]):not([data-genre="q"]) {
+  /* Le beige des titres : le brun d'avant se lisait mal. Blanc une fois actif. */
+  color: #d8cdb8;
+}
+#viewer-recherche .filtre.actif:not([data-genre="k"]):not([data-genre="q"]) { color: #fff; }
+
+/* Les raretés reprennent les teintes de la fiche. */
+#viewer-recherche .filtre.r-Bronze    { color: #a0714f; }
+#viewer-recherche .filtre.r-Silver    { color: #d0d0d0; }
+#viewer-recherche .filtre.r-Gold      { color: #f0c060; }
+#viewer-recherche .filtre.r-Diamond   { color: #a8d8f8; }
+#viewer-recherche .filtre.r-Legendary { color: #f08040; }
+
+#viewer-recherche .filtre:hover { border-color: rgba(255, 255, 255, .35); }
+
+#viewer-recherche .filtre:not([data-genre="k"]):not([data-genre="q"]).actif {
+  color: #f0c060;
+  border-color: #f0c060;
+}
+
+/* Un effet retenu garde sa couleur : seule sa bordure l'annonce.
+   « inherit » le rendait noir, donc illisible. */
+#viewer-recherche .filtre[data-genre="k"].actif,
+#viewer-recherche .filtre[data-genre="q"].actif {
+  border-color: currentColor;
+  background: rgba(255, 255, 255, .08);
+}
+#viewer-recherche .filtre.efface { opacity: .3; }
+#viewer-recherche .filtre.portrait {
+  border: 2px solid transparent;
+}
+#viewer-recherche .filtre.portrait.actif { border-color: #f0c060; }
+
+/* Les portraits sont ronds et de taille fixe : à défaut, ils s'affichent à
+   leur taille d'origine, en carrés. */
+#viewer-recherche .filtre.portrait {
+  padding: 2px;
+  border-radius: 50%;
+  line-height: 0;
+}
+#viewer-recherche .filtre.portrait img {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Un filet sépare les filtres des résultats, comme le pied sépare le menu. */
+#viewer-recherche .zone-filtres {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, .12);
+
+  /* Sur une petite fenêtre, les filtres occupaient toute la hauteur et il ne
+     restait rien pour les résultats. Ils défilent plutôt que de tout prendre. */
+  max-height: 20%;
+  overflow-y: auto;
+  flex: 0 0 auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(240, 192, 96, .45) transparent;
+}
+#viewer-recherche .zone-filtres::-webkit-scrollbar { width: 8px; }
+#viewer-recherche .zone-filtres::-webkit-scrollbar-thumb {
+  background: rgba(240, 192, 96, .35);
+  border-radius: 4px;
+}
+#viewer-recherche .zone-filtres .filtres:last-child { margin-bottom: 0; }
+
+#viewer-recherche .corps {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+#viewer-recherche .liste,
+#viewer-recherche .apercu {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(240, 192, 96, .45) transparent;
+}
+#viewer-recherche .liste::-webkit-scrollbar,
+#viewer-recherche .apercu::-webkit-scrollbar { width: 8px; }
+#viewer-recherche .liste::-webkit-scrollbar-track,
+#viewer-recherche .apercu::-webkit-scrollbar-track { background: transparent; }
+#viewer-recherche .liste::-webkit-scrollbar-thumb,
+#viewer-recherche .apercu::-webkit-scrollbar-thumb {
+  background: rgba(240, 192, 96, .35);
+  border-radius: 4px;
+}
+#viewer-recherche .liste::-webkit-scrollbar-thumb:hover,
+#viewer-recherche .apercu::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 192, 96, .6);
+}
+
+#viewer-recherche .liste {
+  /* Largeur FIXE : élargir le panneau doit profiter à la fiche, pas à la
+     liste des noms, qui n'en a pas besoin. */
+  flex: 0 0 250px;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255, 255, 255, .12);
+  padding-right: 8px;
+}
+
+#viewer-recherche .resultat {
+  display: block;
+  width: 100%;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: #cfc4b0;
+  font: 500 var(--taille-menu)/1.3 'Rajdhani', Arial, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+#viewer-recherche .resultat:hover { border-color: rgba(255, 255, 255, .25); }
+#viewer-recherche .resultat.actif { color: #fff; border-color: #f0c060; }
+
+#viewer-recherche .vide {
+  color: #7d7264;
+  font: 500 var(--taille-menu)/1.4 'Rajdhani', Arial, sans-serif;
+  padding: 6px;
+}
+
+#viewer-recherche .apercu {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* Les enchantements, au-dessus de la fiche.
+
+   Ils ressemblaient aux filtres et s'étalaient sur deux rangées inégales. Ils
+   tiennent maintenant sur UNE ligne qui défile, alignée à gauche, avec des
+   pastilles arrondies : on ne les confond plus avec ce qui les surplombe. */
+#viewer-recherche .enchants {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  margin-bottom: 10px;
+  justify-content: flex-start;
+
+  /* Elle reste en haut de la colonne : sur une petite fenêtre, une fiche
+     enchantée s'allonge et repoussait la ligne hors de portée. */
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 2px 0 6px;
+  background: #0a080e;
+}
+
+#viewer-recherche .enchants .titre {
+  color: #d8cdb8;
+  font: 700 calc(var(--taille-menu) * .85)/1 'Rajdhani', Arial, sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-right: 6px;
+}
+
+#viewer-recherche .ench {
+  flex: 0 0 auto;
+  padding: 3px 11px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  /* Opaque : sur un fond presque transparent, les boutons se confondaient
+     avec la vidéo. */
+  background: #0a080e;
+  color: #9a8c74;
+  text-align: left;
+  white-space: nowrap;
+  font: 600 calc(var(--taille-menu) * .85)/1.3 'Rajdhani', Arial, sans-serif;
+  opacity: .85;
+  cursor: pointer;
+  transition: opacity .15s ease;
+}
+#viewer-recherche .ench:hover { opacity: 1; }
+
+/* Le choix retenu se remplit de sa propre teinte. */
+#viewer-recherche .ench.actif {
+  opacity: 1;
+  background: currentColor;
+}
+#viewer-recherche .ench.actif span { color: #140c06; }
+
+#viewer-recherche .apercu .fiche {
+  /* L'échelle est calculée par le code, comme celle de la fiche survolée. */
+  transform-origin: top center;
+}
+#viewer-recherche .apercu #card { position: static; opacity: 1; transform: none; }
+
+#viewer-options {
+  position: absolute;
+  right: 2.4%;
+  bottom: calc(10.5% + 25px + var(--bouton-rond) + 8px + var(--decalage-boutons, 0px));   /* au-dessus du globe */
+  z-index: 20;
+
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-end;
+  gap: 6px;
+
+  height: var(--bouton-rond);
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+
+#viewer-options.visible { opacity: .5; pointer-events: auto; }
+#viewer-options.visible:hover,
+#viewer-options.visible.deplie { opacity: 1; }
+
+#viewer-options .roue {
+  flex: 0 0 auto;
+  width: var(--bouton-rond);
+  height: var(--bouton-rond);
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 50%;
+  background: #0a080e;
+  color: #fff;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+#viewer-options .roue:hover { border-color: #fff; background: #0a080e; }
+#viewer-options .roue svg { width: 68%; height: 68%; }
+
+#viewer-options .menu {
+  display: none;
+  /* Posé dans la vidéo, centré en hauteur, comme le panneau de recherche, et
+     non plus ancré au bouton : le bouton monte ou descend selon la place de
+     la réserve, et le menu ancré dessus dépassait alors du haut du lecteur,
+     avec des réglages hors d'atteinte. Au-delà de 85 % de la hauteur, il
+     défile. */
+  position: fixed;
+  right: calc(2.4% + var(--bouton-rond) + 12px);
+  top: 50%;
+  /* À l'échelle du lecteur : sa largeur restait fixe en pixels, si bien
+     qu'il prenait une part de l'écran d'autant plus grande que le lecteur
+     était petit. L'échelle est posée par le rendu. */
+  transform: translateY(-50%) scale(var(--echelle-menu, 1));
+  transform-origin: right center;
+  max-height: calc(85vh / var(--echelle-menu, 1));
+  box-sizing: border-box;      /* la hauteur maximale inclut les marges */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(240, 192, 96, .45) transparent;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, .25);
+  border-radius: 4px;
+  background: #0a080e;
+  white-space: nowrap;
+}
+#viewer-options.deplie .menu { display: block; }
+
+/* Une grille plutôt qu'une rangée libre : toutes les colonnes ont la MÊME
+   largeur et commencent à la même hauteur. En flux libre, chacune prenait
+   celle de son plus long libellé, et les titres ne s'alignaient pas. */
+#viewer-options .colonnes {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(118px, 1fr);
+  align-items: start;
+  gap: 0;
+}
+
+#viewer-options .colonnes > .groupe {
+  padding: 0 13px;
+  min-width: 0;
+}
+
+#viewer-options .colonnes > .groupe + .groupe {
+  border-left: 1px solid rgba(255, 255, 255, .12);
+}
+
+/* Une colonne « large » tient sur deux cases de la grille, ses boutons sur
+   deux rangs : c'est ce qui évite qu'une liste de neuf thèmes ne creuse un
+   vide sous toutes les autres colonnes. */
+#viewer-options .colonnes > .groupe.large { grid-column: span 2; }
+
+#viewer-options .colonnes > .groupe.large .titre { grid-column: 1 / -1; }
+
+#viewer-options .colonnes > .groupe.large {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Remplissage en colonnes : de haut en bas, puis de gauche à droite. En
+     lignes, la liste se lisait de travers. Cinq rangs sous le titre suffisent
+     aux neuf thèmes. */
+  grid-auto-flow: column;
+  grid-template-rows: auto repeat(5, auto);
+  gap: 3px 10px;
+  align-content: start;
+}
+
+#viewer-options .colonnes > .groupe.large .titre { grid-row: 1; }
+
+#viewer-options .colonnes > .groupe:first-child { padding-left: 0; }
+#viewer-options .colonnes > .groupe:last-child  { padding-right: 0; }
+
+/* Sous les colonnes, sur toute la largeur. */
+#viewer-options .pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, .12);
+}
+
+#viewer-options .signature {
+  color: #9a8c74;
+  font: 500 clamp(12px, 1.9vh, 15px)/1 'Rajdhani', Arial, sans-serif;
+  white-space: nowrap;
+}
+#viewer-options .signature a { color: #9a8c74; text-decoration: none; }
+#viewer-options .signature a:hover { color: #f0c060; text-decoration: underline; }
+
+#viewer-options .groupe { display: flex; flex-direction: column; gap: 3px; }
+
+/* Un sous-bloc, comme la taille sous la réserve : il se détache du précédent
+   sans ouvrir une colonne de plus. */
+#viewer-options .groupe .groupe { margin-top: 9px; }
+
+/* Les intitulés en gras et en capitales, de la teinte des titres de l'index :
+   plus sombres que les choix, ils se lisaient mal sur un petit lecteur. */
+#viewer-options .titre {
+  color: #d8cdb8;
+  font: 700 clamp(11px, 1.9vh, 15px)/1.4 'Rajdhani', Arial, sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+#viewer-options .groupe button {
+  /* Pleine largeur de colonne : les boutons se répondent d'une colonne à
+     l'autre au lieu d'avoir chacun la taille de son texte. */
+  display: block;
+  width: 100%;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: #cfc4b0;
+  font: 500 clamp(13px, 2.1vh, 18px)/1.25 'Rajdhani', Arial, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+#viewer-options .groupe button:hover { border-color: rgba(255, 255, 255, .3); }
+#viewer-options .groupe button.actif { color: #fff; border-color: #f0c060; }
+
+#root[data-suivi] #card-panel {
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  animation: none;   /* le glissement suffit, l'apparition ferait clignoter */
+}
+
 #root[data-coin="hd"] #card-panel { left: auto; right: 1%; }
 
-/* La carte est mise à l'échelle depuis son coin haut GAUCHE. Ancrée à droite,
-   elle se réduisait donc vers l'intérieur en laissant un large vide à droite :
-   la fiche paraissait posée n'importe où. L'origine suit l'ancrage. */
 #root[data-coin="hd"] #card-panel #card { transform-origin: top right; }
 
 @keyframes panel-in {
@@ -95,8 +948,6 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   #card-panel { animation: none; }
 }
-
-/* --- Bandeau d'état (dev uniquement) ---------------------------------- */
 
 #status {
   position: absolute;
@@ -113,24 +964,18 @@ html, body {
   pointer-events: none;
 }
 
-/* --- Sélecteur de langue ------------------------------------------------
-   Une planète en fil de fer, au centre bas du lecteur, juste au-dessus de la
-   barre de contrôle de Twitch. Elle n'apparaît que lorsque le spectateur bouge
-   la souris sur la vidéo, et se déplie vers la droite en gardant la ligne
-   centrée — la translation de -50% s'applique à la largeur courante, donc le
-   recentrage est automatique quel que soit le nombre de langues.
-   ----------------------------------------------------------------------- */
-
 #lang-switch {
   position: absolute;
-  left: 50%;
-  bottom: 8.5%;
-  transform: translateX(-50%);
+  right: 2.4%;                   /* aligné sur la roue crantée du jeu */
+  bottom: calc(10.5% + 25px);    /* un peu d'air au-dessus d'elle */
   z-index: 20;
 
   display: flex;
+  flex-direction: row-reverse;   /* le globe reste à droite, la liste s'ouvre à gauche */
   align-items: center;
   gap: 5px;
+
+  height: var(--bouton-rond);    /* la taille de la roue crantée du jeu */
 
   opacity: 0;
   pointer-events: none;
@@ -146,27 +991,32 @@ html, body {
 #lang-switch.visible.deplie { opacity: 1; }
 
 #lang-switch button {
-  width: 34px;
-  height: 34px;
+  flex: 0 0 auto;
+  width: var(--bouton-rond);
+  height: var(--bouton-rond);
+  box-sizing: border-box;
   display: grid;
   place-items: center;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, .3);
   border-radius: 50%;
-  background: rgba(10, 8, 14, .55);
+  background: #0a080e;
   color: #fff;
   font: 600 12px/1 'Rajdhani', Arial, sans-serif;
   letter-spacing: .04em;
   cursor: pointer;
-  backdrop-filter: blur(3px);
   transition: border-color .15s ease, background .15s ease, color .15s ease;
 }
 
-#lang-switch button:hover { border-color: #fff; background: rgba(10, 8, 14, .8); }
+#lang-switch button:hover { border-color: #fff; background: #0a080e; }
 
-/* Les choix n'existent qu'une fois la planète dépliée. width:0 plutôt que
-   display:none pour que l'ouverture soit animée et que la ligne se recentre
-   en glissant. */
+#lang-switch button svg {
+  width: 68%;
+  height: 68%;
+}
+
+#lang-switch button.choix { font-size: clamp(11px, 2.1vh, 17px); }
+
 #lang-switch .choix {
   width: 0;
   border-width: 0;
@@ -177,7 +1027,7 @@ html, body {
 }
 
 #lang-switch.deplie .choix {
-  width: 34px;
+  width: var(--bouton-rond);
   border-width: 1px;
   margin-left: 0;
   opacity: 1;
@@ -192,3 +1042,1171 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   #lang-switch, #lang-switch .choix { transition: none; }
 }
+
+/* --- Police de l'extension -----------------------------------------------
+   Le choix porte sur TOUT ce que le spectateur lit : la fiche, le menu des
+   options, la recherche et ses filtres. Le limiter à la fiche laissait le
+   reste illisible pour qui avait besoin d'en changer.
+
+   Chaque famille couvre un besoin distinct : plus lisible, plus étroite pour
+   les longues descriptions, sans empattements, ou à chasse fixe.
+   ----------------------------------------------------------------------- */
+
+#root[data-police] #card,
+#root[data-police] #card .tooltip-text,
+#root[data-police] #card #item-name,
+#root[data-police] #viewer-options,
+#root[data-police] #viewer-options button,
+#root[data-police] #viewer-recherche,
+#root[data-police] #viewer-recherche button,
+#root[data-police] #viewer-recherche input,
+#root[data-police] #lang-switch,
+#root[data-police] #lang-switch button,
+#root[data-police] #tuto,
+
+/* Ces éléments de la fiche imposent leur propre police : sans les citer,
+   « Actif », « Délai d'Activation », « Munitions » et leurs valeurs
+   restaient dans la police d'origine. */
+#root[data-police] #card .badge,
+#root[data-police] #card .badge-tag,
+#root[data-police] #card .section-label,
+#root[data-police] #card .cd-label,
+#root[data-police] #card .cd-val,
+#root[data-police] #card .cd-unit,
+#root[data-police] #card .cd-tier-val,
+#root[data-police] #card .socket-effect .se-ligne1,
+#root[data-police] #card .socket-effect .se-ligne2,
+#root[data-police] #viewer-recherche .badge,
+#root[data-police] #viewer-recherche .badge-tag,
+#root[data-police] #viewer-recherche .section-label,
+#root[data-police] #viewer-recherche .cd-label,
+#root[data-police] #viewer-recherche .cd-val,
+#root[data-police] #viewer-recherche .cd-unit,
+#root[data-police] #viewer-recherche .cd-tier-val {
+  font-family: var(--police), 'Rajdhani', Arial, sans-serif;
+}
+
+/* La famille, l'espacement des lettres, la casse et le faux gras viennent de
+   la liste des polices (viewer.js, ou « presentation.json » une fois
+   publiée), posés en variables sur #root. Une police ajoutée par les données
+   n'a donc besoin d'aucune règle ici.
+
+   Impact et Capitales n'existent qu'en une seule graisse : le navigateur en
+   fabriquait un faux gras illisible. Leur entrée interdit ce faux gras
+   (« synthese »: false) et écarte un peu les lettres (« espacement »). */
+#root[data-police] { font-synthesis: var(--police-synthese, weight style); }
+
+#root[data-police] #card,
+#root[data-police] #viewer-recherche,
+#root[data-police] #tuto,
+#root[data-police] #viewer-options { letter-spacing: var(--police-espacement, normal); }
+
+/* « Capitales » : la police n'a que des majuscules ; on l'impose aussi au
+   texte, pour qu'une police de secours donne le même résultat. */
+#root[data-police] #card,
+#root[data-police] #viewer-recherche .fiche { text-transform: var(--police-casse, none); }
+
+/* ── La case réserve ──────────────────────────────────────────────────────
+
+   Le mod lit « run.Player.Stash » en permanence, coffre fermé compris : la
+   case montre donc toujours l'état réel.
+
+   Trois états, que le bouton fait défiler : fermée, petite, grande. Sa
+   position et sa largeur viennent de mesures, en proportion du lecteur. */
+#tiroir-reserve {
+  position: absolute;
+  left: 0;
+  display: flex;
+  /* Sur sa propre couche, pour que la vidéo ne la fasse pas redessiner.
+
+     « transform » suffit à la promouvoir ; « will-change » laissé en
+     permanence réserve de la mémoire et alourdit la composition, alors qu'il
+     n'est utile que pendant une animation.
+
+     « contain » dit au navigateur que rien de ce qui change ici n'affecte le
+     reste de la page : il peut alors s'en tenir à cette zone. */
+  transform: translateZ(0);
+  contain: layout paint;
+  /* Centré : le bouton garde la hauteur de la case déployée en grand, donc
+     c'est lui qui donne la mesure. Le ruban, plus court en petit, se centre
+     dessus sans que le bouton bouge. */
+  align-items: center;
+  /* Le conteneur a la hauteur du bouton, plus haut que le ruban en petite
+     taille : seuls le bouton et le ruban captent la souris, pas le vide
+     au-dessus et au-dessous du ruban, qui recouvrait la zone du prestige. */
+  pointer-events: none;
+  /* Sous la fiche, qui est à 10 : une description qui passerait derrière la
+     case serait illisible. */
+  z-index: 4;
+}
+
+#tiroir-reserve.hidden { display: none; }
+
+#tiroir-bouton {
+  flex: none;
+  width: 26px;
+  /* La hauteur est posée par le rendu, en proportion du lecteur : laissée au
+     texte vertical, elle devenait démesurée. Le contenu est centré dedans. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  /* Au-dessus du bandeau, qui glisse dessous : l'arrondi du bouton reste
+     ainsi net quel que soit l'état. */
+  position: relative;
+  z-index: 2;
+  /* Explicite : le conteneur racine refuse les clics, et sans cela ceux du
+     bouton passaient au lecteur, qui les prenait pour un double-clic et
+     basculait en plein écran. */
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  /* Stylisé comme une fiche : même dégradé, même liseré, même lueur. Opaque
+     aussi, une transparence coûtant une passe de composition à chaque image
+     sur une page qui joue déjà une vidéo. */
+  border: 1px solid var(--cadre-reserve, #c09050);
+  border-left: none;
+  border-radius: 0 7px 7px 0;
+  /* Uni, pour que le texte se lise partout ; le ruban garde le dégradé. */
+  background: var(--fond-bouton-reserve, #1c0f06);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .22),
+    0 0 0 1px rgba(0, 0, 0, .6),
+    0 0 18px rgba(0, 0, 0, .45);
+  color: #f4ecd8;
+  /* La taille est posée par le rendu, d'après la hauteur du bouton. */
+  font: 700 15px/1 'Rajdhani', 'Arial Narrow', Arial, sans-serif;
+  overflow: hidden;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .8);
+}
+
+#tiroir-bouton:hover { filter: brightness(1.25); }
+
+/* Le titre se lit de bas en haut, le long de la tranche. La rotation porte
+   sur le TEXTE seul : appliquée au bouton, elle retournait aussi ses coins,
+   et l'arrondi se retrouvait du mauvais côté. */
+#tiroir-bouton > span {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+#tiroir-contenu {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  /* Glissé sous le bouton, dont il reprend le bord : sans ce recouvrement,
+     le bandeau déployé cassait l'arrondi. */
+  position: relative;
+  z-index: 1;
+  /* Le ruban glisse sous le bouton de sept pixels ; il en faut davantage en
+     retrait pour que le liseré gauche de la première case ne soit pas caché
+     par lui. */
+  margin-left: -7px;
+  padding-left: 11px;
+  /* Deux pixels au-dessus et au-dessous des cases, pour que leurs bordures
+     se détachent du liseré du ruban sans que rien ne soit décentré. Les
+     cases, elles, gardent leur taille. */
+  padding-top: 2px;
+  padding-bottom: 2px;
+
+  /* Fermée, la case a une largeur nulle ; l'ouverture l'anime. */
+  max-width: 0;
+  padding-right: 0;
+  overflow: hidden;
+  border: 1px solid var(--cadre-reserve, #c09050);
+  border-left: none;
+  border-radius: 0 7px 7px 0;
+  background: var(--fond-reserve,
+    linear-gradient(155deg, #1c0f06 0%, #2c1808 55%, #1c0f06 100%));
+  /* La hauteur et la largeur des cases sont posées par le rendu : les animer
+     fait glisser le passage de petite à grande, que « max-width » seul ne
+     montrait pas, les deux états étant déployés. */
+  transition: max-width .45s ease, padding-right .45s ease, height .45s ease;
+  contain: layout paint;
+}
+
+#tiroir-reserve[data-ouvert] #tiroir-contenu {
+  max-width: 90vw;
+  padding-right: 6px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .22),
+    0 0 0 1px rgba(0, 0, 0, .6),
+    0 0 18px rgba(0, 0, 0, .45);
+}
+
+/* Fermée, ni bordure ni lueur : elles laissaient un liseré au bord du
+   bouton. La largeur reste animable, sans quoi l'ouverture sauterait. */
+#tiroir-reserve[data-sans-anim] #tiroir-contenu,
+#tiroir-reserve[data-sans-anim] .case {
+  transition: none;
+}
+
+#tiroir-reserve:not([data-ouvert]) #tiroir-contenu {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+#tiroir-reserve .case {
+  flex: none;
+  height: 100%;
+  transition: width .45s ease;
+  border-radius: 2px;
+  /* Étirée à la taille de la case, comme dans le jeu : les fichiers
+     d'illustration n'ont pas tous la forme de leur carte (ceux des petits
+     objets ne sont pas deux fois plus hauts que larges). « cover » les
+     rognait, et un petit objet montrait le centre d'une image de moyen. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  /* Le cadre dit la rareté, comme sur la fiche : deux pixels et une lueur,
+     posés par le rendu. */
+  border: 2px solid transparent;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* L'enchantement se lit au cadre, et à un bandeau de sa couleur dans le bas
+   de l'illustration : opaque tout en bas, il s'efface sur le quart inférieur.
+   Un simple dégradé, dessiné une fois à la construction de la case, ne coûte
+   rien au navigateur, ni pendant la vidéo ni au survol. */
+#tiroir-reserve .case[data-enchant]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 25%;
+  background: linear-gradient(to top, var(--teinte-ench, transparent) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* L'icône de l'enchantement, au centre du bas de l'illustration. Blanche et
+   ombrée, elle se lit sur toutes les teintes, du doré clair au vert sombre. */
+#tiroir-reserve .case .icone-ench {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  /* Une taille fixe, celle d'un emplacement, posée par le rendu. */
+  width: var(--taille-icone, 18px);
+  height: var(--taille-icone, 18px);
+  transform: translateX(-50%);
+  fill: currentColor;
+  /* Une ombre franche : de la couleur de l'enchantement, l'icône se pose
+     sur un bandeau de la même couleur et doit s'en détacher. */
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 1)) drop-shadow(0 1px 1px rgba(0, 0, 0, .9));
+  pointer-events: none;
+  z-index: 1;
+}
+
+#tiroir-reserve .case.vide {
+  background: rgba(255, 255, 255, .04);
+  border: 1px dashed rgba(255, 255, 255, .08);
+  cursor: default;
+}
+
+#viewer-options .groupe .groupe { margin: 0; }
+/* La case à cocher du menu : même allure que les autres boutons, avec un
+   carré qui se remplit quand elle est active. */
+#viewer-options .groupe button.bascule {
+  display: flex;
+  align-items: center;
+  /* Le libellé à gauche, la coche contre le bord droit. */
+  justify-content: space-between;
+  gap: 7px;
+}
+
+#viewer-options .groupe button.bascule .coche {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+
+#viewer-options .groupe button.bascule.actif .coche {
+  background: #f0c060;
+  border-color: #f0c060;
+}
+
+#viewer-options .groupe button.bascule.actif { border-color: transparent; }
+#viewer-options .groupe button.bascule:hover { border-color: rgba(255, 255, 255, .3); }
+
+/* Les icônes du jeu, en PNG : elles prennent la place exacte du dessin SVG
+   qu'elles remplacent, sans être déformées. Elles gardent leurs couleurs. */
+img.kw-png {
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+/* Dans le texte, les icônes du jeu descendent un peu sous la ligne, comme en
+   jeu : leur ombre portée, en bas de l'image, les faisait paraître trop
+   hautes d'environ deux pixels. La case réserve, en position absolue, n'est
+   pas concernée. */
+img.kw-png.kw-icon { vertical-align: -0.19em; }
+
+/* La largeur suit celle de l'image : une icône plus étroite que haute, comme
+   celle de l'XP, laissait sinon un vide de part et d'autre dans son carré
+   de 1 em. La hauteur reste celle du texte. */
+img.kw-png.kw-icon { width: auto; }
+
+/* Les exceptions, réglées à l'œil sur le jeu, un pixel valant à peu près
+   0,05 em : la brûlure et le ralentissement un pixel plus bas que les autres,
+   la rage, dessinée plus bas dans son image, plus haut. */
+img.kw-png.kw-icon[src*="/burn.png"] { vertical-align: -0.24em; }
+img.kw-png.kw-icon[src*="/slow.png"] { vertical-align: -0.24em; }
+img.kw-png.kw-icon[src*="/rage.png"] { vertical-align: -0.13em; }
+
+/* L'icône et le mot ou nombre qui la suit forment un bloc insécable. */
+.kw-lie { white-space: nowrap; }
+
+/* ── Le menu des options, en sections ──────────────────────────────────────
+
+   De haut en bas : la langue, la description, la réserve, le thème. Une
+   ligne par réglage, ses choix côte à côte. Plus de colonnes : elles
+   faisaient changer les thèmes de colonne au gré de la hauteur des autres. */
+
+/* La langue se choisit dans le menu et dans le guide : le globe disparaît.
+   Les autres boutons gardent leur place. */
+#lang-switch { display: none !important; }
+
+#viewer-options .sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 410px;
+  max-width: min(88vw, 560px);
+  white-space: normal;
+}
+
+/* Chaque section dans son cadre, le titre dans un bandeau doré : sur un
+   simple filet, les grandes sections se distinguaient mal des réglages. */
+#viewer-options .section {
+  border: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .025);
+  padding: 0 10px 9px;
+}
+
+#viewer-options .section > .titre {
+  margin: 0 -10px 4px;
+  padding: 5px 10px;
+  color: var(--texte-menu, #f0c060);
+  font-size: clamp(13px, 2.25vh, 18px);
+  background: color-mix(in srgb, var(--teinte-menu, #f0c060) 22%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+}
+
+#viewer-options .ligne {
+  display: grid;
+  /* Assez large pour « STATS DES OBJETS » en capitales. */
+  grid-template-columns: 9.5em 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+#viewer-options .etiquette {
+  color: #d8cdb8;
+  font: 700 calc(clamp(12px, 1.95vh, 17px) * .85)/1.2 'Rajdhani', Arial, sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+#viewer-options .choix-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+#viewer-options .choix-ligne button,
+#viewer-options .themes button {
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 3px;
+  background: transparent;
+  color: #cfc4b0;
+  font: 500 clamp(12px, 1.95vh, 17px)/1.25 'Rajdhani', Arial, sans-serif;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+#viewer-options .choix-ligne button:hover,
+#viewer-options .themes button:hover { border-color: rgba(255, 255, 255, .35); }
+#viewer-options .choix-ligne button.actif,
+#viewer-options .themes button.actif { color: #fff; border-color: #f0c060; }
+
+/* Les tailles « aA » : de largeur égale, la lettre alignée en bas. */
+#viewer-options .choix-ligne button.aa {
+  min-width: 2.6em;
+  height: 2em;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: .25em;
+}
+
+/* Les polices s'écrivent chacune dans la sienne : la règle générale de la
+   police choisie ne doit pas les uniformiser. */
+#root[data-police] #viewer-options .choix-ligne button[style*="font-family"] {
+  font-family: inherit;
+}
+
+/* Les langues : des ronds, le drapeau en fond, le code par-dessus. */
+#viewer-options .langues,
+#tuto .langues {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+#viewer-options .langues { justify-content: center; }
+
+button.drapeau {
+  position: relative;
+  width: 2.1em;
+  height: 2.1em;
+  flex: 0 0 auto;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, .22);
+  border-radius: 50%;
+  background: #222;
+  cursor: pointer;
+  font: 700 clamp(10px, 1.5vh, 13px)/1 'Rajdhani', Arial, sans-serif;
+  transition: border-color .15s ease, transform .15s ease;
+}
+button.drapeau svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+button.drapeau span {
+  position: relative;
+  color: #fff;
+  letter-spacing: .04em;
+  text-shadow: 0 0 2px #000, 0 0 3px #000, 0 1px 2px #000;
+}
+button.drapeau:hover { border-color: rgba(255, 255, 255, .6); transform: scale(1.06); }
+button.drapeau.actif { border-color: #f0c060; box-shadow: 0 0 0 1px #f0c060; }
+
+/* Les thèmes : deux colonnes, remplies de haut en bas. */
+#viewer-options .ligne.pleine { grid-template-columns: 1fr; }
+
+/* Deux réglages sur une ligne : afficher la réserve, et sa couleur. */
+#viewer-options .choix-double {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+#viewer-options .choix-double > .etiquette {
+  white-space: nowrap;
+  margin-left: 12px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, .18);
+  line-height: 1.6;
+}
+#viewer-options .themes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(var(--rangs, 5), auto);
+  grid-auto-flow: column;
+  gap: 3px 8px;
+}
+#viewer-options .themes button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-align: left;
+}
+#viewer-options .themes .portrait {
+  width: 1.45em;
+  height: 1.45em;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: #222;
+}
+/* « Défaut » : un rond aux couleurs de tous les héros. */
+#viewer-options .themes .portrait.defaut {
+  background: conic-gradient(#a92322, #2b60b0, #e19a08, #accf54, #efdd19, #aa33dd, #00967d, #2ec4ff, #a92322);
+}
+
+#viewer-options .menu::-webkit-scrollbar { width: 6px; }
+#viewer-options .menu::-webkit-scrollbar-thumb { background: rgba(240, 192, 96, .45); border-radius: 3px; }
+#viewer-options .menu::-webkit-scrollbar-track { background: transparent; }
+
+/* Un double-clic sur le lecteur, pour passer en plein écran, sélectionnait les
+   icônes et les images de la case réserve, qui se surlignaient. Rien n'y est
+   à sélectionner ni à faire glisser. */
+#tiroir-reserve,
+#tiroir-reserve * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+#tiroir-reserve ::selection { background: transparent; }
+
+/* ── La case réserve à droite ──────────────────────────────────────────────
+   Ancrée au bord droit, le bouton dehors, le ruban qui s'ouvre vers la
+   gauche : le miroir exact de la position de gauche. */
+#tiroir-reserve[data-cote="droite"] {
+  left: auto;
+  right: 0;
+  flex-direction: row-reverse;
+}
+#tiroir-reserve[data-cote="droite"] #tiroir-bouton {
+  border-left: 1px solid var(--cadre-reserve, #c09050);
+  border-right: none;
+  border-radius: 7px 0 0 7px;
+}
+#tiroir-reserve[data-cote="droite"] #tiroir-contenu {
+  margin-left: 0;
+  margin-right: -7px;
+  padding-right: 11px;
+  padding-left: 0;
+  border-left: 1px solid var(--cadre-reserve, #c09050);
+  border-right: none;
+  border-radius: 7px 0 0 7px;
+  transition: max-width .45s ease, padding-left .45s ease, height .45s ease;
+}
+#tiroir-reserve[data-cote="droite"][data-ouvert] #tiroir-contenu {
+  padding-left: 6px;
+  padding-right: 11px;
+}
+#tiroir-reserve[data-cote="droite"]:not([data-ouvert]) #tiroir-contenu {
+  border-color: transparent;
+}
+
+/* Les boutons de droite glissent quand la position de la case change. */
+#viewer-options, #viewer-recherche { transition: opacity .25s ease, bottom .3s ease; }
+
+/* Les schémas de position, dans le menu. */
+#viewer-options .choix-ligne button.schema {
+  padding: 3px 5px;
+  line-height: 0;
+}
+#viewer-options button.schema svg { width: 3.4em; height: 1.92em; }
+#viewer-options button.schema .ecran   { fill: #15121a; stroke: rgba(255, 255, 255, .35); stroke-width: .8; }
+#viewer-options button.schema .plateau { fill: rgba(255, 255, 255, .22); }
+#viewer-options button.schema .zone    { fill: #9a8c74; }
+#viewer-options button.schema.actif .zone { fill: #f0c060; }
+/* La flèche prend la couleur de la fiche, dorée quand le choix est actif. */
+#viewer-options button.schema .curseur { stroke: #0a080e; stroke-width: 1.1; stroke-linejoin: round; paint-order: stroke; }
+
+/* En petit, le ruban n'a pas d'arrondi : la courbe laissait un vide au bout,
+   et chaque pixel compte à cette taille. Ses marges se resserrent d'autant. */
+#tiroir-reserve[data-etat="petite"] #tiroir-contenu {
+  border-radius: 0;
+  padding-left: 9px;
+}
+#tiroir-reserve[data-etat="petite"][data-ouvert] #tiroir-contenu { padding-right: 2px; }
+
+#tiroir-reserve[data-cote="droite"][data-etat="petite"] #tiroir-contenu {
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 9px;
+}
+#tiroir-reserve[data-cote="droite"][data-etat="petite"][data-ouvert] #tiroir-contenu {
+  padding-left: 2px;
+  padding-right: 9px;
+}
+
+/* Les quêtes : l'avancement réel, et la quête accomplie, marquée d'une coche
+   et d'un ruban en dégradé sous la condition et son effet. */
+#card .quete-avance { color: var(--accent, #f0c060); font-weight: 700; }
+#card .quest-entry.faite {
+  margin: 2px 0;
+  border-left: 3px solid #58c878;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(88, 200, 120, .26), rgba(88, 200, 120, 0) 88%);
+}
+#card .quest-entry.faite .quest-arrow.coche { color: #6ee08a; font-weight: 700; }
+#card .quest-entry.faite .quete-avance { color: #6ee08a; }
+
+/* Le curseur dit ce qu'on peut faire. Une flèche avec « ? » sur tout objet
+   qu'on peut survoler pour lire sa fiche, plateau comme réserve. Quand une
+   fiche est épinglée, une main : cliquer la libère. */
+#tiroir-reserve .case:not(.vide) { cursor: help; }
+#root[data-epingle] .hotspot,
+#root[data-epingle] #tiroir-reserve .case:not(.vide) { cursor: pointer; }
+
+/* ── Les pastilles du délai et des munitions, sous le nom ─────────────────── */
+#card .stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 10px;
+}
+#card .header.avec-stats { padding-bottom: 10px; }
+#card .stat-pastille {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 7px;
+  border-radius: 12px;
+  /* Hauteur de ligne en pixels entiers : une hauteur fractionnaire décalait
+     tout ce qui suit d'un demi-pixel, et le trait d'« Actif » s'étalait. */
+  font: 700 17px/20px 'Rajdhani', Arial, sans-serif;
+  color: #f3e6c8;
+  white-space: nowrap;
+}
+/* Aux couleurs de la fiche : la teinte du thème (ou du héros sous
+   « Défaut »), le brun doré d'origine sinon. */
+#card .stat-pastille {
+  border: 1px solid color-mix(in srgb, var(--teinte-fiche, #b07818) 65%, transparent);
+  background: rgba(0, 0, 0, .35);
+}
+#card .stat-icone {
+  width: 16px; height: 16px; flex: none;
+  color: var(--couleur-icone-stat);
+}
+/* Les icônes et leurs deux-points prennent la teinte de la fiche, un peu
+   éclaircie (davantage pour Pyg et Jules, réglé dans viewer.js) : dans le
+   doré des titres, elles se confondaient avec l'icône du Ralentissement. */
+#card .stats-row { --couleur-icone-stat: color-mix(in srgb, var(--teinte-fiche, #f0c060) var(--part-teinte-icone, 80%), #ffffff); }
+#card .stat-deux-points {
+  color: var(--couleur-icone-stat);
+  margin: 0 2px 0 -2px;
+}
+#card .stat-sep { color: #8a7a60; font-weight: 600; margin: 0 1px; }
+
+/* ── Les tags gagnés en partie : blancs, un « + » à cheval sur le bord ───── */
+#card .badge-tag.badge-ajoute {
+  position: relative;
+  margin-left: 6px;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, .75);
+  background: rgba(255, 255, 255, .08);
+}
+#card .badge-ajoute .badge-plus {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #1c0f06;
+  border: 1px solid rgba(255, 255, 255, .75);
+  color: #ffffff;
+  font: 800 12px/11px Arial, sans-serif;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+/* Rajdhani dessine ses chiffres haut dans leur boîte : on les descend d'un
+   pixel pour qu'ils tombent au milieu de la pastille, comme l'icône. */
+#card .stat-val, #card .stat-sep, #card .stat-deux-points { position: relative; top: 1px; }
+
+
+/* ── Les filets de la fiche ───────────────────────────────────────────────
+   Un trait fin et clair sous les pastilles, et le même entre la partie
+   « Actif » et la partie « Passif ». L'espace autour est resserré : le trait
+   suffit à séparer. */
+/* Un dégradé qui s'efface vers les bords, comme les lignes décoratives du
+   haut et du bas de la fiche, dans la teinte du thème. */
+#card {
+  --couleur-filet: var(--teinte-fiche, #f0c060);
+  --filet-fiche: linear-gradient(90deg, transparent,
+    color-mix(in srgb, var(--couleur-filet) 40%, transparent) 18%,
+    color-mix(in srgb, color-mix(in srgb, var(--couleur-filet) 70%, #ffffff) 75%, transparent) 50%,
+    color-mix(in srgb, var(--couleur-filet) 40%, transparent) 82%,
+    transparent);
+}
+#card .stats-row + .body { padding-top: 2px; }
+
+/* Les titres « Actif », « Passif »... posés sur leur filet : le mot à gauche,
+   un trait qui part de lui et s'efface vers la droite, tous deux dans la
+   teinte des filets. Le trait sert de séparation : plus besoin d'un filet
+   sous les pastilles. */
+#card .body > .section-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 6px;
+  color: color-mix(in srgb, var(--couleur-filet) 70%, #ffffff);
+}
+#card .body > .section-label:first-child { margin-top: 4px; }
+/* Le trait est une BORDURE plutôt qu'un fond : le navigateur cale une
+   bordure sur les pixels de l'écran, alors qu'un fond d'un pixel tombé entre
+   deux lignes s'étalait sur les deux et paraissait plus épais. */
+#card .body > .section-label::after {
+  content: "";
+  flex: 1;
+  height: 0;
+  border-top: 1px solid transparent;
+  border-image: linear-gradient(90deg,
+    color-mix(in srgb, color-mix(in srgb, var(--couleur-filet) 70%, #ffffff) 75%, transparent),
+    transparent) 1;
+}
+
+/* Une rencontre n'a pas de filet sous l'en-tête : son titre « Effet » et
+   son trait suffisent. */
+#card .header.sans-filet { border-bottom: 0; }
+#card .header.sans-filet:not(.avec-stats) { padding-bottom: 6px; }
+
+/* Boutons côte à côte, quand la réserve au milieu à droite ne laisse pas la
+   hauteur de deux boutons en dessous d'elle : la loupe à gauche de la roue.
+   Le menu ouvert reste devant la loupe s'il la croise. */
+#root[data-boutons="ligne"] #viewer-recherche {
+  right: calc(2.4% + var(--bouton-rond) + 8px);
+  bottom: calc(10.5% + 25px + var(--bouton-rond) + 8px + var(--decalage-boutons, 0px));
+}
+#root[data-boutons="ligne"] #viewer-options.deplie { z-index: 22; }
+
+/* La ligne des effets de plateau (« Cet objet est sur un Fa ») : son filet,
+   le même trait plein qu'avant, et son texte prennent la teinte du thème,
+   comme les titres « Actif » et « Passif ». Ils restaient bruns. */
+#card .socket-effect {
+  border-top-color: color-mix(in srgb, var(--couleur-filet) 45%, transparent);
+}
+#card .socket-effect .se-ligne1 {
+  color: color-mix(in srgb, var(--couleur-filet) 70%, #ffffff);
+}
+
+/* Les deux filets d'un talent, sous l'en-tête et au-dessus des portraits,
+   dans la teinte du thème : ils restaient bruns, même pour un talent qui
+   n'appartient qu'à un héros. */
+#card .header {
+  border-bottom-color: color-mix(in srgb, color-mix(in srgb, var(--couleur-filet) 70%, #ffffff) 75%, transparent);
+}
+/* Les portraits en bas de fiche (talents, objets de plus de deux héros)
+   n'ont plus de trait au-dessus d'eux. */
+#card .hero-portraits-bottom {
+  border-top-color: transparent;
+}
+
+/* Les quêtes : leur titre est désormais un titre de section, sur son trait.
+   L'ancien filet brun au-dessus disparaît. */
+#card .quests-section { border-top: 0; margin-top: 0; padding-top: 0; }
+#card .quest-entry { padding-left: 0; padding-right: 0; }
+
+/* « Recherche : » devant le champ, et « Résultats » au-dessus de la liste,
+   dans le style des autres titres du panneau (« Héros », « Types »). */
+#viewer-recherche .haut { align-items: center; }
+#viewer-recherche .etiquette-champ,
+#viewer-recherche .titre-resultats {
+  color: #d8cdb8;
+  font: 700 calc(var(--taille-menu) * .85)/1 'Rajdhani', Arial, sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+#viewer-recherche .colonne-resultats {
+  /* Largeur FIXE, comme la liste avant elle : la place gagnée va à la fiche. */
+  flex: 0 0 250px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid rgba(255, 255, 255, .12);
+  padding-right: 8px;
+}
+#viewer-recherche .titre-resultats { padding: 4px 0 8px; }
+#viewer-recherche .colonne-resultats .liste {
+  flex: 1 1 auto;
+  min-height: 0;
+  border-right: 0;
+  padding-right: 0;
+}
+
+/* Devant chaque résultat, sa sorte : un rond plein pour un talent, un carré
+   plein pour un objet, dans la couleur du texte. */
+#viewer-recherche .resultat .marque {
+  display: inline-block;
+  width: .42em;
+  height: .42em;
+  margin: 0 .5em .12em 0;
+  vertical-align: middle;
+  background: currentColor;
+  opacity: .75;
+}
+#viewer-recherche .resultat.talent .marque { border-radius: 50%; }
+
+/* La valeur d'une mécanique dans son titre, de la couleur que lui donne le
+   jeu. */
+#card .meca-valeur { color: #eb9e50; }
+
+/* L'indice du clic, en haut à droite de la fiche, dans la marge au-dessus
+   des portraits : posé par-dessus, il ne déplace rien et laisse passer la
+   souris. */
+#card { position: relative; }
+#card .indice-clic {
+  position: absolute;
+  top: 5px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: color-mix(in srgb, var(--teinte-fiche, #f0c060) 70%, #ffffff);
+  opacity: .75;
+  pointer-events: none;
+}
+#card .indice-clic svg { width: 1em; height: 1em; }
+#card .indice-clic svg:first-child { width: .85em; height: 1.1em; }
+/* Ni dans l'aperçu de la recherche, ni sur une fiche épinglée. */
+#viewer-recherche .indice-clic,
+#root[data-epingle] #card .indice-clic { display: none !important; }
+
+/* ── Le compteur de victoires ─────────────────────────────────────────────
+   Une languette qui pend du bord haut, au centre. Tout est en « em » : la
+   taille de police, posée par le rendu, suit le lecteur et le réglage.
+   Sous les fiches (10), le menu (20), l'index (21) et le guide (25). */
+#barre-victoires {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  gap: .4em;
+  padding: .5em 1em .4em;
+  /* Tout est opaque, sans ombre portée : posée sur la vidéo, une
+     transparence obligerait à recomposer la barre à chaque image. */
+  background: var(--fond-barre, #120c08);
+  border: 1px solid var(--bord-barre, #7a5a30);
+  border-top: 0;
+  border-radius: 0 0 .8em .8em;
+  pointer-events: none;
+}
+#barre-victoires.hidden { display: none; }
+
+/* En bas, le choix du spectateur : la languette monte du bord bas, les
+   cristaux contre le bord et les numéros au-dessus, en miroir du haut. */
+#barre-victoires.bas {
+  top: auto;
+  /* Un pixel sous le bord, compensé dans la marge : la languette touche
+     toujours le bas du cadre de l'extension, même quand sa hauteur tombe
+     entre deux pixels.
+
+     Hors plein écran, une ligne de vidéo reste visible dessous : Twitch fait
+     le cadre de l'extension une ligne moins haut que la vidéo, et rien ne
+     se dessine hors de ce cadre. Vérifié le 11 octobre avec un débord de
+     5 pixels : la ligne restait. */
+  bottom: -1px;
+  padding: .4em 1em calc(.5em + 1px);
+  border-top: 1px solid var(--bord-barre, #7a5a30);
+  border-bottom: 0;
+  border-radius: .8em .8em 0 0;
+}
+#barre-victoires.bas .jour { flex-direction: column-reverse; }
+#barre-victoires .jour { display: flex; flex-direction: column; align-items: center; gap: .2em; }
+#barre-victoires .num {
+  font: 700 1em/1 'Rajdhani', Arial, sans-serif;
+  color: var(--texte-barre, #d8cdb8);
+}
+
+/* Les gemmes, à coins coupés comme celles du jeu. Trois couches : un cadre
+   de la teinte du thème grisée, fin autour des jours joués, un peu plus
+   épais et plus clair autour du jour en cours ; un liseré sombre de la couleur de
+   la gemme ; et dedans, une texture de cristal facetté, déjà teintée
+   (gemme-v, -d, -r, livrées avec l'extension). Aucune transparence. */
+#barre-victoires .gemme {
+  --cadre: .08em;
+  --c: .4em;
+  position: relative;
+  width: 2.4em;
+  height: 1.4em;
+  clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)),
+                     calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+  /* Le cadre : la teinte du thème mêlée de gris, assez visible pour
+     détourer la gemme sans crier. */
+  background: color-mix(in srgb, var(--teinte-barre, #c09050) 40%, #7a7468);
+}
+#barre-victoires .gemme::before,
+#barre-victoires .gemme::after {
+  content: "";
+  position: absolute;
+  --c2: .34em;
+  clip-path: polygon(var(--c2) 0, calc(100% - var(--c2)) 0, 100% var(--c2), 100% calc(100% - var(--c2)),
+                     calc(100% - var(--c2)) 100%, var(--c2) 100%, 0 calc(100% - var(--c2)), 0 var(--c2));
+}
+#barre-victoires .gemme::before { inset: var(--cadre); background: var(--bord); }
+#barre-victoires .gemme::after {
+  inset: calc(var(--cadre) + .13em);
+  --c2: .28em;
+  background: var(--cristal) var(--pos, center) / var(--zoom, cover) no-repeat, var(--plein);
+  transform: var(--miroir, none);
+}
+/* Huit variantes d'une même texture, pour que les cristaux ne se ressemblent
+   pas tous : retournée, renversée, tournée, ou agrandie sur un coin. Le
+   rendu en tire une au hasard pour chaque jour. */
+#barre-victoires .gemme.m1 { --miroir: scaleX(-1); }
+#barre-victoires .gemme.m2 { --miroir: scaleY(-1); }
+#barre-victoires .gemme.m3 { --miroir: rotate(180deg); }
+#barre-victoires .gemme.m4 { --zoom: 180% auto; --pos: 0% 0%; }
+#barre-victoires .gemme.m5 { --zoom: 180% auto; --pos: 100% 100%; --miroir: scaleX(-1); }
+#barre-victoires .gemme.m6 { --zoom: 160% auto; --pos: 100% 0%; --miroir: scaleY(-1); }
+#barre-victoires .gemme.m7 { --zoom: 160% auto; --pos: 0% 100%; --miroir: rotate(180deg); }
+/* Les trois textures sont DANS la feuille de style : chargées à part, elles
+   arrivaient après la barre, et l'on voyait un instant la gemme unie qui
+   leur sert de repli avant le cristal. (Copies de gemme-v, -d et -r.webp.) */
+#barre-victoires .gemme.v { --bord: #163a72; --plein: #3482d8; --cristal: url("data:image/webp;base64,UklGRggGAABXRUJQVlA4IPwFAAAQIgCdASp4AEYAPjUWh0MiIQ5mPsAQAaJZQCks3ISjsA9mjnHwc3/dqv2+lPb6c8P53jb183YoY9NyqCcA13EFBPCHp+RD8c6Utvp3J4ytd89f1lphk1Z4QAeTE3JWf3KTKZyIV5jleiMJs2e2n39B7VrP3LUzj1TTgQl5MYQex++OiqjBrvLZSnrYbmcmXycsKeFHWRbK/hoWBn8vgy4Lauf+n9PIpQ774MACrcaarotK+NYQevn1TqrJZZq5KmeIb7HfrYEI2GgocaWT4Q98Wdk5bPKOcUoU/4kqPGxRMRfwzWK++JqGMfIpVypUC2sbiO+BCEsAcII/SXukDGVX+ZyT7ZwQWOUQ0WvDk9MqC5sM0ANL9bUAAAD++FNp3P4oyCQIM/C7mk+P3Lx+DNC//2Bj+hVv9LRD0Pnr//nTnZ1/TH8jm0dAS6CgFJbeP2dNEISnbZ9FoFi82MVRg+mov3ZmrBwPFW3s4OCZ69jBOHrkXcOrpvAUAfky+A9AP+N54f4t/coiJzwdiFnZYv7tcxRWriaRPCV36GBRV00GmbqLJfEoCAzFzSuvPlwPfCKh4Ny6MMHziY3ZRGqtCM46QWrC6fFCHcOPnG4NFUvu4Epcsn0bl1XdZ1tv4/T9+RDQz3P2/VstZ2XS+AFCXB/54nM9raPXG9h1WRzeVAbmOelO5bi0Tw+o/ndRtaSxqx6ddopUOqUPRxpOfQGWk9MwHMo81qR/xKuND8q0I9KEAIvQu9/Np9UFy0vnE2K2WBh0/08xBLG1evvUo5ifCR+rV5EX9NUfdWUp2Wx8uN+r7R40O8UeHw9NXseGK4sdMlOPNZ5Wg0sAFTWaZeVLgPcsHhQRovcYT1Jj2jNGO+iArtY5UbFPeFzPc61rx58ZR4/bN5uAU4bsIdWqncJwAiIoGbCDoTzRDBofE9ZR6MhPLt9+w2kvQTdQ6e9sm9hioJZcTKa45wMCEgg1EGVmpi5oTQy+XiO4U+kjJMhTrPY/+cUOHPl49jtSn5tP+g+qULEcJwgZlT+0n06Ax+NlizAN6hSmCEO9aPTTpYyWhadbatSqtdzvkMNH9fistjtY5HNuR1PXh+t4/5CcDtsxwSGLXPCaFnZTP4dJjA6nCjFRWng013xxHvIePm+eW61XTRKuWvcvd40p6pTQZw46oqqjOk9ydHB0JW9NLB8CI4Uzh5A2I35rs3KhpNLHYzk/0Btd7wqxNo0zo2wPzfXaZXo0OsaRFl48YRo3X9rOZTRm3acKJoqNEE+jagGYv/ju0rR7quuZr3UELY7HSV8O5JX9gTf3Xxoq6hKwvLsUNn/1tf65LJ6Rjneu9uoknJ87j/OXTv9adEnAO3nV+HAuzMwh06UA6Y/Dkcus+BRjHOW6ldgVdx+K/hWSt+ZgenIzP3QEoRK1+kYQzLH8ANx9x75sL36GW9TvyHMS/EFKLxAaMk17QeRRKn6TPcHpI0Q9QHiJ4/iygbLTCAxiR7DUOXbbKZEej0rpQd4hKud8fAxIoOq6gYfyVQQrJgnqEWIfhSXf5CnR26sjhNKtBaq4/sYiLTfgzI0idmsrCWjAChLZ9nKYKj9pf4z+/2T5GahlGLOg69jQ7l4hGkpxuRR9bjCoTOsGPc4FijxnI+vho3C5OHJilZbDwC6EhYOggwtR31rga4uLbY8TuOvs4iU8ts3b3U9y9F5URmA5MgeA4NoK4/3bMA0w8dA+FhwaqKmiYCnI0w/5+BZDNJKWt6U+zQHRCEIdV6kmbA8EqwSwnGkJ6uytO3EbVXX7xoLQNYDFMaatW/mPblO57EJYkQc4eqXkEVt16qpTBI8qNMxSvQwJcBW5OWSvJUXAfwCDv6Ad4ZjIFMBzumSbdxc8Sdq8DvlJsnaFtDVsys5+zucOw2uejla5ABFvDNfjYxtH9t3sBvf5F2uA2DaDHFd9ayOYBueQhLttH6E2uOw84s1HfSmGAL7nMb5m9DnSzIu9+ehJGKYu+8ncJAant7yR0iPvPB8rIAi0iVLZCpvfHP9o+OnURt9PNuiivIAV8EbAAA=="); }
+#barre-victoires .gemme.d { --bord: #6a120e; --plein: #c8382c; --cristal: url("data:image/webp;base64,UklGRrgFAABXRUJQVlA4IKwFAACwIgCdASp4AEYAPjUUh0MiIQ5mnsAQAaJYwC5U46FbtV9l266RFDe/vW8E53jzmd+j3p2fudFovJd1DiYGxkn0kLdLWPG9uz43hs5SS+NPejr++O5OTsRSoR5Azkyy/Rc+eCTTcqO82iTEO/G0q6FVj550pmxXN42ErZj61MdevJ/BZ4vFn4ReNVyMRCaDCfgQzBWm3/rMbcT7nWwfwZO/Msusq01nIQdhpeaBCzsLA9jPjWIR1fQszFQ8AwRlXPinYxGeD6zW/O8Ju7dqhk0JqW4YaqUlo3GU1xdrTvBHYcB072lZf1rUPP+wXBm9mG9WZKFcLxNzc8iMvgbglk6FvnfUjIGmumd83ppryd6+6qnVpO05jofVqDapvQ7AAP767feAUd8s0lFiUepEXT0kLoUn//FTu0Kojwmf/uZX9yDs8/uyXGw639teHMhvPTQeGuzzCLYoH+v1sTt6XKsQLaqHkjq62Yb6IJxEdgO69r8xDFvI2j9K6Y6peCIWCq/5R8hD4Xw8K9udpaIlZFXvFag1QExeRPpoWeqYltNRY0hy/DtUSdISSoZvjBjxTcHyEEfS1tANMt71+kGEYBORsZzOToz9da7LFbKW5uzE1PQKyFWUbLIRhRQhFxthgli1nQmS21bXPKA3bsdCzqNFKkA1W+SfmW3WFnj/vw/602PrFpusD4qB34cu8YEL1ThsS7Vg4X2n6vcgBLOqQI4aC+KwwZzLDFFTuCtbT5ZGfi3X4yrj2l+EciNUZZEMpM9hGzKr+oaT15hCBnZuvQKM8Xm842UOQfTDMLNhltC8i7H2HQdT0h+Tq3XU1bXyqaHrnObaY/cHal9iBsl+IqL//OIhG4VeMADSsNJ2Q2aPsAHZJ1hD7elFre88QZTqKrQ1dfDgLwSFXBPWVNXUMwSUQL0vFZbEIR7GbJP1kDj6I7q+Y44Lf73F4Oz7zR49xhyUm7XzwlWPbmujFxWSJf3tdbjBTApPTgN2fdW1F8wlLgFkIz+O0mteTPr0ppArFTx97LDZDT+S8KaxkN+8fV0ftlLjGux6l0pv/EB7GZu7bvmwLNs3Q4QHhXfsD2qT1T6oWtH/7/yMCnbZ48sH17VPy7vyq6z5F7tnBWy1bY4HVNJcUHSEj3UKvxOCKcTFoZSoPkN2RfL6N6m7+Kl05ZkTf52LJ8q3reSp6NjY6wLetLEPdUyVxo5E0K0qLWQMtIRIJYHvzX6VPoCRdgMyW+hN1/uRnWnseEL9evOCPcClCDq7HRLaxdUvIUGbEZb2P2SNZwudftumuw9Nk/GBvq87sA3sDCEj+8H9gSmLNEwYYb84KsHj5MrQsNzKtN6lNzjN3irdTdBmmSTswu0nFzaiHzk5ReVT/bYRZXw7TZ7P8UW1E1VxmXlEF+WI8M3MlOjWnujyPi6adub+L/LeWNssBv6EleBUy4LA3NuOXtrztqCZjztHJqqwe1oOs64qBh38l+QJs4L3d2kv51yLFB0gpsY2BJUNzsWf9SbP+dqJGgx1rWF0x9c13XsUz6P1CZV9zmtevDjeOJdCzgVu2wUw5zPwwIGrpMg7ryHKGBWEMqL4vnA20cb96VgGCe6N1Xd1hF+jjts11JtaUrcPOmwcejFsmmnb3B4nQWphQp0KFS1MNIFYhm+10WEe7bFuHGwVyEEgaH63br8tlVxe44+CuFluVqlb/yP5nGIZheku2EMjcq0fsUDaMutgJDEdvNlmSSLEC2H63cG4tb3qQ2aAADq7YJJlyVrpGbaqYSoao3Yo00fIfD7hF7uoFAGEW4Qs/EYN2bjUkkz7hqxkKNywrhB+J2Vcnj863FR3hMauAIAWuSZt7MP4QOmqMlAPFLKHo5h/3IBabJRdGUgg4TaMVgscvNPnLj3sBptRSg6d0wJWAkleAio6i/kdZabMKRTrVIGouTJh5daA4AA="); }
+#barre-victoires .gemme.r { --bord: #140201; --plein: #3e0c09; --cristal: url("data:image/webp;base64,UklGRsoDAABXRUJQVlA4IL4DAAAQGwCdASp4AEYAPj0aikOiIaEVnJXYIAPEsoBbQd8GUk+cw+LfnzuO4lNshOvgv7ElikCxePNLG3o18M4jhpAtVvTWo+OHqjkkLOSbp2gD00hMr6QfkLbApfMhwFonpf9f5OjiEPDQyn2013TwmY6+U2lhcAD3iKpp87WDWOWIHp0y/hlWy8TsDbCJ48BemUB88Kki7txNqXQTcTKe1YgHcRlrNgv9II9SDhzfGDQNU48snd5923BQBt7YN0jTZOyKMR0SwO76vAYU1baGoMj/nsvBniG5IiG/WoasVTLpzAAA/v0cA8BPeXky+P0k5wv1ylftTtmfJf7Gw7dzsBM07SoU2lYsccgQ2xmBCesnevN6Mv+4NpsUQZWSVgw1QzWF5Vburzh1kHvMNQcQT7VO+eJpQmyA8cUO4DxTFeKozn91GZFTs8NHn9H0fOjIAC8+jtswu83LlPnuwt/NSuf4Cu3SCTWo+XQoeEtdJfYeV35yOBHMpt8Uy8FcHfwRcR5eN2aL/vJYhqz5exEL0UxtcZ9LoJM1IKMoVFDdcV/5SzQsdNiqcEySbxMN87oHlVN6AONDYLJtAjJieiYyowBdcY92vGZU/6uI+fvBS8Uk2Tm0XJAOSpegH2EQ0X3pyUZ5irg/4VQyfc+Gz2zYTP+ye8pdIRXWvdIzXGhhE05O5PG6J57NPbRGIWB4hS42NwBhqFrzCnAM7QJThPj49eEVGYTsLJY6ubWR0wlI2AJtJviYJL8fOBxoyq4j+moj11cpzHPEoHsa2GJeXcMEb2irMphvFVK8uO8MB1N+q5yt3fKrMmEBAJHwqS45MvFQRSZgL0bXi4Bfv2KTn5Cl/Y0r4mS//7vx+/iX73HUZcjcUqmcopS2j2X7t8ThSo27yPJ7ToM+iHJ183Y9aKzAZOUAErT3B8iet/68tAknb+JREKUOnXM5jDmBhoz5eH+mSNqTPYltP7OHZdxdg8W3cbKFsDg3griuP1tf7puojSyglU/1IbaN8c+02MytxMNTtAlCFjaB+E70WB9HEEi5pDlC5+ffNplr0kunNFVaL6FJpb0XPeFEcbgdD+HTAbA8th3D/PgAdV450Ea8GSJF3JkgFCEr48SItPyWfdUCH+XCVcX1oIXpcmmw75v5sy+ePwgc2X6M+n4qQj+YcNh8akqTczt+/tnqZDDHjdpo4UxlOBk9GArjD+AfhWpMTzukKMzf2aDFhm62B4uzHIJbaA8mGyGj6a8+GraSFIHGmcmk0GUplAeV3NPUnY4AAAAA"); }
+/* Le jour en cours : une gemme vide, au cadre un peu plus marqué. */
+#barre-victoires .gemme.vide {
+  --cadre: .11em;
+  --bord: #100c09;
+  background: color-mix(in srgb, var(--teinte-barre, #c09050) 55%, #7a7468);
+}
+#barre-victoires .gemme.vide::after { display: none; }
+
+/* Le menu : la langue sur une seule ligne, titre puis drapeaux. */
+#viewer-options .section.en-ligne { display: flex; align-items: center; gap: 10px; padding-bottom: 0; }
+/* La langue tient sur une ligne : son bandeau ne couvre que le titre. */
+#viewer-options .section.en-ligne > .titre {
+  margin: 0 0 0 -10px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  border-bottom: 0;
+  border-right: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+}
+#viewer-options .section.en-ligne .langues { flex: 1; justify-content: center; }
+
+
+/* ── Les menus à la teinte du thème ───────────────────────────────────────
+   Options et index prennent la couleur du thème choisi, comme le compteur de
+   victoires : « --teinte-menu » et sa version lisible « --texte-menu » sont
+   posées par le rendu. Le doré reste en repli. */
+#viewer-options .menu,
+#viewer-recherche .panneau {
+  border-color: color-mix(in srgb, var(--teinte-menu, #f0c060) 55%, transparent);
+}
+#viewer-options .choix-ligne button.actif,
+#viewer-options .themes button.actif,
+#viewer-recherche .filtre.actif,
+#viewer-recherche .resultat.actif,
+#viewer-recherche .ench.actif {
+  border-color: var(--texte-menu, #f0c060);
+}
+
+/* Les thèmes : une ligne de portraits à côté du titre, le nom au survol. */
+#viewer-options .section.en-ligne > .ligne { flex: 1; margin: 0; display: block; }
+#viewer-options .section.en-ligne .themes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 0;
+}
+#viewer-options .section.en-ligne .themes button {
+  width: auto;
+  padding: 3px;
+  border-radius: 50%;
+}
+#viewer-options .section.en-ligne .themes .portrait {
+  width: 1.6em;
+  height: 1.6em;
+  margin: 0;
+}
+
+/* ── L'index en cadres, comme le menu des options ───────────────────────── */
+#viewer-recherche .bloc {
+  border: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .025);
+  box-sizing: border-box;
+}
+#viewer-recherche .titre-bloc,
+#viewer-recherche .cadre-filtre > .titre {
+  color: var(--texte-menu, #f0c060);
+  background: color-mix(in srgb, var(--teinte-menu, #f0c060) 22%, transparent);
+  font: 700 clamp(12px, 2vh, 16px)/1.4 'Rajdhani', Arial, sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* La recherche : le titre à gauche, le champ et « Réinitialiser » à droite. */
+#viewer-recherche .bloc.en-ligne {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding-right: 10px;
+  margin-bottom: 8px;
+  flex: 0 0 auto;
+}
+#viewer-recherche .bloc.en-ligne > .titre-bloc {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: clamp(13px, 2.25vh, 18px);
+  border-right: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+}
+#viewer-recherche .bloc.en-ligne > .haut { flex: 1; margin: 4px 0; }
+#viewer-recherche .bloc.en-ligne .champ {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  border-color: color-mix(in srgb, var(--teinte-menu, #f0c060) 60%, transparent);
+}
+#viewer-recherche .bloc.en-ligne .champ:focus { border-color: var(--texte-menu, #f0c060); }
+#viewer-recherche .bloc.en-ligne .reinit { padding-top: 3px; padding-bottom: 3px; }
+
+/* Les filtres : plus de ligne de séparation, chaque rangée a son cadre. */
+#viewer-recherche .zone-filtres {
+  max-height: 30vh;
+  border-bottom: 0;
+  padding-bottom: 0;
+  margin-bottom: 2px;
+}
+#viewer-recherche .zone-filtres > .filtres.ligne-filtres {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 0;
+  border: 0;
+}
+#viewer-recherche .zone-filtres .cadre-filtre {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  margin: 0 0 8px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .025);
+}
+#viewer-recherche .zone-filtres .ligne-filtres > .filtres.devant.cadre-filtre {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+}
+#viewer-recherche .cadre-filtre > .titre {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 10px;
+  border-right: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+}
+#viewer-recherche .choix-filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Les mots-clés : le titre en encart dans le coin, les boutons passent
+   dessous à la ligne suivante. */
+#viewer-recherche .zone-filtres .cadre-filtre.encart {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 8px 5px 8px;
+}
+#viewer-recherche .cadre-filtre.encart > * { margin-top: 5px; }
+#viewer-recherche .zone-filtres .cadre-filtre.encart > .titre {
+  margin: 0 6px 0 -8px;
+  padding: 8px 10px;
+  align-self: flex-start;
+  border-bottom: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+  border-bottom-right-radius: 4px;
+}
+
+/* Les résultats et la fiche, chacun dans son cadre. */
+#viewer-recherche .colonne-resultats.bloc {
+  padding: 0 10px 8px;
+  border-right: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+}
+#viewer-recherche .titre-resultats.titre-bloc {
+  margin: 0 -10px 8px;
+  padding: 5px 10px;
+  font-size: clamp(13px, 2.25vh, 18px);
+  border-bottom: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+}
+
+/* Les ascenseurs des deux menus suivent la même teinte. */
+#viewer-options .menu,
+#viewer-recherche .zone-filtres,
+#viewer-recherche .liste,
+#viewer-recherche .apercu {
+  scrollbar-color: color-mix(in srgb, var(--teinte-menu, #f0c060) 55%, transparent) transparent;
+}
+
+/* Les enchantements : un bandeau en haut du cadre de la fiche, leur titre en
+   encart dans le coin, comme les mots-clés. Collés au cadre, ils en
+   débordaient. Le fond reste opaque : la ligne demeure en haut quand la
+   fiche défile. */
+#viewer-recherche .apercu.bloc .enchants {
+  align-self: stretch;
+  width: auto;
+  margin: 0 0 10px;
+  padding: 0 8px 6px 8px;
+  gap: 5px;
+  background: color-mix(in srgb, var(--teinte-menu, #f0c060) 8%, #0a080e);
+  border-bottom: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+  border-radius: 4px 4px 0 0;
+}
+#viewer-recherche .apercu.bloc .enchants > * { margin-top: 6px; }
+#viewer-recherche .apercu.bloc .enchants > .titre {
+  align-self: flex-start;
+  margin: 0 6px 0 -8px;
+  padding: 8px 10px;
+  color: var(--texte-menu, #f0c060);
+  background: color-mix(in srgb, var(--teinte-menu, #f0c060) 22%, transparent);
+  font: 700 clamp(12px, 2vh, 16px)/1.4 'Rajdhani', Arial, sans-serif;
+  letter-spacing: .1em;
+  border-right: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--teinte-menu, #f0c060) 45%, transparent);
+  border-bottom-right-radius: 4px;
+}
+
+/* ── Petit lecteur : tout l'index défile ───────────────────────────────
+   Sur un petit lecteur, les filtres et la fiche se disputaient la hauteur :
+   l'un ou l'autre finissait écrasé. Désormais le panneau entier défile,
+   seule la ligne de recherche reste en haut. Les filtres s'affichent en
+   entier, et la zone des résultats et de la fiche garde une hauteur
+   utilisable ; sur un grand lecteur, elle prend simplement toute la place
+   restante, comme avant. */
+#viewer-recherche .panneau {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--teinte-menu, #f0c060) 55%, transparent) transparent;
+}
+#viewer-recherche .zone-filtres {
+  flex: 0 0 auto;
+  max-height: none;
+  overflow: visible;
+}
+#viewer-recherche .corps {
+  flex: 1 0 auto;
+  min-height: max(230px, 55%);
+  height: 0;
+}
+#viewer-recherche .bloc.en-ligne {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: color-mix(in srgb, var(--teinte-menu, #f0c060) 4%, #0a080e);
+  /* Couvre la marge du panneau au-dessus, que le contenu traverserait. */
+  box-shadow: 0 -10px 0 #0a080e, 0 6px 8px -4px rgba(0, 0, 0, .8);
+}
+
+/* Les enchantements défilent AVEC la fiche, dans le même cadre : collés en
+   haut, ils masquaient la fiche sur un petit lecteur, et sur une seule ligne
+   défilant de côté, ils devenaient illisibles. Ils retournent à la ligne. */
+#viewer-recherche .apercu.bloc .enchants {
+  position: static;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+#viewer-recherche .apercu.bloc { overflow-x: hidden; }
+
+/* La colonne des résultats s'amincit sur un lecteur étroit : la place va à
+   la fiche. 250 pixels au plus, comme avant. */
+#viewer-recherche .colonne-resultats.bloc {
+  flex: 0 0 clamp(140px, 24vw, 250px);
+  min-width: 0;
+}
+
