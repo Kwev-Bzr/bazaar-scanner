@@ -71,17 +71,18 @@ Le menu de gauche mene a six pages.
      Steam ou client Tempo, et le dossier de chacun. Un voyant indique si le
      mod est installe dans le jeu choisi.
 
-  DELAI
-     Le delai de tournoi : aucun, 1, 5, 10 ou 30 minutes, ou une valeur
-     libre en secondes. Si vous jouez dans un tournoi, ou dans tout autre
-     cadre qui impose un delai, reglez-le ici pour ne pas reveler votre main
-     trop tot. Si vous diffusez normalement, laissez-le a zero :
-     l'extension suit deja le lecteur de chaque spectateur.
-
   CADRAGE
      Si le jeu n'occupe pas toute votre scene OBS. Collez une capture de
      votre APERCU OBS (Ctrl+V), placez le rectangle sur votre rangee
      d'objets, puis VALIDER. ANNULER revient au cadrage enregistre.
+
+  DELAI
+     Le delai de stream. Par defaut, les cartes s'affichent chez chaque
+     spectateur au meme moment que dans sa video : laissez "Pas de delai".
+     Si vous retardez vous-meme votre stream dans OBS, pour un tournoi ou
+     pour qu'un adversaire ne puisse pas regarder votre partie, choisissez
+     ici le meme delai : 1, 5, 10 ou 30 minutes, ou Personnalise, en
+     secondes.
 
   DIAGNOSTIC
      Tout ce qu'il faut verifier quand rien ne marche : versions, mod,

@@ -100,7 +100,8 @@ const PORT       = 3210;
 const JETON_LOCAL = require('node:crypto').randomBytes(18).toString('hex');
 let codeConnexion = null;
 let codeConnexionExpire = 0;
-const ROUTES_PROTEGEES = ['/config', '/connexion', '/parcourir', '/langue', '/fermer'];
+const ROUTES_PROTEGEES = ['/config', '/connexion', '/parcourir', '/langue', '/fermer',
+                          '/maj/installer', '/maj/annuler'];
 
 function echapperHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -311,6 +312,7 @@ function definirEtat(code, detail) {
 
 function diffuserEtat() {
   try { majDiagnostic(); } catch (e) { /* le diagnostic ne doit rien bloquer */ }
+  try { majEtatMiseAJour(); } catch (e) { /* pas encore prête au démarrage */ }
   const charge = 'data: ' + JSON.stringify(etat) + '\n\n';
   for (const r of abonnes) { try { r.write(charge); } catch (e) { /* client parti */ } }
 }
@@ -383,9 +385,11 @@ function cartesCompactes(liste, avecPosition) {
       /* Les munitions maximales actuelles, pour un objet qui en a. */
       if (typeof c.Munitions === 'number' && c.Munitions > 0) it.am = c.Munitions;
 
-      /* Les tags gagnés en partie (absents du modèle), le plus souvent aucun. */
+      /* Les tags gagnés en partie (absents du modèle), le plus souvent aucun.
+         Tous, sans plafond : un message trop gros est allégé dans
+         twitch-pubsub.js, où les tags font partie de ce qu'on retire. */
       if (Array.isArray(c.TagsAjoutes) && c.TagsAjoutes.length) {
-        it.ta = c.TagsAjoutes.filter(t => typeof t === 'string' && t).slice(0, 6);
+        it.ta = c.TagsAjoutes.filter(t => typeof t === 'string' && t);
       }
 
       if (Array.isArray(c.Quests) && c.Quests.length) {
@@ -716,11 +720,43 @@ function publierVide() {
   } catch (e) { /* rien à diffuser n'est pas une erreur */ }
 }
 
+/* Le dernier plateau sorti de la file : celui que montre la vidéo retardée.
+
+   Sans délai, l'application renvoie le plateau toutes les deux secondes, même
+   immobile : un spectateur qui arrive le reçoit aussitôt, et l'extension sait
+   que l'application tourne (sans nouvelles pendant 30 s, elle retire ses
+   zones). La file, elle, n'envoyait que les plateaux qui changent : avec un
+   délai de tournoi, un nouveau spectateur attendait le prochain changement,
+   et les zones disparaissaient au bout de 30 s de plateau immobile.
+
+   On renvoie donc ce dernier plateau sorti, et lui seul : jamais un plateau
+   encore en file, qui dévoilerait le jeu en avance sur la vidéo. publishBoard
+   écarte les doublons et n'en laisse passer qu'un toutes les deux secondes.
+   Le plateau vide (jeu fermé) n'est pas répété, comme sans délai. */
+let dernierSorti = null;
+
+function plateauVide(charge) {
+  const x = charge.extra || {};
+  return !(charge.objets && charge.objets.length) && !(charge.talents && charge.talents.length)
+      && !(x.face && x.face.length) && !(x.reserve && x.reserve.length)
+      && !(x.faceTalents && x.faceTalents.length);
+}
+
+function rappelerDernierSorti() {
+  if (!dernierSorti || !lireDelaiStream() || plateauVide(dernierSorti)) return;
+  try {
+    pubsub.publishBoard(dernierSorti.objets, dernierSorti.talents,
+                        dernierSorti.cadre, null, dernierSorti.extra);
+  } catch (e) { /* le prochain essai suffira */ }
+}
+setInterval(rappelerDernierSorti, 1000);
+
 function viderFile() {
   const maintenant = Date.now();
 
   while (fileDiffusion.length && fileDiffusion[0].quand <= maintenant) {
     const e = fileDiffusion.shift();
+    dernierSorti = e.charge;
     try {
       pubsub.publishBoard(e.charge.objets, e.charge.talents,
                           e.charge.cadre, null, e.charge.extra);
@@ -738,6 +774,8 @@ function viderFile() {
    calés sur l'ancienne valeur les ferait paraître au mauvais moment. */
 function reinitialiserFileDiffusion() {
   fileDiffusion.length = 0;
+  /* Calé sur l'ancien délai, il serait en avance ou en retard sur la vidéo. */
+  dernierSorti = null;
   if (minuteurDiffusion) { clearInterval(minuteurDiffusion); minuteurDiffusion = null; }
 }
 
@@ -811,18 +849,251 @@ const VERSION = (() => {
 let versionEnLigne = null;
 let donneesEnLigne = null;      // horodatage des données publiées (AAAAMMJJhhmm, UTC)
 
+/* L'installateur de la version publiée : son numéro, son empreinte SHA-256
+   et sa taille, publiés par l'export à partir de la release GitHub. */
+let installateurEnLigne = null;
+
+/* MAJ_INDEX, dans config.ini : l'adresse d'un fichier de version à lire À LA
+   PLACE du fichier publié. Il ne sert qu'à tester la mise à jour sur le PC de
+   Kwev, sans rien publier. Lui seul peut aussi fournir l'adresse de
+   l'installateur ; sinon, c'est toujours la release GitHub. */
+function modeTestMaj() {
+  return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(String(config.MAJ_INDEX || ''));
+}
+
 async function releverVersion() {
   try {
-    const base = (config.DATA_BASE_URL || 'https://bazaar-scanner.pages.dev')
-      .replace(/\/+$/, '');
-    /* L'index allégé d'abord : l'index complet pèse plus d'un mégaoctet. */
-    let r = await fetch(base + '/index-extension.json', { signal: AbortSignal.timeout(8000) });
-    if (!r.ok) r = await fetch(base + '/index.json', { signal: AbortSignal.timeout(8000) });
+    let r;
+    if (modeTestMaj()) {
+      r = await fetch(config.MAJ_INDEX, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+    } else {
+      const base = (config.DATA_BASE_URL || 'https://bazaar-scanner.pages.dev')
+        .replace(/\/+$/, '');
+      /* L'index allégé d'abord : l'index complet pèse plus d'un mégaoctet. */
+      r = await fetch(base + '/index-extension.json', { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) r = await fetch(base + '/index.json', { signal: AbortSignal.timeout(8000) });
+    }
     if (!r.ok) return;
     const i = await r.json();
     if (i && typeof i.version_app === 'string') versionEnLigne = i.version_app;
     if (i && typeof i.version === 'string') donneesEnLigne = i.version;
+
+    const inst = i && i.installateur;
+    installateurEnLigne = (inst && typeof inst.version === 'string'
+                           && /^[0-9a-f]{64}$/i.test(String(inst.sha256 || '')))
+      ? { version: inst.version, sha256: inst.sha256.toLowerCase(),
+          taille: Number(inst.taille) || 0,
+          url: (modeTestMaj() && typeof inst.url === 'string') ? inst.url : null }
+      : null;
+    majEtatMiseAJour();
+    diffuserEtat();
   } catch (e) { /* hors ligne : on n'affirme rien */ }
+}
+
+/* ── La mise à jour intégrée ──────────────────────────────────────────────
+
+   Le streamer clique sur le voyant, confirme, et l'application :
+   1. télécharge l'installateur de la dernière release GitHub, à une adresse
+      qui ne change jamais ;
+   2. vérifie que son empreinte est bien celle publiée avec le numéro de
+      version : un fichier tronqué, corrompu, ou qui ne correspond pas à la
+      version annoncée n'est jamais lancé ;
+   3. le lance en mode « mise à jour » (/MAJ), sans pages à cliquer : Windows
+      demande l'autorisation, l'installateur reprend les choix précédents, et
+      rouvre l'application à la fin ;
+   4. se ferme, pour que son exécutable puisse être remplacé.
+
+   Jamais avec le jeu ouvert : le mod ne peut pas être remplacé pendant que le
+   jeu le charge, et une mise à jour à moitié faite serait pire que pas de mise
+   à jour. En cas d'échec, la fenêtre propose la page GitHub, comme avant. */
+/* L'installateur d'une mise à jour précédente reste dans le dossier
+   temporaire : on le retire au lancement. S'il tourne encore (c'est lui qui
+   vient de rouvrir l'application), Windows refuse et l'on réessaiera au
+   prochain lancement. */
+try {
+  const dossierMaj = path.join(require('node:os').tmpdir(), 'BazaarScanner');
+  for (const f of fs.readdirSync(dossierMaj)) {
+    try { fs.rmSync(path.join(dossierMaj, f), { force: true }); } catch (e) { /* encore ouvert */ }
+  }
+} catch (e) { /* rien à nettoyer */ }
+
+const URL_INSTALLATEUR =
+  'https://github.com/Kwev-Bzr/bazaar-scanner/releases/latest/download/BazaarScanner_setup.exe';
+
+const miseAJour = {
+  etat: 'aucune',      // aucune, dispo, telechargement, lancement, erreur
+  recu: 0,
+  total: 0,
+  erreur: '',          // code : reseau, empreinte, jeu, refus, lancement, absent
+  annuler: null,
+};
+
+function chiffreMajeur(v) { return parseInt(String(v || '').split('.')[0], 10) || 0; }
+
+function versionPlusRecente(a, b) {
+  const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+  for (let k = 0; k < Math.max(x.length, y.length); k++) {
+    const d = (x[k] || 0) - (y[k] || 0);
+    if (d) return d > 0;
+  }
+  return false;
+}
+
+/* Ce que la fenêtre doit savoir : y a-t-il une mise à jour, est-elle majeure,
+   peut-on l'installer d'ici (empreinte publiée, même version), où en est-on. */
+function majEtatMiseAJour() {
+  const dispo = !!(VERSION && versionEnLigne && versionPlusRecente(versionEnLigne, VERSION));
+  if (!dispo && miseAJour.etat !== 'lancement') miseAJour.etat = 'aucune';
+  else if (dispo && miseAJour.etat === 'aucune') miseAJour.etat = 'dispo';
+
+  etat.maj = {
+    etat: miseAJour.etat,
+    ici: VERSION,
+    version: versionEnLigne,
+    majeure: dispo && chiffreMajeur(versionEnLigne) > chiffreMajeur(VERSION),
+    integree: dispo && !!installateurEnLigne && installateurEnLigne.version === versionEnLigne,
+    recu: miseAJour.recu,
+    total: miseAJour.total,
+    erreur: miseAJour.erreur,
+    jeuOuvert: jeuSembleOuvert(),
+  };
+}
+
+/* Le jeu tourne-t-il ? Le mod écrit board_state.json chaque seconde tant
+   que le jeu est ouvert : un fichier récent suffit à le dire, sans
+   interroger Windows à chaque cycle. */
+function jeuSembleOuvert() {
+  try {
+    const fichier = cheminEtatPlateau(config);
+    return fs.existsSync(fichier) && !plateauPerime(fichier);
+  } catch (e) { return false; }
+}
+
+/* Vérification finale, au moment d'installer : le processus lui-même, dans
+   les deux installations, que le mod soit en place ou non. */
+function jeuLance() {
+  try {
+    const sortie = execFileSync('tasklist', ['/FI', 'IMAGENAME eq TheBazaar.exe', '/NH'],
+      { encoding: 'utf8', windowsHide: true, timeout: 5000 });
+    return /TheBazaar\.exe/i.test(sortie);
+  } catch (e) {
+    return jeuSembleOuvert();
+  }
+}
+
+function echecMiseAJour(code) {
+  miseAJour.etat = 'erreur';
+  miseAJour.erreur = code;
+  miseAJour.annuler = null;
+  majEtatMiseAJour();
+  diffuserEtat();
+}
+
+async function lancerMiseAJour() {
+  if (miseAJour.etat === 'telechargement' || miseAJour.etat === 'lancement') return;
+  const info = installateurEnLigne;
+  if (!info || info.version !== versionEnLigne) return echecMiseAJour('absent');
+  if (jeuLance()) return echecMiseAJour('jeu');
+
+  const crypto = require('node:crypto');
+  const os = require('node:os');
+  const dossier = path.join(os.tmpdir(), 'BazaarScanner');
+  const final = path.join(dossier, 'BazaarScanner_setup-' + info.version.replace(/[^0-9.]/g, '') + '.exe');
+  const partiel = final + '.part';
+
+  miseAJour.etat = 'telechargement';
+  miseAJour.erreur = '';
+  miseAJour.recu = 0;
+  miseAJour.total = info.taille || 0;
+  const controle = new AbortController();
+  miseAJour.annuler = () => controle.abort();
+  majEtatMiseAJour();
+  diffuserEtat();
+
+  try {
+    fs.mkdirSync(dossier, { recursive: true });
+
+    /* Déjà téléchargé lors d'un essai précédent, et intact : on le reprend. */
+    let pret = false;
+    if (fs.existsSync(final)) {
+      const h = crypto.createHash('sha256').update(fs.readFileSync(final)).digest('hex');
+      pret = (h === info.sha256);
+      if (!pret) fs.rmSync(final, { force: true });
+    }
+
+    if (!pret) {
+      const r = await fetch(info.url || URL_INSTALLATEUR,
+        { signal: controle.signal, redirect: 'follow', cache: 'no-store' });
+      if (!r.ok || !r.body) return echecMiseAJour('reseau');
+      const annonce = Number(r.headers.get('content-length')) || 0;
+      if (annonce) miseAJour.total = annonce;
+
+      const empreinte = crypto.createHash('sha256');
+      const sortie = fs.createWriteStream(partiel);
+      let dernierAvis = 0;
+      try {
+        for await (const morceau of r.body) {
+          const tampon = Buffer.from(morceau);
+          empreinte.update(tampon);
+          miseAJour.recu += tampon.length;
+          if (!sortie.write(tampon)) await new Promise(ok => sortie.once('drain', ok));
+          if (Date.now() - dernierAvis > 250) {
+            dernierAvis = Date.now();
+            majEtatMiseAJour();
+            diffuserEtat();
+          }
+        }
+      } finally {
+        await new Promise(ok => sortie.end(ok));
+      }
+
+      if (empreinte.digest('hex') !== info.sha256) {
+        fs.rmSync(partiel, { force: true });
+        return echecMiseAJour('empreinte');
+      }
+      fs.renameSync(partiel, final);
+    }
+
+    /* Le jeu a pu être lancé pendant le téléchargement. */
+    if (jeuLance()) {
+      miseAJour.annuler = null;
+      return echecMiseAJour('jeu');
+    }
+
+    miseAJour.etat = 'lancement';
+    miseAJour.annuler = null;
+    majEtatMiseAJour();
+    diffuserEtat();
+
+    /* Start-Process passe par le shell de Windows : c'est lui qui affiche la
+       demande d'autorisation qu'exige l'installateur. Un lancement direct
+       échouerait faute de droits. PowerShell rend la main une fois
+       l'installateur démarré, ou sur un refus. */
+    const cheminPs = "'" + final.replace(/'/g, "''") + "'";
+    const ps = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command',
+      'try { Start-Process -FilePath ' + cheminPs + " -ArgumentList '/MAJ' -ErrorAction Stop; exit 0 } "
+      + 'catch { exit 1 }'], { windowsHide: true });
+    let sansPowershell = false;
+    ps.on('error', () => { sansPowershell = true; echecMiseAJour('lancement'); });
+    ps.on('close', code => {
+      if (sansPowershell) return;
+      if (code !== 0) return echecMiseAJour('refus');
+      /* L'installateur attend que l'application soit fermée pour la
+         remplacer, puis la rouvre. */
+      setTimeout(() => process.exit(0), 800);
+    });
+  } catch (e) {
+    try { fs.rmSync(partiel, { force: true }); } catch (x) { /* déjà parti */ }
+    if (controle.signal.aborted) {
+      miseAJour.etat = 'dispo';
+      miseAJour.erreur = '';
+      miseAJour.annuler = null;
+      majEtatMiseAJour();
+      diffuserEtat();
+      return;
+    }
+    echecMiseAJour('reseau');
+  }
 }
 
 /* Deux secondes par défaut : c'est le décalage d'une diffusion en latence
@@ -956,6 +1227,37 @@ function evaluerEtat() {
    alors pour les spectateurs. On garde la dernière tant qu'aucune autre ne la
    remplace ; elle n'est oubliée qu'avec la partie. */
 let derniereBande = null;
+
+/* Le portrait d'un adversaire PVP, retiré du message une fois le combat
+   lancé depuis un moment.
+
+   L'extension reconnaît le début d'un combat entre joueurs au portrait
+   adverse reçu AVEC ses objets, et retient alors le plateau dix secondes.
+   Un spectateur qui arrivait en plein combat, ou sur l'écran Récap, recevait
+   ce même couple dans son tout premier message : son extension croyait le
+   combat tout juste commencé, et il attendait dix secondes de trop, son
+   propre plateau compris.
+
+   Passé ce délai, le plateau adverse est de toute façon visible dans la
+   vidéo : il n'y a plus rien à protéger. On n'envoie donc plus le portrait,
+   et le nouvel arrivant voit tout aussitôt. Les spectateurs déjà là ne
+   perdent que la zone du portrait (« adversaire PVP ») : leur extension sait
+   déjà que le combat est en cours, et les objets adverses restent affichés.
+
+   Seul le message pour Twitch change : la fenêtre de l'application garde
+   le portrait. Douze secondes : les dix de l'extension, et une marge. */
+const PORTRAIT_PVP_MS = 12000;
+let debutCombatPvp = null;
+
+function bandePourTwitch(bande) {
+  if (!Array.isArray(bande)) return bande;
+  const combatPvp = bande.some(it => it && it.vs === 'pvp')
+                 && bande.some(it => it && !it.r);
+  if (!combatPvp) { debutCombatPvp = null; return bande; }
+  if (!debutCombatPvp) debutCombatPvp = Date.now();
+  if (Date.now() - debutCombatPvp < PORTRAIT_PVP_MS) return bande;
+  return bande.filter(it => !(it && it.vs === 'pvp'));
+}
 
 function cycle() {
   if (!actif) return;
@@ -1112,7 +1414,7 @@ function cycle() {
   videDiffuse = false;
   publierAvecDelai(objets, talents, lireCadre(), {
     hero: reelle ? (state.Hero || '') : '',
-    face: enFace,
+    face: bandePourTwitch(enFace),
     reserveAffichee: reserveAffichee,
     reserve: reserve,
     faceTalents: talentsAdverses,
@@ -1258,7 +1560,9 @@ function ouvrirNavigateur(url, ongletNormal) {
   })(0);
 }
 
-releverVersion();
+/* Le premier relevé attend la lecture de config.ini (plus bas) : sans quoi
+   MAJ_INDEX et DATA_BASE_URL n'étaient jamais pris en compte au démarrage. */
+setImmediate(releverVersion);
 setInterval(releverVersion, 6 * 60 * 60 * 1000);
 
 /* Plus aucune fenêtre : l'application s'arrête, après un court délai qui
@@ -1328,6 +1632,25 @@ const serveur = http.createServer((req, res) => {
     const id = url.searchParams.get('id') || '';
     for (const r of abonnes) {
       if (id && r.idFenetre === id) { try { r.end(); } catch (e) { /* déjà fermée */ } oublierFenetre(r); }
+    }
+    res.writeHead(204).end();
+    return;
+  }
+
+  /* La mise à jour intégrée : lancer, ou annuler (un téléchargement en
+     cours, ou une erreur affichée, pour revenir à la proposition). */
+  if (url.pathname === '/maj/installer' && req.method === 'POST') {
+    lancerMiseAJour();
+    res.writeHead(204).end();
+    return;
+  }
+  if (url.pathname === '/maj/annuler' && req.method === 'POST') {
+    if (miseAJour.annuler) miseAJour.annuler();
+    else if (miseAJour.etat === 'erreur') {
+      miseAJour.etat = 'dispo';
+      miseAJour.erreur = '';
+      majEtatMiseAJour();
+      diffuserEtat();
     }
     res.writeHead(204).end();
     return;

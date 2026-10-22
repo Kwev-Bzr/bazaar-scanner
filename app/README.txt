@@ -70,17 +70,17 @@ The menu on the left leads to six pages.
      Steam or Tempo launcher, and the folder of each. A light shows whether
      the mod is installed in the selected game.
 
-  DELAY
-     The tournament delay: none, 1, 5, 10 or 30 minutes, or a custom value
-     in seconds. If you play in a tournament, or anywhere else that requires
-     a delay, set it here so your hand is not revealed too early. When
-     streaming normally, leave it at zero: the extension already follows
-     each viewer's player.
-
   LAYOUT
      If the game does not fill your whole OBS scene. Paste a screenshot of
      your OBS PREVIEW (Ctrl+V), place the rectangle over your item row, then
      SAVE. CANCEL goes back to the saved layout.
+
+  DELAY
+     The stream delay. By default, cards appear for each viewer at the same
+     moment as in their video: leave it on "No delay". If you delay your
+     stream yourself in OBS, for a tournament or so that an opponent cannot
+     watch your run, choose the same delay here: 1, 5, 10 or 30 minutes, or
+     Custom, in seconds.
 
   DIAGNOSTICS
      Everything to check when nothing works: versions, mod, Twitch relay,

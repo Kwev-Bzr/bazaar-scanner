@@ -234,6 +234,13 @@ lien fixe inscrit dans l'extension.
   l'index public de `bazaar-scanner.pages.dev` pour savoir si une version plus
   récente existe. Si c'est le cas, un voyant le signale dans sa fenêtre. Cette
   requête ne porte aucun identifiant.
+- **Mise à jour.** Seulement si le streamer clique sur ce voyant et confirme,
+  l'application télécharge l'installateur de la dernière version depuis la
+  page des versions du dépôt GitHub public. Elle ne le lance que si son
+  empreinte SHA-256 est celle publiée avec le numéro de version, et jamais
+  pendant que le jeu est ouvert. Windows demande alors l'autorisation
+  d'installer, comme pour une installation manuelle. Rien n'est téléchargé ni
+  installé sans ce clic.
 - **Diagnostic.** Sa page Diagnostic rassemble des informations locales :
   version de la DLL et du jeu, date des fichiers du mod, dernière lecture du
   jeu, état du relais, nombre de messages envoyés et refus éventuels de

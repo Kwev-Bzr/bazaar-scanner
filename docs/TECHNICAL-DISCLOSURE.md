@@ -224,6 +224,12 @@ fixed link written into the extension.
   public index on `bazaar-scanner.pages.dev` to find out whether a newer
   version exists. If so, a light says so in its window. This request carries
   no identifier.
+- **Update.** Only if the streamer clicks that light and confirms, the
+  application downloads the latest installer from the public GitHub
+  repository's releases page. It runs it only if its SHA-256 fingerprint
+  matches the one published with the version number, and never while the game
+  is open. Windows then asks for permission to install, as with a manual
+  installation. Nothing is downloaded or installed without that click.
 - **Diagnostics.** Its Diagnostics page gathers local information: DLL and
   game versions, mod file dates, the last read of the game, relay status,
   number of messages sent and any rejection by Twitch, size of the last

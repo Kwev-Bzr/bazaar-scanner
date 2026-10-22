@@ -377,6 +377,14 @@
 
 
   label { font-size: 14px; letter-spacing: .16em; color: var(--discret); display: block; margin-bottom: 4px; }
+  /* Le titre de chaque page de réglage : mis en valeur, dans le laiton du
+     logo. */
+  .panneau-onglet > label {
+    font: 700 20px/1.3 'Cinzel', Georgia, serif;
+    letter-spacing: .08em;
+    color: var(--laiton);
+    margin-bottom: 6px;
+  }
 
   input {
     width: 100%;
@@ -463,8 +471,9 @@
   }
   #alerte-version a { color: var(--laiton); margin-left: 10px; }
 
-  .delai { display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
-           justify-content: center; }
+  /* Les durées en colonne, une pastille allumée sur celle retenue. */
+  .delai { display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+           max-width: 330px; margin-top: 6px; }
 
   /* Steam ou client Tempo : le streamer qui emploie les deux bascule ici,
      sans réinstaller ni redémarrer. */
@@ -519,15 +528,33 @@
   }
 
   .delai button {
-    padding: 4px 10px;
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 14px;
     border: 1px solid var(--trait);
-    border-radius: 2px;
+    border-radius: 4px;
     background: transparent;
     color: var(--discret);
     font-family: inherit;
-    font-size: 15px;
+    font-size: 16px;
+    text-align: left;
     cursor: pointer;
   }
+  .delai button::before {
+    content: ''; width: 11px; height: 11px; border-radius: 50%; flex: none;
+    border: 1.5px solid currentColor; opacity: .8;
+  }
+  .delai button.actif::before {
+    background: var(--laiton); border-color: var(--laiton);
+    box-shadow: 0 0 7px rgba(240, 192, 96, .7); opacity: 1;
+  }
+  .delai .reco { margin-left: auto; font-size: 12px; letter-spacing: .08em;
+                 text-transform: uppercase; color: var(--laiton-bas); }
+  /* « Personnalisé » et sa durée en secondes, qui n'apparaît qu'une fois
+     cette option retenue. */
+  .delai .ligne-libre { display: flex; align-items: center; gap: 8px; }
+  .delai .ligne-libre button { flex: 1; }
+  .delai .ligne-libre:not(.ouverte) input,
+  .delai .ligne-libre:not(.ouverte) .delai-unite { display: none; }
   .delai button:hover { color: var(--laiton); border-color: var(--laiton-bas); }
   .delai button.actif {
     color: var(--laiton);
@@ -544,8 +571,9 @@
   }
 
   .delai input[type="number"] {
-    width: 58px;
-    padding: 3px 4px;
+    width: 70px;
+    padding: 8px 6px;
+    font-size: 16px;
     border: 1px solid var(--trait);
     border-radius: 2px;
     background: #0d0703;
@@ -557,8 +585,12 @@
 
   /* L'explication se lit en entier : mieux vaut une taille confortable et un
      interligne aéré qu'un bloc compact. */
-  .aide { font-size: 15px; line-height: 1.5; color: var(--discret);
-          margin-top: 16px; text-align: center; }
+  /* Les explications, dans une police plus lisible que le titre : la
+     Rajdhani, étroite, se lisait mal en paragraphe. */
+  .aide { font: 16px/1.55 'Segoe UI', system-ui, -apple-system, sans-serif;
+          color: #c2b293; margin-top: 16px; text-align: center; }
+  /* Sous le titre d'une page de réglage, avant ses boutons. */
+  .aide.au-dessus { margin: 4px 0 18px; text-align: left; }
 
   /* Le second paragraphe de l'explication respire. */
   .aide .para { margin-top: 14px; }
@@ -633,13 +665,16 @@
   }
   .calibrage.ouvert { display: flex; }
 
+  /* Au format des autres pages de réglage : titre en capitales dans la
+     police du logo, consignes en texte clair et lisible. */
   .cal-titre {
-    font-family: 'Cinzel', Georgia, serif;
-    font-size: 15px;
+    font: 700 20px/1.3 'Cinzel', Georgia, serif;
     letter-spacing: .08em;
+    text-transform: uppercase;
     color: var(--laiton);
   }
-  .cal-consigne { font-size: 12px; color: var(--discret); margin-top: 3px; min-height: 15px; }
+  .cal-consigne { font: 16px/1.55 'Segoe UI', system-ui, sans-serif; color: #c2b293;
+                  margin-top: 4px; min-height: 15px; max-width: 820px; }
 
   .cal-scene {
     position: relative;
@@ -656,16 +691,41 @@
     user-select: none;
   }
 
+  /* L'invitation à coller la capture : un encart en haut de l'aperçu, qui
+     laisse voir le rectangle en dessous. */
   .cal-vide {
     position: absolute;
-    inset: 0 0 auto 0;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
     display: grid;
     justify-items: center;
-    gap: 6px;
+    gap: 10px;
+    width: min(520px, 80%);
+    box-sizing: border-box;
+    padding: 16px 22px;
+    border: 1px dashed var(--laiton-bas);
+    border-radius: 6px;
+    background: rgba(24, 16, 10, .92);
     text-align: center;
-    font-size: 13px;
-    color: var(--discret);
-    padding: 22px 20px 0;
+    font: 17px/1.45 'Segoe UI', system-ui, sans-serif;
+    color: #e8dcc4;
+  }
+  /* L'encart laisse passer la souris : le rectangle reste saisissable même
+     glissé dessous. Seul le bouton reste cliquable, et l'encart s'efface le
+     temps qu'on déplace le rectangle. */
+  .cal-vide { pointer-events: none; transition: opacity .15s; }
+  .cal-vide .lien { pointer-events: auto; }
+  .cal-scene.saisie .cal-vide { opacity: .12; }
+  .cal-vide kbd {
+    font: 600 14px 'Segoe UI', sans-serif;
+    color: var(--laiton);
+    padding: 2px 7px;
+    border: 1px solid var(--laiton-bas);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: #1a120b;
   }
   .cal-scene.remplie .cal-vide { display: none; }
 
@@ -689,12 +749,15 @@
   .cal-retirer:hover { color: var(--alerte); border-color: var(--alerte); }
 
   .cal-vide .lien {
-    font-size: 13px;
-    letter-spacing: normal;
-    padding: 2px 4px;
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    font: 600 13px 'Segoe UI', sans-serif;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #c9b892;
+    padding: 8px 16px;
+    border: 1px solid #4a3a28;
+    border-radius: 3px;
   }
+  .cal-vide .lien:hover { color: var(--laiton); border-color: var(--laiton-bas); }
 
   .cal-cadre {
     position: absolute;
@@ -745,8 +808,21 @@
     border-left: 1px solid rgba(255, 90, 120, .95);
   }
 
-  .cal-aide { font-size: 15px; color: var(--discret); text-align: center; min-height: 14px; }
+  .cal-aide { font: 16px/1.5 'Segoe UI', system-ui, sans-serif; color: #c2b293;
+              text-align: center; min-height: 14px; }
+  .cal-aide b { color: var(--laiton); font-weight: 600; }
   .cal-boutons { display: flex; align-items: center; gap: 8px; }
+  /* Plein écran et Annuler : de vrais boutons, encadrés. */
+  .cal-boutons .lien {
+    display: inline-flex; align-items: center; gap: 8px;
+    font: 600 13px 'Segoe UI', sans-serif;
+    letter-spacing: .12em;
+    padding: 9px 16px;
+    color: #c9b892;
+    border: 1px solid #4a3a28;
+    border-radius: 3px;
+  }
+  .cal-boutons .lien:hover { color: var(--laiton); border-color: var(--laiton-bas); }
 
   /* Une vignette flottante en bas à droite : les avis valent pour toute la
      fenêtre. Le coin haut est déjà pris par le bandeau de mise à jour et le
@@ -857,6 +933,22 @@
   }
   .rail svg { flex: none; }
 
+  /* « Partie », la page principale : un bouton à part, doré quand il est
+     ouvert, encadré de laiton sinon. */
+  .rail button[data-page="partie"] {
+    font: 700 15px/1 'Cinzel', Georgia, serif; letter-spacing: .08em;
+    padding: 13px 12px; margin-bottom: 4px;
+    border: 1px solid var(--laiton); border-radius: 5px;
+    color: var(--laiton); background: transparent;
+  }
+  .rail button[data-page="partie"] svg { width: 21px; height: 21px; }
+  .rail button[data-page="partie"]:hover { color: #ffe6a8; }
+  .rail button[data-page="partie"].actif {
+    color: #1a120b;
+    background: linear-gradient(180deg, #ffd98a, var(--laiton) 60%, #c99a45);
+    box-shadow: 0 2px 10px rgba(240, 192, 96, .3);
+  }
+
   /* Le groupe des réglages, et le pied du rail : le témoin puis la langue,
      collés dans le coin inférieur gauche. */
   .rail .groupe {
@@ -869,7 +961,9 @@
   .pied-rail .etat { padding: 7px 10px; gap: 9px; }
   .pied-rail .libelle { font-size: 13.5px; }
   .pied-rail .precision { margin: -3px 2px 0; min-height: 0; font-size: 11.5px; line-height: 1.3; }
-  .pied-rail .precision:empty { display: none; }
+  /* Le voyant se suffit : aucune ligne dessous. Le détail reste dans le
+     Diagnostic. */
+  .pied-rail .precision { display: none; }
   .pied-rail .langues { position: static; }
   .pied-rail .langues select { flex: 1; min-width: 0; font-size: 14px; padding: 6px 8px; }
   body:has(#alerte-version:not([hidden])) .rail { top: 33px; }
@@ -896,6 +990,7 @@
     .rail .marque { padding: 0 0 14px; }
     .rail .logo { width: 38px; height: 38px; border-radius: 8px; }
     .rail button { padding: 10px; }
+    .rail button[data-page="partie"] { padding: 10px; }
     .rail button[data-onglet="compte"] { margin-top: 14px; }
     /* Le témoin se réduit à son voyant ; la langue, à son sélecteur. */
     .pied-rail { align-items: center; }
@@ -1002,6 +1097,43 @@
   .pied-rail .etat.maj:hover { border-color: var(--laiton); }
   .pied-rail .etat.maj .voyant { background: var(--laiton); box-shadow: 0 0 8px rgba(240, 192, 96, .7); }
   .pied-rail .etat.maj[hidden] { display: none; }
+  /* Mineure (même chiffre principal) en orange, majeure en rouge. */
+  .pied-rail .etat.maj.mineure { color: #e8963c; border-color: #7a4c1e; }
+  .pied-rail .etat.maj.mineure .voyant { background: #e8963c; box-shadow: 0 0 8px rgba(232, 150, 60, .75); }
+  .pied-rail .etat.maj.majeure { color: var(--alerte); border-color: #7a3028; }
+  .pied-rail .etat.maj.majeure .voyant { background: var(--alerte); box-shadow: 0 0 9px rgba(224, 106, 90, .8);
+    animation: pulse 2.4s ease-in-out infinite; }
+
+  /* La fenêtre de mise à jour, par-dessus tout. */
+  .voile-maj { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+    background: rgba(8, 5, 3, .72); }
+  .voile-maj[hidden] { display: none; }
+  .fen-maj { width: min(430px, calc(100vw - 32px)); box-sizing: border-box; padding: 22px 24px 20px;
+    background: linear-gradient(#22180f, #18110b); border: 1px solid var(--laiton-bas); border-radius: 4px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .6); color: #e8dcc4; font-family: 'Segoe UI', system-ui, sans-serif; }
+  .fen-maj.majeure { border-color: #7a3028; }
+  .fen-maj h2 { margin: 0 0 4px; font: 700 20px/1.25 'Cinzel', Georgia, serif; color: var(--laiton);
+    letter-spacing: .04em; text-transform: uppercase; }
+  .fen-maj.majeure h2 { color: var(--alerte); }
+  .fen-maj .vers { font-size: 13px; color: #a8977a; margin-bottom: 14px; }
+  .fen-maj p { margin: 0 0 8px; font-size: 15px; line-height: 1.45; color: #c2b293; }
+  .fen-maj .avert { display: flex; gap: 9px; align-items: flex-start; margin: 12px 0 4px; padding: 9px 11px;
+    border: 1px solid #7a3028; border-radius: 3px; background: rgba(224, 106, 90, .08); color: #e8a090;
+    font-size: 14px; line-height: 1.4; }
+  .fen-maj .avert .voyant { margin-top: 6px; background: var(--alerte); }
+  .fen-maj .boutons { display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-top: 18px;
+    flex-wrap: wrap; }
+  .fen-maj button, .fen-maj a.bouton { font: 600 13px 'Segoe UI', sans-serif; letter-spacing: .12em;
+    text-transform: uppercase; padding: 9px 16px; border-radius: 3px; cursor: pointer; background: transparent;
+    color: #a8977a; border: 1px solid #4a3a28; text-decoration: none; }
+  .fen-maj button:hover, .fen-maj a.bouton:hover { color: #e8dcc4; border-color: var(--laiton-bas); }
+  .fen-maj button.go { color: #1a120b; background: var(--laiton); border-color: var(--laiton); }
+  .fen-maj button.go:hover { color: #1a120b; filter: brightness(1.08); }
+  .fen-maj button.go[disabled] { opacity: .35; cursor: default; filter: none; }
+  .fen-maj .barre { height: 6px; background: #2a2016; border-radius: 3px; overflow: hidden; margin: 14px 0 6px; }
+  .fen-maj .barre i { display: block; height: 100%; width: 0; background: var(--laiton);
+    box-shadow: 0 0 6px rgba(240, 192, 96, .6); transition: width .25s; }
+  .fen-maj .pct { font-size: 13px; color: #a8977a; }
 </style>
 </head>
 <body>
@@ -1028,12 +1160,12 @@
       <svg viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5a1 1 0 0 1 1-1h4l2 2h7a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1z"/></svg>
       <span></span>
     </button>
-    <button type="button" data-onglet="delai">
-      <svg viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2.6 1.6"/></svg>
-      <span></span>
-    </button>
     <button type="button" data-onglet="cadrage">
       <svg viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V4h3M14 4h3v3M17 13v3h-3M6 16H3v-3"/></svg>
+      <span></span>
+    </button>
+    <button type="button" data-onglet="delai">
+      <svg viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2.6 1.6"/></svg>
       <span></span>
     </button>
     <button type="button" data-onglet="diag">
@@ -1129,6 +1261,7 @@
     </div>
     <div class="panneau-onglet" data-panneau="compte">
       <label id="l-compte">COMPTE TWITCH</label>
+      <div class="aide au-dessus" id="compte-aide"></div>
       <div class="ligne-champ">
         <div class="compte" id="compte"></div>
         <button class="parcourir" id="connecter">SE CONNECTER</button>
@@ -1137,6 +1270,7 @@
     </div>
     <div class="panneau-onglet" data-panneau="jeu">
       <label for="jeu" id="l-jeu">DOSSIER DU JEU</label>
+      <div class="aide au-dessus" id="jeu-aide"></div>
       <div class="sources" id="sources">
         <button type="button" data-source="steam"></button>
         <button type="button" data-source="tempo"></button>
@@ -1149,17 +1283,19 @@
     </div>
     <div class="panneau-onglet" data-panneau="delai">
       <label id="l-delai">DÉLAI DE VOTRE STREAM</label>
+      <div class="aide au-dessus" id="delai-aide"></div>
       <div class="delai" id="delai">
         <button type="button" data-delai="0"></button>
         <button type="button" data-delai="60"></button>
         <button type="button" data-delai="300"></button>
         <button type="button" data-delai="600"></button>
         <button type="button" data-delai="1800"></button>
-        <button type="button" data-delai="libre" id="b-libre"></button>
-        <input type="number" id="n-delai" min="0" step="1" value="0">
-        <span class="delai-unite">s</span>
+        <div class="ligne-libre" id="ligne-libre">
+          <button type="button" data-delai="libre" id="b-libre"></button>
+          <input type="number" id="n-delai" min="0" step="1" value="0">
+          <span class="delai-unite" id="delai-unite">s</span>
+        </div>
       </div>
-      <div class="aide" id="delai-aide"></div>
     </div>
     <div class="panneau-onglet" data-panneau="cadrage">
       <label id="l-cadrage">CADRAGE</label>
@@ -1200,7 +1336,8 @@
     <div class="cal-aide" id="cal-aide"></div>
 
     <div class="cal-boutons">
-      <button class="lien" id="cal-plein"></button>
+      <button class="lien" id="cal-plein"><svg viewBox="0 0 16 16" width="14" height="14" fill="none"
+        stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg><span id="cal-plein-txt"></span></button>
       <div style="flex:1"></div>
       <button class="lien" id="cal-annuler"></button>
       <button class="valider" id="cal-valider" style="width:auto;padding:9px 22px"></button>
@@ -1215,11 +1352,13 @@
     fr: {
       versionAncienne: "Une version plus récente est disponible ({}).",
       versionLien: "Télécharger",
-      delaiTitre: "DÉLAI DE TOURNOI",
+      delaiTitre: "DÉLAI DE STREAM",
       delaiAucun: "Pas de délai",
       delaiMinute: "1 minute", delaiMinutes: "{} minutes",
-      delaiLibre: "Autre",
-      delaiAide: ["Si vous jouez dans un tournoi, ou dans tout autre cadre qui impose un délai, indiquez-le ici pour ne pas révéler votre main trop tôt.", "Si vous diffusez normalement, l'application se synchronise avec le lecteur de chaque spectateur et aucun délai n'est nécessaire."],
+      delaiLibre: "Personnalisé", delaiReco: "recommandé", delaiSecondes: "secondes",
+      delaiAide: ["Par défaut, les cartes s'affichent chez chaque spectateur au même moment que dans sa vidéo : vous n'avez rien à régler.", "Si vous retardez vous-même votre stream dans OBS, pour un tournoi ou pour qu'un adversaire ne puisse pas regarder votre partie, choisissez ici le même délai."],
+      compteAide: ["L'application s'en sert uniquement pour envoyer vos cartes à l'extension de cette chaîne : elle n'a accès ni à votre chat, ni à vos statistiques.", "Vous pouvez retirer cette autorisation à tout moment dans les paramètres de votre compte Twitch, rubrique Connexions."],
+      jeuAide: ["Choisissez la version du jeu avec laquelle vous jouez : Steam ou client Tempo.", "L'application lit la partie en cours dans celle-ci.", "Le voyant à droite du dossier indique si le mod y est installé ; s'il est éteint, relancez l'installateur."],
       tailleTitre: "TAILLE DES FICHES",
       tailleAide: "Le corps du texte chez vos spectateurs. Ils peuvent le changer.",
       titreChoix: "Choix",
@@ -1262,7 +1401,7 @@
       calAnnuler:    'ANNULER',
       calValider:    'VALIDER',
       calPas169:     'Cette capture n\u2019est pas en 16/9. Recadrez-la, sinon le calibrage sera faux.',
-      calAide:       'Capturez votre APERÇU OBS, pas votre écran : c\u2019est lui que voient vos spectateurs.',
+      calAide:       'Capturez votre [aperçu OBS], pas votre écran : c\u2019est lui que voient vos spectateurs.',
       dossierOk:     'Dossier du jeu reconnu.',
       dossierNon:    'Ce dossier ne contient pas le jeu.',
       connecte:      'Connecté.',
@@ -1272,11 +1411,13 @@
     en: {
       versionAncienne: "A newer version is available ({}).",
       versionLien: "Download",
-      delaiTitre: "TOURNAMENT DELAY",
+      delaiTitre: "STREAM DELAY",
       delaiAucun: "No delay",
       delaiMinute: "1 minute", delaiMinutes: "{} minutes",
-      delaiLibre: "Custom",
-      delaiAide: ["If you are playing in a tournament, or anywhere else that requires a delay, set it here so your hand is not revealed too early.", "If you broadcast normally, the app syncs with each viewer's own player and no delay is needed."],
+      delaiLibre: "Custom", delaiReco: "recommended", delaiSecondes: "seconds",
+      delaiAide: ["By default, cards appear for each viewer at the same moment as in their video: there is nothing to set.", "If you delay your stream yourself in OBS, for a tournament or so that an opponent cannot watch your run, choose the same delay here."],
+      compteAide: ["The app only uses it to send your cards to this channel's extension: it has no access to your chat or your statistics.", "You can revoke this authorisation at any time in your Twitch account settings, under Connections."],
+      jeuAide: ["Choose the version of the game you play: Steam or the Tempo launcher.", "The app reads the current run from that one.", "The light to the right of the folder shows whether the mod is installed there; if it is off, run the installer again."],
       tailleTitre: "CARD TEXT SIZE",
       tailleAide: "Text size for your viewers. They can change it.",
       titreChoix: "Event Choices",
@@ -1319,7 +1460,7 @@
       calAnnuler:    'CANCEL',
       calValider:    'SAVE',
       calPas169:     'This capture is not 16:9. Crop it, otherwise the calibration will be wrong.',
-      calAide:       'Capture your OBS PREVIEW, not your screen: that is what your viewers see.',
+      calAide:       'Capture your [OBS preview], not your screen: that is what your viewers see.',
       dossierOk:     'Game folder recognised.',
       dossierNon:    'This folder does not contain the game.',
       connecte:      'Connected.',
@@ -1329,11 +1470,13 @@
     es: {
       versionAncienne: "Hay una versión más reciente ({}).",
       versionLien: "Descargar",
-      delaiTitre: "RETRASO DE TORNEO",
+      delaiTitre: "RETRASO DEL STREAM",
       delaiAucun: "Sin retraso",
       delaiMinute: "1 minuto", delaiMinutes: "{} minutos",
-      delaiLibre: "Otro",
-      delaiAide: ["Si juega en un torneo, o en cualquier otro caso que exija un retraso, indíquelo aquí para no revelar su mano demasiado pronto.", "Si emite con normalidad, la aplicación se sincroniza con el reproductor de cada espectador y no hace falta ningún retraso."],
+      delaiLibre: "Personalizado", delaiReco: "recomendado", delaiSecondes: "segundos",
+      delaiAide: ["Por defecto, las cartas aparecen para cada espectador en el mismo momento que en su vídeo: no tiene nada que ajustar.", "Si retrasa usted mismo su stream en OBS, para un torneo o para que un rival no pueda ver su partida, elija aquí el mismo retraso."],
+      compteAide: ["La aplicación solo lo usa para enviar sus cartas a la extensión de este canal: no tiene acceso ni a su chat ni a sus estadísticas.", "Puede retirar esta autorización en cualquier momento en la configuración de su cuenta de Twitch, apartado Conexiones."],
+      jeuAide: ["Elija la versión del juego con la que juega: Steam o el cliente Tempo.", "La aplicación lee la partida en curso en esa versión.", "El indicador a la derecha de la carpeta muestra si el mod está instalado; si está apagado, vuelva a ejecutar el instalador."],
       tailleTitre: "TAMAÑO DEL TEXTO",
       tailleAide: "Tamaño del texto para tus espectadores. Pueden cambiarlo.",
       titreChoix: "Opciones",
@@ -1376,7 +1519,7 @@
       calPlein: "JUEGO A PANTALLA COMPLETA",
       calAnnuler: "CANCELAR",
       calValider: "GUARDAR",
-      calAide: "Captura tu VISTA PREVIA de OBS, no tu pantalla: es lo que ven tus espectadores.",
+      calAide: "Captura tu [vista previa de OBS], no tu pantalla: es lo que ven tus espectadores.",
       dossierOk: "Carpeta del juego reconocida.",
       dossierNon: "Esta carpeta no contiene el juego.",
       connecte: "Conectado.",
@@ -1386,11 +1529,13 @@
     it: {
       versionAncienne: "È disponibile una versione più recente ({}).",
       versionLien: "Scarica",
-      delaiTitre: "RITARDO DA TORNEO",
+      delaiTitre: "RITARDO DELLO STREAM",
       delaiAucun: "Nessun ritardo",
       delaiMinute: "1 minuto", delaiMinutes: "{} minuti",
-      delaiLibre: "Altro",
-      delaiAide: ["Se gioca in un torneo, o in qualunque altro caso che imponga un ritardo, lo indichi qui per non rivelare la sua mano troppo presto.", "Se trasmette normalmente, l'applicazione si sincronizza con il lettore di ogni spettatore e nessun ritardo è necessario."],
+      delaiLibre: "Personalizzato", delaiReco: "consigliato", delaiSecondes: "secondi",
+      delaiAide: ["Per impostazione predefinita, le carte compaiono per ogni spettatore nello stesso momento del suo video: non c'è nulla da regolare.", "Se ritarda lei stesso lo stream in OBS, per un torneo o perché un avversario non possa guardare la sua partita, scelga qui lo stesso ritardo."],
+      compteAide: ["L'applicazione lo usa solo per inviare le sue carte all'estensione di questo canale: non ha accesso né alla sua chat né alle sue statistiche.", "Può revocare questa autorizzazione in qualsiasi momento nelle impostazioni del suo account Twitch, sezione Connessioni."],
+      jeuAide: ["Scelga la versione del gioco con cui gioca: Steam o il client Tempo.", "L'applicazione legge la partita in corso da quella versione.", "La spia a destra della cartella indica se la mod è installata; se è spenta, rilanci il programma di installazione."],
       tailleTitre: "DIMENSIONE TESTO",
       tailleAide: "Dimensione del testo per i tuoi spettatori. Possono cambiarla.",
       titreChoix: "Scelte",
@@ -1433,7 +1578,7 @@
       calPlein: "GIOCO A SCHERMO INTERO",
       calAnnuler: "ANNULLA",
       calValider: "SALVA",
-      calAide: "Cattura la tua ANTEPRIMA OBS, non lo schermo: è ciò che vedono i tuoi spettatori.",
+      calAide: "Cattura la tua [anteprima OBS], non lo schermo: è ciò che vedono i tuoi spettatori.",
       dossierOk: "Cartella del gioco riconosciuta.",
       dossierNon: "Questa cartella non contiene il gioco.",
       connecte: "Connesso.",
@@ -1443,11 +1588,13 @@
     de: {
       versionAncienne: "Eine neuere Version ist verfügbar ({}).",
       versionLien: "Herunterladen",
-      delaiTitre: "TURNIERVERZÖGERUNG",
+      delaiTitre: "STREAM-VERZÖGERUNG",
       delaiAucun: "Keine Verzögerung",
       delaiMinute: "1 Minute", delaiMinutes: "{} Minuten",
-      delaiLibre: "Andere",
-      delaiAide: ["Wenn Sie an einem Turnier teilnehmen oder anderswo eine Verzögerung nötig ist, geben Sie sie hier an, damit Ihre Hand nicht zu früh sichtbar wird.", "Bei normaler Übertragung gleicht sich die Anwendung mit dem Player jedes Zuschauers ab; eine Verzögerung ist dann nicht nötig."],
+      delaiLibre: "Benutzerdefiniert", delaiReco: "empfohlen", delaiSecondes: "Sekunden",
+      delaiAide: ["Standardmäßig erscheinen die Karten bei jedem Zuschauer im selben Moment wie in seinem Video: Sie müssen nichts einstellen.", "Wenn Sie Ihren Stream selbst in OBS verzögern, etwa für ein Turnier oder damit ein Gegner Ihre Partie nicht mitverfolgen kann, wählen Sie hier dieselbe Verzögerung."],
+      compteAide: ["Die Anwendung nutzt es nur, um Ihre Karten an die Erweiterung dieses Kanals zu senden: Sie hat keinen Zugriff auf Ihren Chat oder Ihre Statistiken.", "Sie können diese Berechtigung jederzeit in den Einstellungen Ihres Twitch-Kontos unter Verbindungen widerrufen."],
+      jeuAide: ["Wählen Sie die Version des Spiels, mit der Sie spielen: Steam oder den Tempo-Launcher.", "Die Anwendung liest den laufenden Run aus dieser Version.", "Die Leuchte rechts neben dem Ordner zeigt, ob die Mod dort installiert ist; ist sie aus, führen Sie das Installationsprogramm erneut aus."],
       tailleTitre: "SCHRIFTGRÖSSE",
       tailleAide: "Textgröße für deine Zuschauer. Sie können sie ändern.",
       titreChoix: "Auswahl",
@@ -1490,7 +1637,7 @@
       calPlein: "SPIEL IM VOLLBILD",
       calAnnuler: "ABBRECHEN",
       calValider: "SPEICHERN",
-      calAide: "Nimm deine OBS-VORSCHAU auf, nicht deinen Bildschirm: das sehen deine Zuschauer.",
+      calAide: "Nimm deine [OBS-Vorschau] auf, nicht deinen Bildschirm: das sehen deine Zuschauer.",
       dossierOk: "Spielordner erkannt.",
       dossierNon: "Dieser Ordner enthält das Spiel nicht.",
       connecte: "Verbunden.",
@@ -1500,11 +1647,13 @@
     pt: {
       versionAncienne: "Está disponível uma versão mais recente ({}).",
       versionLien: "Transferir",
-      delaiTitre: "ATRASO DE TORNEIO",
+      delaiTitre: "ATRASO DA TRANSMISSÃO",
       delaiAucun: "Sem atraso",
       delaiMinute: "1 minuto", delaiMinutes: "{} minutos",
-      delaiLibre: "Outro",
-      delaiAide: ["Se você joga num torneio, ou em qualquer outro caso que exija atraso, indique-o aqui para não revelar sua mão cedo demais.", "Se transmite normalmente, o aplicativo sincroniza com o player de cada espectador e nenhum atraso é necessário."],
+      delaiLibre: "Personalizado", delaiReco: "recomendado", delaiSecondes: "segundos",
+      delaiAide: ["Por padrão, as cartas aparecem para cada espectador no mesmo momento que no vídeo dele: não há nada a ajustar.", "Se você mesmo atrasa sua transmissão no OBS, para um torneio ou para que um adversário não possa acompanhar sua partida, escolha aqui o mesmo atraso."],
+      compteAide: ["O aplicativo só o usa para enviar suas cartas à extensão deste canal: não tem acesso ao seu chat nem às suas estatísticas.", "Você pode revogar esta autorização a qualquer momento nas configurações da sua conta Twitch, em Conexões."],
+      jeuAide: ["Escolha a versão do jogo com a qual você joga: Steam ou o cliente Tempo.", "O aplicativo lê a partida em andamento nessa versão.", "A luz à direita da pasta indica se o mod está instalado; se estiver apagada, execute o instalador novamente."],
       tailleTitre: "TAMANHO DO TEXTO",
       tailleAide: "Tamanho do texto para os teus espectadores. Podem alterá-lo.",
       titreChoix: "Escolhas",
@@ -1547,7 +1696,7 @@
       calPlein: "JOGO EM ECRÃ INTEIRO",
       calAnnuler: "CANCELAR",
       calValider: "GUARDAR",
-      calAide: "Captura a tua PRÉ-VISUALIZAÇÃO OBS, não o teu ecrã: é o que os teus espectadores veem.",
+      calAide: "Captura a tua [pré-visualização OBS], não o teu ecrã: é o que os teus espectadores veem.",
       dossierOk: "Pasta do jogo reconhecida.",
       dossierNon: "Esta pasta não contém o jogo.",
       connecte: "Ligado.",
@@ -1557,11 +1706,13 @@
     zh: {
       versionAncienne: "有新版本可用（{}）。",
       versionLien: "下载",
-      delaiTitre: "比赛延迟",
+      delaiTitre: "直播延迟",
       delaiAucun: "无延迟",
       delaiMinute: "1 分钟", delaiMinutes: "{} 分钟",
-      delaiLibre: "自定义",
-      delaiAide: ["若您参加比赛，或处于其他需要延迟的场合，请在此设置，以免过早暴露手牌。", "若您正常直播，应用会与每位观众的播放器同步，无需任何延迟。"],
+      delaiLibre: "自定义", delaiReco: "推荐", delaiSecondes: "秒",
+      delaiAide: ["默认情况下，卡牌会在每位观众的视频中同步显示：您无需任何设置。", "如果您在 OBS 中自行为直播添加了延迟（用于比赛，或防止对手观看您的对局），请在此选择相同的延迟。"],
+      compteAide: ["应用仅用它将您的卡牌发送到本频道的扩展：它无法访问您的聊天或统计数据。", "您可以随时在 Twitch 账户设置的“连接”中撤销此授权。"],
+      jeuAide: ["请选择您所玩的游戏版本：Steam 或 Tempo 启动器。", "应用会读取该版本中正在进行的对局。", "文件夹右侧的指示灯显示模组是否已安装；若指示灯熄灭，请重新运行安装程序。"],
       tailleTitre: "字号",
       tailleAide: "观众看到的文字大小。观众可以自行更改。",
       titreChoix: "选择",
@@ -1604,7 +1755,7 @@
       calPlein: "游戏全屏",
       calAnnuler: "取消",
       calValider: "保存",
-      calAide: "请截取 OBS 预览，而不是整个屏幕：观众看到的是前者。",
+      calAide: "请截取 [OBS 预览]，而不是整个屏幕：观众看到的是前者。",
       dossierOk: "已识别游戏文件夹。",
       dossierNon: "该文件夹中没有游戏。",
       connecte: "已连接。",
@@ -1614,11 +1765,13 @@
     ko: {
       versionAncienne: "새 버전이 있습니다 ({}).",
       versionLien: "다운로드",
-      delaiTitre: "대회 지연",
+      delaiTitre: "방송 지연",
       delaiAucun: "지연 없음",
       delaiMinute: "1분", delaiMinutes: "{}분",
-      delaiLibre: "직접 입력",
-      delaiAide: ["대회에 참가하거나 지연이 필요한 상황이라면 여기에 설정해 손패가 너무 일찍 공개되지 않도록 하세요.", "평소처럼 방송한다면 앱이 시청자별 플레이어에 맞춰 동기화하므로 지연이 필요 없습니다."],
+      delaiLibre: "직접 입력", delaiReco: "권장", delaiSecondes: "초",
+      delaiAide: ["기본적으로 카드는 시청자마다 영상과 같은 순간에 표시되므로 따로 설정할 것이 없습니다.", "대회 참가나 상대가 내 게임을 보지 못하도록 OBS에서 직접 방송을 지연한다면, 여기에서 같은 지연 시간을 선택하세요."],
+      compteAide: ["앱은 이 채널의 확장 프로그램에 카드를 보내는 데에만 이 계정을 사용하며, 채팅이나 통계에는 접근하지 않습니다.", "이 권한은 Twitch 계정 설정의 '연결' 항목에서 언제든지 철회할 수 있습니다."],
+      jeuAide: ["플레이하는 게임 버전을 선택하세요: Steam 또는 Tempo 런처.", "앱은 선택한 버전에서 진행 중인 게임을 읽습니다.", "폴더 오른쪽의 표시등은 모드 설치 여부를 보여 줍니다. 꺼져 있으면 설치 프로그램을 다시 실행하세요."],
       tailleTitre: "글자 크기",
       tailleAide: "시청자에게 표시되는 글자 크기입니다. 시청자가 변경할 수 있습니다.",
       titreChoix: "선택",
@@ -1661,7 +1814,7 @@
       calPlein: "게임 전체 화면",
       calAnnuler: "취소",
       calValider: "저장",
-      calAide: "화면 전체가 아니라 OBS 미리보기를 캡처하세요. 시청자가 보는 것은 그쪽입니다.",
+      calAide: "화면 전체가 아니라 [OBS 미리보기]를 캡처하세요. 시청자가 보는 것은 그쪽입니다.",
       dossierOk: "게임 폴더를 확인했습니다.",
       dossierNon: "이 폴더에는 게임이 없습니다.",
       connecte: "연결되었습니다.",
@@ -1984,9 +2137,248 @@
     var plusRecente = !!ici && !!enLigne && comparerVersions(ici, enLigne) < 0;
     el.hidden = !plusRecente;
     if (!plusRecente) return;
-    document.getElementById('voyant-maj-libelle').textContent = fmt(TV3.majDispo, { v: enLigne });
-    el.title = (T.versionAncienne || '').replace('{}', enLigne) + ' ' + (T.versionLien || '');
+    /* Orange si le chiffre principal ne change pas (3.0 vers 3.1), rouge
+       s'il change (3.x vers 4.0). Aucune des deux n'est obligatoire. */
+    var majeure = (parseInt(enLigne, 10) || 0) > (parseInt(ici, 10) || 0);
+    el.classList.toggle('majeure', majeure);
+    el.classList.toggle('mineure', !majeure);
+    document.getElementById('voyant-maj-libelle').textContent = TV3.majDispo;
+    el.title = (T.versionAncienne || '').replace('{}', enLigne);
   }
+
+  /* ── La mise à jour intégrée ─────────────────────────────────────────────
+     Un clic sur le voyant ouvre une fenêtre : confirmer, suivre le
+     téléchargement, puis l'installateur prend le relais. Quand l'application
+     ne peut pas installer d'ici (empreinte non publiée), le voyant mène à la
+     page GitHub comme avant. */
+  var MAJ_TOUS = {
+    fr: { titre: 'Mise à jour disponible', titreMajeure: 'Nouvelle version majeure',
+          vers: 'Version {v} · vous avez la {ici}',
+          majeure: 'De nouvelles fonctions de l’extension l’attendent. Votre version actuelle continue de fonctionner en attendant.',
+          texte: 'Bazaar Scanner va se fermer quelques secondes le temps de s’installer, puis se rouvrir avec vos réglages.',
+          uac: 'Windows vous demandera d’autoriser l’installation.',
+          jeu: 'The Bazaar est ouvert. Fermez le jeu pour mettre à jour : le mod ne peut pas être remplacé pendant qu’il tourne.',
+          plusTard: 'Plus tard', installer: 'Mettre à jour', annuler: 'Annuler', fermer: 'Fermer', reessayer: 'Réessayer',
+          dl: 'Téléchargement de l’installateur…', pct: '{p} % · {r} Mo sur {t} Mo',
+          lancement: 'L’installation démarre. Acceptez la demande de Windows : Bazaar Scanner se rouvrira tout seul à la fin.',
+          ferme: 'Bazaar Scanner se ferme pour la mise à jour et se rouvrira tout seul. Vous pouvez fermer cette fenêtre.',
+          github: 'Télécharger depuis GitHub',
+          eReseau: 'Le téléchargement a échoué. Vérifiez votre connexion, ou téléchargez la mise à jour depuis GitHub.',
+          eEmpreinte: 'Le fichier téléchargé ne correspond pas à la version publiée : il n’a pas été lancé. Réessayez plus tard, ou téléchargez la mise à jour depuis GitHub.',
+          eRefus: 'L’installation a été annulée dans Windows. Rien n’a été modifié.',
+          eLancement: 'L’installateur n’a pas pu être lancé. Téléchargez la mise à jour depuis GitHub.',
+          eAbsent: 'Cette mise à jour ne peut pas s’installer d’ici. Téléchargez-la depuis GitHub.' },
+    en: { titre: 'Update available', titreMajeure: 'New major version',
+          vers: 'Version {v} · you have {ici}',
+          majeure: 'New extension features are waiting for it. Your current version keeps working in the meantime.',
+          texte: 'Bazaar Scanner will close for a few seconds while it installs, then reopen with your settings.',
+          uac: 'Windows will ask you to allow the installation.',
+          jeu: 'The Bazaar is open. Close the game to update: the mod cannot be replaced while it is running.',
+          plusTard: 'Later', installer: 'Update', annuler: 'Cancel', fermer: 'Close', reessayer: 'Retry',
+          dl: 'Downloading the installer…', pct: '{p} % · {r} MB of {t} MB',
+          lancement: 'Installation is starting. Accept the Windows prompt: Bazaar Scanner will reopen by itself when it is done.',
+          ferme: 'Bazaar Scanner is closing for the update and will reopen by itself. You can close this window.',
+          github: 'Download from GitHub',
+          eReseau: 'The download failed. Check your connection, or download the update from GitHub.',
+          eEmpreinte: 'The downloaded file does not match the published version, so it was not run. Try again later, or download the update from GitHub.',
+          eRefus: 'The installation was cancelled in Windows. Nothing was changed.',
+          eLancement: 'The installer could not be started. Download the update from GitHub.',
+          eAbsent: 'This update cannot be installed from here. Download it from GitHub.' },
+    de: { titre: 'Update verfügbar', titreMajeure: 'Neue Hauptversion',
+          vers: 'Version {v} · Sie haben {ici}',
+          majeure: 'Neue Funktionen der Erweiterung warten darauf. Ihre aktuelle Version funktioniert bis dahin weiter.',
+          texte: 'Bazaar Scanner schließt sich für einige Sekunden zur Installation und öffnet sich dann mit Ihren Einstellungen wieder.',
+          uac: 'Windows wird Sie bitten, die Installation zu erlauben.',
+          jeu: 'The Bazaar ist geöffnet. Schließen Sie das Spiel zum Aktualisieren: Der Mod kann nicht ersetzt werden, solange es läuft.',
+          plusTard: 'Später', installer: 'Aktualisieren', annuler: 'Abbrechen', fermer: 'Schließen', reessayer: 'Erneut versuchen',
+          dl: 'Installationsprogramm wird heruntergeladen…', pct: '{p} % · {r} MB von {t} MB',
+          lancement: 'Die Installation startet. Bestätigen Sie die Windows-Abfrage: Bazaar Scanner öffnet sich danach von selbst.',
+          ferme: 'Bazaar Scanner schließt sich für das Update und öffnet sich von selbst wieder. Sie können dieses Fenster schließen.',
+          github: 'Von GitHub herunterladen',
+          eReseau: 'Der Download ist fehlgeschlagen. Prüfen Sie Ihre Verbindung oder laden Sie das Update von GitHub herunter.',
+          eEmpreinte: 'Die heruntergeladene Datei entspricht nicht der veröffentlichten Version und wurde nicht gestartet. Versuchen Sie es später erneut oder laden Sie das Update von GitHub herunter.',
+          eRefus: 'Die Installation wurde in Windows abgebrochen. Es wurde nichts geändert.',
+          eLancement: 'Das Installationsprogramm konnte nicht gestartet werden. Laden Sie das Update von GitHub herunter.',
+          eAbsent: 'Dieses Update kann nicht von hier aus installiert werden. Laden Sie es von GitHub herunter.' },
+    es: { titre: 'Actualización disponible', titreMajeure: 'Nueva versión principal',
+          vers: 'Versión {v} · tiene la {ici}',
+          majeure: 'Nuevas funciones de la extensión la esperan. Su versión actual sigue funcionando mientras tanto.',
+          texte: 'Bazaar Scanner se cerrará unos segundos mientras se instala y luego se volverá a abrir con su configuración.',
+          uac: 'Windows le pedirá que autorice la instalación.',
+          jeu: 'The Bazaar está abierto. Cierre el juego para actualizar: el mod no se puede reemplazar mientras se ejecuta.',
+          plusTard: 'Más tarde', installer: 'Actualizar', annuler: 'Cancelar', fermer: 'Cerrar', reessayer: 'Reintentar',
+          dl: 'Descargando el instalador…', pct: '{p} % · {r} MB de {t} MB',
+          lancement: 'La instalación comienza. Acepte la solicitud de Windows: Bazaar Scanner se volverá a abrir solo al terminar.',
+          ferme: 'Bazaar Scanner se cierra para la actualización y se volverá a abrir solo. Puede cerrar esta ventana.',
+          github: 'Descargar desde GitHub',
+          eReseau: 'La descarga falló. Compruebe su conexión o descargue la actualización desde GitHub.',
+          eEmpreinte: 'El archivo descargado no coincide con la versión publicada, así que no se ejecutó. Inténtelo más tarde o descargue la actualización desde GitHub.',
+          eRefus: 'La instalación se canceló en Windows. No se ha modificado nada.',
+          eLancement: 'No se pudo iniciar el instalador. Descargue la actualización desde GitHub.',
+          eAbsent: 'Esta actualización no se puede instalar desde aquí. Descárguela desde GitHub.' },
+    it: { titre: 'Aggiornamento disponibile', titreMajeure: 'Nuova versione principale',
+          vers: 'Versione {v} · lei ha la {ici}',
+          majeure: 'Nuove funzioni dell’estensione la aspettano. La sua versione attuale continua a funzionare nel frattempo.',
+          texte: 'Bazaar Scanner si chiuderà per qualche secondo durante l’installazione, poi si riaprirà con le sue impostazioni.',
+          uac: 'Windows le chiederà di autorizzare l’installazione.',
+          jeu: 'The Bazaar è aperto. Chiuda il gioco per aggiornare: il mod non può essere sostituito mentre è in esecuzione.',
+          plusTard: 'Più tardi', installer: 'Aggiorna', annuler: 'Annulla', fermer: 'Chiudi', reessayer: 'Riprova',
+          dl: 'Download del programma di installazione…', pct: '{p} % · {r} MB su {t} MB',
+          lancement: 'L’installazione sta iniziando. Accetti la richiesta di Windows: Bazaar Scanner si riaprirà da solo alla fine.',
+          ferme: 'Bazaar Scanner si chiude per l’aggiornamento e si riaprirà da solo. Può chiudere questa finestra.',
+          github: 'Scarica da GitHub',
+          eReseau: 'Il download non è riuscito. Controlli la connessione o scarichi l’aggiornamento da GitHub.',
+          eEmpreinte: 'Il file scaricato non corrisponde alla versione pubblicata, quindi non è stato avviato. Riprovi più tardi o scarichi l’aggiornamento da GitHub.',
+          eRefus: 'L’installazione è stata annullata in Windows. Non è stato modificato nulla.',
+          eLancement: 'Non è stato possibile avviare il programma di installazione. Scarichi l’aggiornamento da GitHub.',
+          eAbsent: 'Questo aggiornamento non può essere installato da qui. Lo scarichi da GitHub.' },
+    pt: { titre: 'Atualização disponível', titreMajeure: 'Nova versão principal',
+          vers: 'Versão {v} · você tem a {ici}',
+          majeure: 'Novas funções da extensão esperam por ela. Sua versão atual continua funcionando enquanto isso.',
+          texte: 'O Bazaar Scanner vai fechar por alguns segundos durante a instalação e depois reabrir com suas configurações.',
+          uac: 'O Windows vai pedir que você autorize a instalação.',
+          jeu: 'The Bazaar está aberto. Feche o jogo para atualizar: o mod não pode ser substituído enquanto estiver em execução.',
+          plusTard: 'Mais tarde', installer: 'Atualizar', annuler: 'Cancelar', fermer: 'Fechar', reessayer: 'Tentar de novo',
+          dl: 'Baixando o instalador…', pct: '{p} % · {r} MB de {t} MB',
+          lancement: 'A instalação está começando. Aceite o pedido do Windows: o Bazaar Scanner vai reabrir sozinho no final.',
+          ferme: 'O Bazaar Scanner está fechando para a atualização e vai reabrir sozinho. Você pode fechar esta janela.',
+          github: 'Baixar do GitHub',
+          eReseau: 'O download falhou. Verifique sua conexão ou baixe a atualização do GitHub.',
+          eEmpreinte: 'O arquivo baixado não corresponde à versão publicada, por isso não foi executado. Tente mais tarde ou baixe a atualização do GitHub.',
+          eRefus: 'A instalação foi cancelada no Windows. Nada foi alterado.',
+          eLancement: 'Não foi possível iniciar o instalador. Baixe a atualização do GitHub.',
+          eAbsent: 'Esta atualização não pode ser instalada daqui. Baixe-a do GitHub.' },
+    ko: { titre: '업데이트 있음', titreMajeure: '새 메이저 버전',
+          vers: '버전 {v} · 현재 {ici}',
+          majeure: '확장 프로그램의 새 기능이 이 버전을 기다리고 있습니다. 그동안 현재 버전도 계속 작동합니다.',
+          texte: 'Bazaar Scanner가 설치하는 동안 몇 초간 닫혔다가 설정을 유지한 채 다시 열립니다.',
+          uac: 'Windows가 설치를 허용할지 묻습니다.',
+          jeu: 'The Bazaar가 실행 중입니다. 업데이트하려면 게임을 닫으세요. 게임이 실행 중일 때는 모드를 교체할 수 없습니다.',
+          plusTard: '나중에', installer: '업데이트', annuler: '취소', fermer: '닫기', reessayer: '다시 시도',
+          dl: '설치 프로그램 다운로드 중…', pct: '{p}% · {t}MB 중 {r}MB',
+          lancement: '설치를 시작합니다. Windows 요청을 수락하세요. 완료되면 Bazaar Scanner가 자동으로 다시 열립니다.',
+          ferme: '업데이트를 위해 Bazaar Scanner를 닫습니다. 자동으로 다시 열립니다. 이 창은 닫아도 됩니다.',
+          github: 'GitHub에서 다운로드',
+          eReseau: '다운로드에 실패했습니다. 연결을 확인하거나 GitHub에서 업데이트를 다운로드하세요.',
+          eEmpreinte: '다운로드한 파일이 게시된 버전과 일치하지 않아 실행하지 않았습니다. 나중에 다시 시도하거나 GitHub에서 업데이트를 다운로드하세요.',
+          eRefus: 'Windows에서 설치가 취소되었습니다. 아무것도 변경되지 않았습니다.',
+          eLancement: '설치 프로그램을 시작할 수 없습니다. GitHub에서 업데이트를 다운로드하세요.',
+          eAbsent: '이 업데이트는 여기서 설치할 수 없습니다. GitHub에서 다운로드하세요.' },
+    zh: { titre: '有可用更新', titreMajeure: '新的主要版本',
+          vers: '版本 {v} · 当前为 {ici}',
+          majeure: '扩展的新功能需要此版本。在此期间，当前版本仍可继续使用。',
+          texte: 'Bazaar Scanner 将在安装时关闭几秒钟，然后保留您的设置重新打开。',
+          uac: 'Windows 会请求您允许安装。',
+          jeu: 'The Bazaar 正在运行。请关闭游戏后再更新：游戏运行时无法替换模组。',
+          plusTard: '稍后', installer: '更新', annuler: '取消', fermer: '关闭', reessayer: '重试',
+          dl: '正在下载安装程序…', pct: '{p}% · {r} MB / {t} MB',
+          lancement: '安装即将开始。请接受 Windows 的请求：完成后 Bazaar Scanner 会自动重新打开。',
+          ferme: 'Bazaar Scanner 正在为更新而关闭，之后会自动重新打开。您可以关闭此窗口。',
+          github: '从 GitHub 下载',
+          eReseau: '下载失败。请检查网络连接，或从 GitHub 下载更新。',
+          eEmpreinte: '下载的文件与发布的版本不符，因此未运行。请稍后重试，或从 GitHub 下载更新。',
+          eRefus: '安装已在 Windows 中取消。没有任何更改。',
+          eLancement: '无法启动安装程序。请从 GitHub 下载更新。',
+          eAbsent: '此更新无法在此处安装。请从 GitHub 下载。' }
+  };
+  var MAJ_ERREURS = { reseau: 'eReseau', empreinte: 'eEmpreinte', jeu: 'jeu', refus: 'eRefus',
+                      lancement: 'eLancement', absent: 'eAbsent' };
+  var URL_RELEASES = 'https://github.com/Kwev-Bzr/bazaar-scanner/releases/latest';
+  var etatMaj = null;
+  var fenMajOuverte = false;
+  var voileMaj = null;
+
+  function texteMaj(cle, v) {
+    var t = (MAJ_TOUS[LANGUE] || MAJ_TOUS.en)[cle] || MAJ_TOUS.en[cle] || '';
+    return v ? fmt(t, v) : t;
+  }
+  function echapperMaj(s) {
+    return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+  }
+
+  function peindreFenMaj() {
+    if (!fenMajOuverte || !etatMaj) { if (voileMaj) voileMaj.hidden = true; return; }
+    if (!voileMaj) {
+      voileMaj = document.createElement('div');
+      voileMaj.className = 'voile-maj';
+      document.body.appendChild(voileMaj);
+      voileMaj.addEventListener('click', function (ev) {
+        var b = ev.target.closest('[data-maj]');
+        if (!b || b.disabled) return;
+        var a = b.getAttribute('data-maj');
+        if (a === 'installer') fetch('/maj/installer', { method: 'POST' }).catch(function () {});
+        if (a === 'annuler') fetch('/maj/annuler', { method: 'POST' }).catch(function () {});
+        if (a === 'fermer') {
+          if (etatMaj && etatMaj.etat === 'erreur') fetch('/maj/annuler', { method: 'POST' }).catch(function () {});
+          fenMajOuverte = false;
+          peindreFenMaj();
+        }
+      });
+    }
+    var m = etatMaj, h = [];
+    var titre = m.majeure ? texteMaj('titreMajeure') : texteMaj('titre');
+    h.push('<div class="fen-maj' + (m.majeure ? ' majeure' : '') + '" role="dialog" aria-modal="true">');
+    h.push('<h2>' + echapperMaj(titre) + '</h2>');
+    h.push('<div class="vers">' + echapperMaj(texteMaj('vers', { v: m.version || '?', ici: m.ici || '?' })) + '</div>');
+    var bouton = function (action, libelle, principal, inactif) {
+      return '<button type="button" data-maj="' + action + '"' + (principal ? ' class="go"' : '')
+        + (inactif ? ' disabled' : '') + '>' + echapperMaj(libelle) + '</button>';
+    };
+    var lienGithub = '<a class="bouton" href="' + URL_RELEASES + '" target="_blank" rel="noopener">'
+      + echapperMaj(texteMaj('github')) + '</a>';
+
+    if (m.etat === 'telechargement') {
+      var total = m.total || 0, recu = m.recu || 0;
+      var p = total ? Math.min(100, Math.round(recu * 100 / total)) : 0;
+      var mo = function (o) { return (o / 1048576).toFixed(1).replace('.', LANGUE === 'en' || LANGUE === 'ko' || LANGUE === 'zh' ? '.' : ','); };
+      h.push('<p>' + echapperMaj(texteMaj('dl')) + '</p>');
+      h.push('<div class="barre"><i style="width:' + p + '%"></i></div>');
+      h.push('<div class="pct">' + echapperMaj(texteMaj('pct', { p: p, r: mo(recu), t: total ? mo(total) : '?' })) + '</div>');
+      h.push('<div class="boutons">' + bouton('annuler', texteMaj('annuler')) + '</div>');
+    } else if (m.etat === 'lancement') {
+      h.push('<p>' + echapperMaj(texteMaj('lancement')) + '</p>');
+    } else if (m.etat === 'ferme') {
+      h.push('<p>' + echapperMaj(texteMaj('ferme')) + '</p>');
+    } else if (m.etat === 'erreur') {
+      h.push('<div class="avert"><span class="voyant"></span><span>'
+        + echapperMaj(texteMaj(MAJ_ERREURS[m.erreur] || 'eReseau')) + '</span></div>');
+      var peutReessayer = m.erreur !== 'absent' && m.erreur !== 'lancement';
+      h.push('<div class="boutons">' + bouton('fermer', texteMaj('fermer')) + lienGithub
+        + (peutReessayer ? bouton('installer', texteMaj('reessayer'), true, m.erreur === 'jeu' && m.jeuOuvert) : '')
+        + '</div>');
+    } else {
+      if (m.majeure) h.push('<p>' + echapperMaj(texteMaj('majeure')) + '</p>');
+      h.push('<p>' + echapperMaj(texteMaj('texte')) + '</p>');
+      h.push('<p>' + echapperMaj(texteMaj('uac')) + '</p>');
+      if (m.jeuOuvert) h.push('<div class="avert"><span class="voyant"></span><span>' + echapperMaj(texteMaj('jeu')) + '</span></div>');
+      h.push('<div class="boutons">' + bouton('fermer', texteMaj('plusTard'))
+        + bouton('installer', texteMaj('installer'), true, m.jeuOuvert) + '</div>');
+    }
+    h.push('</div>');
+    voileMaj.innerHTML = h.join('');
+    voileMaj.hidden = false;
+  }
+
+  function majMiseAJour(m) {
+    if (!m) return;
+    etatMaj = m;
+    /* Pendant le lancement, la fenêtre se rouvre d'elle-même. */
+    if (m.etat === 'lancement' || m.etat === 'telechargement') fenMajOuverte = true;
+    peindreFenMaj();
+  }
+
+  (function () {
+    var el = document.getElementById('voyant-maj');
+    if (!el) return;
+    el.addEventListener('click', function (ev) {
+      /* Sans empreinte publiée pour cette version, l'application ne peut pas
+         l'installer elle-même : le lien GitHub reste le chemin. */
+      if (!etatMaj || !etatMaj.integree) return;
+      ev.preventDefault();
+      fenMajOuverte = true;
+      peindreFenMaj();
+    });
+  })();
 
   /* Reflète le délai courant : la boîte et le bouton retenu. */
   function majDelai(d) {
@@ -2001,13 +2393,16 @@
     });
     var libre = document.getElementById('b-libre');
     if (libre) libre.classList.toggle('actif', !connu);
+    /* Une durée personnalisée montre sa valeur en secondes. */
+    var ligneLibre = document.getElementById('ligne-libre');
+    if (ligneLibre && !connu) ligneLibre.classList.add('ouverte');
   }
 
 
   /* ── V3 : textes du bandeau, de la partie, des onglets, du diagnostic et
      du journal ─────────────────────────────────────────────────────────── */
   var TV3_TOUS = {
-    fr: { majDispo: "Mise à jour {v}", dSecJeu: "Jeu", dSecTwitch: "Twitch", dSecApp: "Application", dModNom: "Version de la DLL", dAJour: "à jour", dVersionJeu: "Version du jeu", dLecture: "Lecture du jeu", dLectureIlya: "dernière écriture du mod il y a {n} s", dLectureAucune: "aucune écriture du mod", dEnvois: "Envois", dEnvoisTxt: "{n} messages depuis {h}", dAucunRefus: "aucun refus", dRefus: "{n} refus, dernier à {h} ({r})", r429: "trop de messages", r401: "jeton expiré", rTaille: "message trop gros", rConnexion: "pas de connexion", rAutre: "erreur {c}", dDetail: "Détail du message", pPlateau: "Plateau", pFace: "En face", pReserve: "Réserve", pTalents: "Vos talents", pFaceTalents: "Talents adverses", pAutres: "Partie, langue, cadrage", dDelai: "Délai", dDelaiTxt: "{s} s · {n} plateau(x) en attente", dProchain: "prochain envoi dans {n} s", dVersion: "Version", dDispo: "{v} disponible", dCopier: "COPIER LE DIAGNOSTIC", dCopie: "COPIÉ",
+    fr: { majDispo: "Mise à jour disponible", dSecJeu: "Jeu", dSecTwitch: "Twitch", dSecApp: "Application", dModNom: "Version de la DLL", dAJour: "à jour", dVersionJeu: "Version du jeu", dLecture: "Lecture du jeu", dLectureIlya: "dernière écriture du mod il y a {n} s", dLectureAucune: "aucune écriture du mod", dEnvois: "Envois", dEnvoisTxt: "{n} messages depuis {h}", dAucunRefus: "aucun refus", dRefus: "{n} refus, dernier à {h} ({r})", r429: "trop de messages", r401: "jeton expiré", rTaille: "message trop gros", rConnexion: "pas de connexion", rAutre: "erreur {c}", dDetail: "Détail du message", pPlateau: "Plateau", pFace: "En face", pReserve: "Réserve", pTalents: "Vos talents", pFaceTalents: "Talents adverses", pAutres: "Partie, langue, cadrage", dDelai: "Délai", dDelaiTxt: "{s} s · {n} plateau(x) en attente", dProchain: "prochain envoi dans {n} s", dVersion: "Version", dDispo: "{v} disponible", dCopier: "COPIER LE DIAGNOSTIC", dCopie: "COPIÉ",
           heros: 'Héros', defaites: 'Défaites', reglages: 'Réglages',
           jeu: 'Jeu', jeuLance: 'lancé', jeuFerme: 'fermé', jeuDossier: 'dossier introuvable',
           partie: 'Partie', enCours: 'en cours', aucune: 'aucune',
@@ -2024,7 +2419,7 @@
           jPartie: 'Nouvelle partie ({h})', jVictoire: 'Jour {j} : victoire', jDefaite: 'Jour {j} : défaite',
           jRefus: 'Jour {j} : refus de la mort', jTalent: '{n} passe en {r}',
           raretes: { Bronze: 'Bronze', Silver: 'Argent', Gold: 'Or', Diamond: 'Diamant', Legendary: 'Légendaire' } },
-    en: { majDispo: "Update {v}", dSecJeu: "Game", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "DLL version", dAJour: "up to date", dVersionJeu: "Game version", dLecture: "Game reading", dLectureIlya: "last write by the mod {n} s ago", dLectureAucune: "no write from the mod", dEnvois: "Sends", dEnvoisTxt: "{n} messages since {h}", dAucunRefus: "no rejection", dRefus: "{n} rejected, last at {h} ({r})", r429: "too many messages", r401: "token expired", rTaille: "message too large", rConnexion: "no connection", rAutre: "error {c}", dDetail: "Message breakdown", pPlateau: "Board", pFace: "Facing", pReserve: "Stash", pTalents: "Your skills", pFaceTalents: "Opponent skills", pAutres: "Run, language, layout", dDelai: "Delay", dDelaiTxt: "{s} s · {n} board(s) queued", dProchain: "next send in {n} s", dVersion: "Version", dDispo: "{v} available", dCopier: "COPY DIAGNOSTICS", dCopie: "COPIED",
+    en: { majDispo: "Update available", dSecJeu: "Game", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "DLL version", dAJour: "up to date", dVersionJeu: "Game version", dLecture: "Game reading", dLectureIlya: "last write by the mod {n} s ago", dLectureAucune: "no write from the mod", dEnvois: "Sends", dEnvoisTxt: "{n} messages since {h}", dAucunRefus: "no rejection", dRefus: "{n} rejected, last at {h} ({r})", r429: "too many messages", r401: "token expired", rTaille: "message too large", rConnexion: "no connection", rAutre: "error {c}", dDetail: "Message breakdown", pPlateau: "Board", pFace: "Facing", pReserve: "Stash", pTalents: "Your skills", pFaceTalents: "Opponent skills", pAutres: "Run, language, layout", dDelai: "Delay", dDelaiTxt: "{s} s · {n} board(s) queued", dProchain: "next send in {n} s", dVersion: "Version", dDispo: "{v} available", dCopier: "COPY DIAGNOSTICS", dCopie: "COPIED",
           heros: 'Hero', defaites: 'Losses', reglages: 'Settings',
           jeu: 'Game', jeuLance: 'running', jeuFerme: 'closed', jeuDossier: 'folder not found',
           partie: 'Run', enCours: 'in progress', aucune: 'none',
@@ -2041,7 +2436,7 @@
           jPartie: 'New run ({h})', jVictoire: 'Day {j}: win', jDefaite: 'Day {j}: loss',
           jRefus: 'Day {j}: death averted', jTalent: '{n} upgraded to {r}',
           raretes: { Bronze: 'Bronze', Silver: 'Silver', Gold: 'Gold', Diamond: 'Diamond', Legendary: 'Legendary' } },
-    de: { majDispo: "Update {v}", dSecJeu: "Spiel", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "DLL-Version", dAJour: "aktuell", dVersionJeu: "Spielversion", dLecture: "Spiel lesen", dLectureIlya: "letzte Schreibung des Mods vor {n} s", dLectureAucune: "keine Schreibung des Mods", dEnvois: "Sendungen", dEnvoisTxt: "{n} Nachrichten seit {h}", dAucunRefus: "keine Ablehnung", dRefus: "{n} abgelehnt, zuletzt um {h} ({r})", r429: "zu viele Nachrichten", r401: "Token abgelaufen", rTaille: "Nachricht zu groß", rConnexion: "keine Verbindung", rAutre: "Fehler {c}", dDetail: "Aufteilung der Nachricht", pPlateau: "Brett", pFace: "Gegenüber", pReserve: "Lager", pTalents: "Deine Fähigkeiten", pFaceTalents: "Gegnerische Fähigkeiten", pAutres: "Lauf, Sprache, Ausrichtung", dDelai: "Verzögerung", dDelaiTxt: "{s} s · {n} Bretter in der Warteschlange", dProchain: "nächster Versand in {n} s", dVersion: "Version", dDispo: "{v} verfügbar", dCopier: "DIAGNOSE KOPIEREN", dCopie: "KOPIERT",
+    de: { majDispo: "Update verfügbar", dSecJeu: "Spiel", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "DLL-Version", dAJour: "aktuell", dVersionJeu: "Spielversion", dLecture: "Spiel lesen", dLectureIlya: "letzte Schreibung des Mods vor {n} s", dLectureAucune: "keine Schreibung des Mods", dEnvois: "Sendungen", dEnvoisTxt: "{n} Nachrichten seit {h}", dAucunRefus: "keine Ablehnung", dRefus: "{n} abgelehnt, zuletzt um {h} ({r})", r429: "zu viele Nachrichten", r401: "Token abgelaufen", rTaille: "Nachricht zu groß", rConnexion: "keine Verbindung", rAutre: "Fehler {c}", dDetail: "Aufteilung der Nachricht", pPlateau: "Brett", pFace: "Gegenüber", pReserve: "Lager", pTalents: "Deine Fähigkeiten", pFaceTalents: "Gegnerische Fähigkeiten", pAutres: "Lauf, Sprache, Ausrichtung", dDelai: "Verzögerung", dDelaiTxt: "{s} s · {n} Bretter in der Warteschlange", dProchain: "nächster Versand in {n} s", dVersion: "Version", dDispo: "{v} verfügbar", dCopier: "DIAGNOSE KOPIEREN", dCopie: "KOPIERT",
           heros: 'Held', defaites: 'Niederlagen', reglages: 'Einstellungen',
           jeu: 'Spiel', jeuLance: 'läuft', jeuFerme: 'geschlossen', jeuDossier: 'Ordner nicht gefunden',
           partie: 'Lauf', enCours: 'läuft', aucune: 'keiner',
@@ -2058,7 +2453,7 @@
           jPartie: 'Neuer Lauf ({h})', jVictoire: 'Tag {j}: Sieg', jDefaite: 'Tag {j}: Niederlage',
           jRefus: 'Tag {j}: Tod abgewendet', jTalent: '{n} steigt auf {r}',
           raretes: { Bronze: 'Bronze', Silver: 'Silber', Gold: 'Gold', Diamond: 'Diamant', Legendary: 'Legendär' } },
-    es: { majDispo: "Actualización {v}", dSecJeu: "Juego", dSecTwitch: "Twitch", dSecApp: "Aplicación", dModNom: "Versión de la DLL", dAJour: "actualizado", dVersionJeu: "Versión del juego", dLecture: "Lectura del juego", dLectureIlya: "última escritura del mod hace {n} s", dLectureAucune: "ninguna escritura del mod", dEnvois: "Envíos", dEnvoisTxt: "{n} mensajes desde las {h}", dAucunRefus: "ningún rechazo", dRefus: "{n} rechazos, el último a las {h} ({r})", r429: "demasiados mensajes", r401: "token caducado", rTaille: "mensaje demasiado grande", rConnexion: "sin conexión", rAutre: "error {c}", dDetail: "Desglose del mensaje", pPlateau: "Tablero", pFace: "Enfrente", pReserve: "Reserva", pTalents: "Tus habilidades", pFaceTalents: "Habilidades rivales", pAutres: "Partida, idioma, encuadre", dDelai: "Retraso", dDelaiTxt: "{s} s · {n} tablero(s) en espera", dProchain: "próximo envío en {n} s", dVersion: "Versión", dDispo: "{v} disponible", dCopier: "COPIAR DIAGNÓSTICO", dCopie: "COPIADO",
+    es: { majDispo: "Actualización disponible", dSecJeu: "Juego", dSecTwitch: "Twitch", dSecApp: "Aplicación", dModNom: "Versión de la DLL", dAJour: "actualizado", dVersionJeu: "Versión del juego", dLecture: "Lectura del juego", dLectureIlya: "última escritura del mod hace {n} s", dLectureAucune: "ninguna escritura del mod", dEnvois: "Envíos", dEnvoisTxt: "{n} mensajes desde las {h}", dAucunRefus: "ningún rechazo", dRefus: "{n} rechazos, el último a las {h} ({r})", r429: "demasiados mensajes", r401: "token caducado", rTaille: "mensaje demasiado grande", rConnexion: "sin conexión", rAutre: "error {c}", dDetail: "Desglose del mensaje", pPlateau: "Tablero", pFace: "Enfrente", pReserve: "Reserva", pTalents: "Tus habilidades", pFaceTalents: "Habilidades rivales", pAutres: "Partida, idioma, encuadre", dDelai: "Retraso", dDelaiTxt: "{s} s · {n} tablero(s) en espera", dProchain: "próximo envío en {n} s", dVersion: "Versión", dDispo: "{v} disponible", dCopier: "COPIAR DIAGNÓSTICO", dCopie: "COPIADO",
           heros: 'Héroe', defaites: 'Derrotas', reglages: 'Ajustes',
           jeu: 'Juego', jeuLance: 'abierto', jeuFerme: 'cerrado', jeuDossier: 'carpeta no encontrada',
           partie: 'Partida', enCours: 'en curso', aucune: 'ninguna',
@@ -2075,7 +2470,7 @@
           jPartie: 'Nueva partida ({h})', jVictoire: 'Día {j}: victoria', jDefaite: 'Día {j}: derrota',
           jRefus: 'Día {j}: muerte evitada', jTalent: '{n} sube a {r}',
           raretes: { Bronze: 'Bronce', Silver: 'Plata', Gold: 'Oro', Diamond: 'Diamante', Legendary: 'Legendario' } },
-    it: { majDispo: "Aggiornamento {v}", dSecJeu: "Gioco", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "Versione della DLL", dAJour: "aggiornata", dVersionJeu: "Versione del gioco", dLecture: "Lettura del gioco", dLectureIlya: "ultima scrittura del mod {n} s fa", dLectureAucune: "nessuna scrittura del mod", dEnvois: "Invii", dEnvoisTxt: "{n} messaggi dalle {h}", dAucunRefus: "nessun rifiuto", dRefus: "{n} rifiuti, l'ultimo alle {h} ({r})", r429: "troppi messaggi", r401: "token scaduto", rTaille: "messaggio troppo grande", rConnexion: "nessuna connessione", rAutre: "errore {c}", dDetail: "Dettaglio del messaggio", pPlateau: "Plancia", pFace: "Di fronte", pReserve: "Riserva", pTalents: "Le tue abilità", pFaceTalents: "Abilità avversarie", pAutres: "Partita, lingua, inquadratura", dDelai: "Ritardo", dDelaiTxt: "{s} s · {n} plance in attesa", dProchain: "prossimo invio tra {n} s", dVersion: "Versione", dDispo: "{v} disponibile", dCopier: "COPIA DIAGNOSTICA", dCopie: "COPIATO",
+    it: { majDispo: "Aggiornamento disponibile", dSecJeu: "Gioco", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "Versione della DLL", dAJour: "aggiornata", dVersionJeu: "Versione del gioco", dLecture: "Lettura del gioco", dLectureIlya: "ultima scrittura del mod {n} s fa", dLectureAucune: "nessuna scrittura del mod", dEnvois: "Invii", dEnvoisTxt: "{n} messaggi dalle {h}", dAucunRefus: "nessun rifiuto", dRefus: "{n} rifiuti, l'ultimo alle {h} ({r})", r429: "troppi messaggi", r401: "token scaduto", rTaille: "messaggio troppo grande", rConnexion: "nessuna connessione", rAutre: "errore {c}", dDetail: "Dettaglio del messaggio", pPlateau: "Plancia", pFace: "Di fronte", pReserve: "Riserva", pTalents: "Le tue abilità", pFaceTalents: "Abilità avversarie", pAutres: "Partita, lingua, inquadratura", dDelai: "Ritardo", dDelaiTxt: "{s} s · {n} plance in attesa", dProchain: "prossimo invio tra {n} s", dVersion: "Versione", dDispo: "{v} disponibile", dCopier: "COPIA DIAGNOSTICA", dCopie: "COPIATO",
           heros: 'Eroe', defaites: 'Sconfitte', reglages: 'Impostazioni',
           jeu: 'Gioco', jeuLance: 'avviato', jeuFerme: 'chiuso', jeuDossier: 'cartella non trovata',
           partie: 'Partita', enCours: 'in corso', aucune: 'nessuna',
@@ -2092,7 +2487,7 @@
           jPartie: 'Nuova partita ({h})', jVictoire: 'Giorno {j}: vittoria', jDefaite: 'Giorno {j}: sconfitta',
           jRefus: 'Giorno {j}: morte evitata', jTalent: '{n} sale a {r}',
           raretes: { Bronze: 'Bronzo', Silver: 'Argento', Gold: 'Oro', Diamond: 'Diamante', Legendary: 'Leggendario' } },
-    pt: { majDispo: "Atualização {v}", dSecJeu: "Jogo", dSecTwitch: "Twitch", dSecApp: "Aplicativo", dModNom: "Versão da DLL", dAJour: "atualizado", dVersionJeu: "Versão do jogo", dLecture: "Leitura do jogo", dLectureIlya: "última escrita do mod há {n} s", dLectureAucune: "nenhuma escrita do mod", dEnvois: "Envios", dEnvoisTxt: "{n} mensagens desde {h}", dAucunRefus: "nenhuma recusa", dRefus: "{n} recusas, a última às {h} ({r})", r429: "mensagens demais", r401: "token expirado", rTaille: "mensagem grande demais", rConnexion: "sem conexão", rAutre: "erro {c}", dDetail: "Detalhe da mensagem", pPlateau: "Tabuleiro", pFace: "À frente", pReserve: "Reserva", pTalents: "Suas habilidades", pFaceTalents: "Habilidades do oponente", pAutres: "Partida, idioma, enquadramento", dDelai: "Atraso", dDelaiTxt: "{s} s · {n} tabuleiro(s) na fila", dProchain: "próximo envio em {n} s", dVersion: "Versão", dDispo: "{v} disponível", dCopier: "COPIAR DIAGNÓSTICO", dCopie: "COPIADO",
+    pt: { majDispo: "Atualização disponível", dSecJeu: "Jogo", dSecTwitch: "Twitch", dSecApp: "Aplicativo", dModNom: "Versão da DLL", dAJour: "atualizado", dVersionJeu: "Versão do jogo", dLecture: "Leitura do jogo", dLectureIlya: "última escrita do mod há {n} s", dLectureAucune: "nenhuma escrita do mod", dEnvois: "Envios", dEnvoisTxt: "{n} mensagens desde {h}", dAucunRefus: "nenhuma recusa", dRefus: "{n} recusas, a última às {h} ({r})", r429: "mensagens demais", r401: "token expirado", rTaille: "mensagem grande demais", rConnexion: "sem conexão", rAutre: "erro {c}", dDetail: "Detalhe da mensagem", pPlateau: "Tabuleiro", pFace: "À frente", pReserve: "Reserva", pTalents: "Suas habilidades", pFaceTalents: "Habilidades do oponente", pAutres: "Partida, idioma, enquadramento", dDelai: "Atraso", dDelaiTxt: "{s} s · {n} tabuleiro(s) na fila", dProchain: "próximo envio em {n} s", dVersion: "Versão", dDispo: "{v} disponível", dCopier: "COPIAR DIAGNÓSTICO", dCopie: "COPIADO",
           heros: 'Herói', defaites: 'Derrotas', reglages: 'Configurações',
           jeu: 'Jogo', jeuLance: 'aberto', jeuFerme: 'fechado', jeuDossier: 'pasta não encontrada',
           partie: 'Partida', enCours: 'em andamento', aucune: 'nenhuma',
@@ -2109,7 +2504,7 @@
           jPartie: 'Nova partida ({h})', jVictoire: 'Dia {j}: vitória', jDefaite: 'Dia {j}: derrota',
           jRefus: 'Dia {j}: morte evitada', jTalent: '{n} sobe para {r}',
           raretes: { Bronze: 'Bronze', Silver: 'Prata', Gold: 'Ouro', Diamond: 'Diamante', Legendary: 'Lenda' } },
-    ko: { majDispo: "업데이트 {v}", dSecJeu: "게임", dSecTwitch: "Twitch", dSecApp: "앱", dModNom: "DLL 버전", dAJour: "최신", dVersionJeu: "게임 버전", dLecture: "게임 읽기", dLectureIlya: "모드의 마지막 기록: {n}초 전", dLectureAucune: "모드 기록 없음", dEnvois: "전송", dEnvoisTxt: "{h} 이후 메시지 {n}개", dAucunRefus: "거부 없음", dRefus: "거부 {n}회, 마지막 {h} ({r})", r429: "메시지가 너무 많음", r401: "토큰 만료", rTaille: "메시지가 너무 큼", rConnexion: "연결 없음", rAutre: "오류 {c}", dDetail: "메시지 구성", pPlateau: "보드", pFace: "상대편", pReserve: "보관함", pTalents: "내 스킬", pFaceTalents: "상대 스킬", pAutres: "런, 언어, 화면 배치", dDelai: "지연", dDelaiTxt: "{s}초 · 대기 중인 보드 {n}개", dProchain: "다음 전송까지 {n}초", dVersion: "버전", dDispo: "{v} 사용 가능", dCopier: "진단 복사", dCopie: "복사됨",
+    ko: { majDispo: "업데이트 있음", dSecJeu: "게임", dSecTwitch: "Twitch", dSecApp: "앱", dModNom: "DLL 버전", dAJour: "최신", dVersionJeu: "게임 버전", dLecture: "게임 읽기", dLectureIlya: "모드의 마지막 기록: {n}초 전", dLectureAucune: "모드 기록 없음", dEnvois: "전송", dEnvoisTxt: "{h} 이후 메시지 {n}개", dAucunRefus: "거부 없음", dRefus: "거부 {n}회, 마지막 {h} ({r})", r429: "메시지가 너무 많음", r401: "토큰 만료", rTaille: "메시지가 너무 큼", rConnexion: "연결 없음", rAutre: "오류 {c}", dDetail: "메시지 구성", pPlateau: "보드", pFace: "상대편", pReserve: "보관함", pTalents: "내 스킬", pFaceTalents: "상대 스킬", pAutres: "런, 언어, 화면 배치", dDelai: "지연", dDelaiTxt: "{s}초 · 대기 중인 보드 {n}개", dProchain: "다음 전송까지 {n}초", dVersion: "버전", dDispo: "{v} 사용 가능", dCopier: "진단 복사", dCopie: "복사됨",
           heros: '영웅', defaites: '패배', reglages: '설정',
           jeu: '게임', jeuLance: '실행 중', jeuFerme: '종료됨', jeuDossier: '폴더를 찾을 수 없음',
           partie: '런', enCours: '진행 중', aucune: '없음',
@@ -2126,7 +2521,7 @@
           jPartie: '새 런 ({h})', jVictoire: '{j}일차: 승리', jDefaite: '{j}일차: 패배',
           jRefus: '{j}일차: 죽음 회피', jTalent: '{n} → {r}',
           raretes: { Bronze: '브론즈', Silver: '실버', Gold: '골드', Diamond: '다이아몬드', Legendary: '전설' } },
-    zh: { majDispo: "更新 {v}", dSecJeu: "游戏", dSecTwitch: "Twitch", dSecApp: "应用", dModNom: "DLL 版本", dAJour: "已是最新", dVersionJeu: "游戏版本", dLecture: "游戏读取", dLectureIlya: "模组最后写入：{n} 秒前", dLectureAucune: "模组没有写入", dEnvois: "发送", dEnvoisTxt: "自 {h} 起 {n} 条消息", dAucunRefus: "无拒绝", dRefus: "{n} 次拒绝，最近一次 {h}（{r}）", r429: "消息过多", r401: "令牌过期", rTaille: "消息过大", rConnexion: "无连接", rAutre: "错误 {c}", dDetail: "消息构成", pPlateau: "棋盘", pFace: "对面", pReserve: "储藏", pTalents: "你的技能", pFaceTalents: "对手技能", pAutres: "对局、语言、画面定位", dDelai: "延迟", dDelaiTxt: "{s} 秒 · {n} 个棋盘排队中", dProchain: "{n} 秒后发送下一条", dVersion: "版本", dDispo: "{v} 可用", dCopier: "复制诊断", dCopie: "已复制",
+    zh: { majDispo: "有可用更新", dSecJeu: "游戏", dSecTwitch: "Twitch", dSecApp: "应用", dModNom: "DLL 版本", dAJour: "已是最新", dVersionJeu: "游戏版本", dLecture: "游戏读取", dLectureIlya: "模组最后写入：{n} 秒前", dLectureAucune: "模组没有写入", dEnvois: "发送", dEnvoisTxt: "自 {h} 起 {n} 条消息", dAucunRefus: "无拒绝", dRefus: "{n} 次拒绝，最近一次 {h}（{r}）", r429: "消息过多", r401: "令牌过期", rTaille: "消息过大", rConnexion: "无连接", rAutre: "错误 {c}", dDetail: "消息构成", pPlateau: "棋盘", pFace: "对面", pReserve: "储藏", pTalents: "你的技能", pFaceTalents: "对手技能", pAutres: "对局、语言、画面定位", dDelai: "延迟", dDelaiTxt: "{s} 秒 · {n} 个棋盘排队中", dProchain: "{n} 秒后发送下一条", dVersion: "版本", dDispo: "{v} 可用", dCopier: "复制诊断", dCopie: "已复制",
           heros: '英雄', defaites: '败场', reglages: '设置',
           jeu: '游戏', jeuLance: '运行中', jeuFerme: '已关闭', jeuDossier: '找不到文件夹',
           partie: '对局', enCours: '进行中', aucune: '无',
@@ -2375,7 +2770,11 @@
     /* L'application */
     titre(TV3.dSecApp);
     var v = d.version || {};
-    if (v.app && v.enLigne && versionPlusAncienne(v.app, v.enLigne)) ligne('attente', TV3.dVersion, v.app + ' · ' + fmt(TV3.dDispo, { v: v.enLigne }));
+    if (v.app && v.enLigne && versionPlusAncienne(v.app, v.enLigne)) {
+      /* Les couleurs du voyant : orange pour une mineure, rouge pour une majeure. */
+      var majeureDiag = (parseInt(v.enLigne, 10) || 0) > (parseInt(v.app, 10) || 0);
+      ligne(majeureDiag ? 'erreur' : 'attente', TV3.dVersion, v.app + ' · ' + fmt(TV3.dDispo, { v: v.enLigne }));
+    }
     else if (v.app) ligne('ok', TV3.dVersion, v.app + (v.enLigne ? ' · ' + TV3.dAJour : ''));
     else ligne('', TV3.dVersion, '?');
 
@@ -2522,9 +2921,23 @@
   });
   var flux = new EventSource('/etat?id=' + idFenetre);
   flux.onmessage = function (ev) {
-    try { peindre(JSON.parse(ev.data)); } catch (err) { /* trame partielle */ }
+    var recu = null;
+    try { recu = JSON.parse(ev.data); } catch (err) { return; /* trame partielle */ }
+    try { peindre(recu); } catch (err) { /* une erreur d'affichage ne bloque pas la suite */ }
+    try { majMiseAJour(recu.maj); } catch (err) { /* idem */ }
   };
   flux.onerror = function () {
+    /* L'application vient de se fermer pour laisser l'installateur la
+       remplacer : on le dit, et la fenêtre se ferme si le navigateur le
+       permet. L'installateur en rouvrira une. */
+    if (etatMaj && etatMaj.etat === 'lancement') {
+      etatMaj.etat = 'ferme';
+      fenMajOuverte = true;
+      peindreFenMaj();
+      try { flux.close(); } catch (e) { /* déjà fermé */ }
+      setTimeout(function () { try { window.close(); } catch (e) { /* refusé */ } }, 2500);
+      return;
+    }
     elEtat.dataset.code = 'erreur';
     elLibelle.textContent = T.arretee;
     elPrecision.textContent = '';
@@ -2791,12 +3204,35 @@
   var elConsigne = document.getElementById('cal-consigne');
 
   document.getElementById('cal-titre').textContent    = T.calTitre;
-  document.getElementById('cal-colle').textContent    = T.calColler;
+  /* « (Ctrl+V) » en fin de phrase devient deux touches de clavier. */
+  (function () {
+    var el = document.getElementById('cal-colle');
+    var texte = String(T.calColler || '');
+    var m = /\s*[(\uff08]\s*(Ctrl|Strg)\+V\s*[)\uff09]\s*$/.exec(texte);
+    el.textContent = m ? texte.slice(0, m.index) + ' ' : texte;
+    if (!m) return;
+    var k1 = document.createElement('kbd'); k1.textContent = m[1];
+    var k2 = document.createElement('kbd'); k2.textContent = 'V';
+    el.appendChild(k1); el.appendChild(document.createTextNode(' + ')); el.appendChild(k2);
+  })();
   document.getElementById('cal-fichier').textContent  = T.calChoisir;
-  document.getElementById('cal-plein').textContent    = T.calPlein;
+  document.getElementById('cal-plein-txt').textContent = T.calPlein;
   document.getElementById('cal-annuler').textContent  = T.calAnnuler;
   document.getElementById('cal-valider').textContent  = T.calValider;
-  document.getElementById('cal-aide').textContent     = T.calAide;
+  /* Le passage entre crochets, « [aperçu OBS] », est mis en valeur. */
+  (function () {
+    var el = document.getElementById('cal-aide');
+    el.textContent = '';
+    String(T.calAide || '').split(/(\[[^\]]*\])/).forEach(function (morceau) {
+      if (/^\[.*\]$/.test(morceau)) {
+        var b = document.createElement('b');
+        b.textContent = morceau.slice(1, -1);
+        el.appendChild(b);
+      } else if (morceau) {
+        el.appendChild(document.createTextNode(morceau));
+      }
+    });
+  })();
   document.getElementById('cal-retirer').title        = T.calRetirer;
   document.getElementById('l-cadrage').textContent    = T.cadrage;
   document.getElementById('titre-plateau').textContent = T.titrePlateau;
@@ -2812,20 +3248,30 @@
       : (v === '0') ? T.delaiAucun
       : (v === '60') ? T.delaiMinute
       : T.delaiMinutes.replace('{}', String(Number(v) / 60));
+    if (v === '0' && T.delaiReco) {
+      var reco = document.createElement('span');
+      reco.className = 'reco';
+      reco.textContent = T.delaiReco;
+      b.appendChild(reco);
+    }
   });
-  /* L'explication tient sous les boutons, en deux paragraphes : ce qu'il faut
-     comprendre, puis les valeurs conseillées. */
-  var lignesAide = Array.isArray(T.delaiAide) ? T.delaiAide : [T.delaiAide];
-  var aide = document.getElementById('delai-aide');
-  aide.textContent = '';
-
-  lignesAide.forEach(function (t, i) {
-    var l = document.createElement('div');
-    l.textContent = t;
-    // Le second paragraphe s'écarte du premier.
-    if (i === 3) l.className = 'para';
-    aide.appendChild(l);
-  });
+  document.getElementById('delai-unite').textContent = T.delaiSecondes || 's';
+  /* Les explications, sous le titre de chaque page de réglage et avant ses
+     boutons : une phrase par ligne. */
+  function poserAide(id, texte) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = '';
+    (Array.isArray(texte) ? texte : [texte]).forEach(function (t) {
+      if (!t) return;
+      var l = document.createElement('div');
+      l.textContent = t;
+      el.appendChild(l);
+    });
+  }
+  poserAide('delai-aide', T.delaiAide);
+  poserAide('compte-aide', T.compteAide || TEXTES.en.compteAide);
+  poserAide('jeu-aide', T.jeuAide || TEXTES.en.jeuAide);
   document.getElementById('calibrer').textContent     = T.calibrer;
 
   function pct(v) { return v + '%'; }
@@ -2966,6 +3412,7 @@
     var p = positionRelative(ev);
     saisie = { coin: coin, depart: p,
                cadre: Object.assign({}, calPlateau || plateauParDefaut()) };
+    elScene.classList.add('saisie');
     ev.preventDefault();
     ev.stopPropagation();
   });
@@ -3003,7 +3450,7 @@
     dessinerCadre();
   });
 
-  document.addEventListener('mouseup', function () { saisie = null; });
+  document.addEventListener('mouseup', function () { saisie = null; elScene.classList.remove('saisie'); });
 
   var FLECHES = { ArrowLeft: [-1, 0], ArrowRight: [1, 0],
                   ArrowUp: [0, -1], ArrowDown: [0, 1] };
@@ -3078,6 +3525,7 @@
   (function () {
     var n = document.getElementById('n-delai');
     if (!n) return;
+    var libreOuvert = false;    // « Personnalisé » choisi, valeur pas encore saisie
 
     function borner(v) {
       var x = parseInt(v, 10);
@@ -3099,6 +3547,8 @@
       });
       var libre = document.getElementById('b-libre');
       if (libre) libre.classList.toggle('actif', !connu);
+      var ligneLibre = document.getElementById('ligne-libre');
+      if (ligneLibre) ligneLibre.classList.toggle('ouverte', !connu || libreOuvert);
       if (!envoyer) return;
       fetch('/config', {
         method: 'POST',
@@ -3109,8 +3559,13 @@
 
     [].forEach.call(document.querySelectorAll('#delai button'), function (b) {
       b.addEventListener('click', function () {
-        if (b.dataset.delai === 'libre') { n.focus(); n.select(); poser(n.value, true); }
-        else poser(b.dataset.delai, true);
+        if (b.dataset.delai === 'libre') {
+          /* Le champ s'ouvre ; la valeur n'est envoyée qu'une fois saisie. */
+          libreOuvert = true;
+          document.getElementById('ligne-libre').classList.add('ouverte');
+          [].forEach.call(document.querySelectorAll('#delai button'), function (x) { x.classList.toggle('actif', x === b); });
+          n.focus(); n.select();
+        } else { libreOuvert = false; poser(b.dataset.delai, true); }
       });
     });
 
