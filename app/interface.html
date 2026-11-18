@@ -83,6 +83,24 @@
     margin: 0 auto 11px;
   }
 
+  #cadre-partie .delai-badge {
+    position: absolute;
+    top: -9px;
+    right: 13px;
+    margin: 0;
+    padding: 0 7px;
+    border: 0;
+    background: var(--fond);
+    font: 700 10.5px/1 'Rajdhani', Arial, sans-serif;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--alerte);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  #cadre-partie .delai-badge:hover { text-decoration: underline; }
+  #cadre-partie .delai-badge[hidden] { display: none; }
+
   .cadre > h2 {
     position: absolute;
     top: -9px;
@@ -149,6 +167,12 @@
 
   .objet.enchante { box-shadow: inset 0 0 0 1px var(--ench, rgba(192,96,240,.55)); }
   .objet.enchante .ench { color: var(--ench, var(--laiton-bas)); }
+  /* Tiny (objet rétréci) : avant l'autre enchantement, en rose pâle, suivi
+     d'un point couleur du texte. Chaque mot garde sa ligne dans une case
+     étroite. */
+  .ench > span { white-space: nowrap; }
+  .ench .tiny { color: #f2a9d6; }
+  .ench .point { color: var(--laiton-bas); }
 
   .emplacement {
     display: block;
@@ -321,6 +345,27 @@
   }
   .accueil p { font-size: 17px; color: var(--texte); margin-bottom: 12px; line-height: 1.35; }
   .accueil .valider { width: auto; padding: 9px 26px; }
+  /* « Avant de commencer », sur une seule ligne, avec un voyant rouge. */
+  .avant {
+    display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 4px 16px;
+    width: fit-content; max-width: 100%; margin: 0 auto 14px; padding: 7px 16px;
+    border: 1px solid color-mix(in srgb, var(--alerte) 70%, transparent); border-radius: 5px;
+    background: color-mix(in srgb, var(--alerte) 9%, rgba(0, 0, 0, .3));
+  }
+  .avant[hidden] { display: none; }
+  .avant-titre { display: flex; align-items: center; gap: 8px;
+    font: 600 12px 'Segoe UI', sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #f0b0a0; }
+  .avant-titre::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--alerte);
+    box-shadow: 0 0 8px var(--alerte); animation: pulse 2.4s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .avant-titre::before { animation: none; } }
+  /* Chaque étape est un petit bouton doré (variante A, validée par Kwev). */
+  .avant-ligne { display: flex; align-items: center; padding: 5px 12px; white-space: nowrap; cursor: pointer;
+    border: 1px solid var(--laiton-bas); border-radius: 4px; background: rgba(240, 192, 96, .08);
+    font: 600 14px/1.3 'Segoe UI', system-ui, sans-serif; color: var(--laiton);
+    transition: background .15s, border-color .15s; }
+  .avant-ligne[hidden] { display: none; }
+  .avant-ligne .puce, .avant-ligne .fleche { display: none; }
+  .avant-ligne:hover { background: rgba(240, 192, 96, .18); border-color: var(--laiton); }
 
   /* Les pastilles sur leur propre ligne, les compteurs dessous : une partie de
      seize jours ou plus ne les fait plus se chevaucher. */
@@ -665,6 +710,30 @@
   }
   .calibrage.ouvert { display: flex; }
 
+  /* L'onglet Cadrage une fois le cadrage fait (Kwev, 27 octobre) : un mot
+     et un bouton pour le refaire, au centre. */
+  .cadrage-fait {
+    position: fixed; inset: 0; z-index: 49; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    background: var(--fond); text-align: center; padding: 20px;
+  }
+  .cadrage-fait.visible { display: flex; }
+  .cadrage-fait p { display: flex; align-items: center; gap: 10px; margin: 0;
+    font: 19px/1.4 'Segoe UI', system-ui, sans-serif; color: var(--texte); }
+  .cadrage-fait p::before { content: "\2713"; display: inline-grid; place-items: center; width: 26px; height: 26px;
+    border-radius: 50%; background: rgba(110, 224, 138, .15); color: #6ee08a; font-size: 15px; font-weight: 700; }
+  .cadrage-fait .valider { width: auto; padding: 9px 26px; }
+  /* Le réglage actuel en image, comme pendant le cadrage, mais sans rien
+     de cliquable ni l'invitation à coller une capture. */
+  .cal-scene.resume-scene { width: min(560px, 80%); max-width: none; margin: 4px 0 0; flex: none; }
+  .resume-scene, .resume-scene * { pointer-events: none; cursor: default; }
+  .resume-scene .cal-cams { display: block; }
+  /* Sans capture, l'emplacement du jeu dans la scène, en pointillés. */
+  .resume-jeu { position: absolute; box-sizing: border-box; border: 1px dashed rgba(240, 220, 180, .4); border-radius: 2px; }
+  .resume-scene .cal-cam.sans { display: none; }
+  .resume-scene .cal-cam .etiquette { padding: 5px 9px; font-size: 10px; gap: 3px; }
+  .resume-scene .cal-cam .etiquette svg { width: 18px; height: 18px; }
+
   /* Au format des autres pages de réglage : titre en capitales dans la
      police du logo, consignes en texte clair et lisible. */
   .cal-titre {
@@ -808,6 +877,43 @@
     border-left: 1px solid rgba(255, 90, 120, .95);
   }
 
+  /* Les deux étapes du cadrage : le jeu, puis la caméra (validé par Kwev le
+     23 octobre). */
+  .cal-etapes { display: flex; gap: 0; margin-top: 10px; }
+  .cal-etapes button {
+    font: 600 13px 'Segoe UI', sans-serif; letter-spacing: .12em; text-transform: uppercase;
+    padding: 8px 18px; color: #c9b892; background: transparent; cursor: pointer;
+    border: 1px solid #4a3a28;
+  }
+  .cal-etapes button:first-child { border-radius: 3px 0 0 3px; }
+  .cal-etapes button:last-child  { border-radius: 0 3px 3px 0; border-left: 0; }
+  .cal-etapes button.actif { color: #1a120b; background: linear-gradient(180deg,#ffd98a,var(--laiton) 60%,#c99a45); border-color: var(--laiton); }
+  .cal-etapes button .num { opacity: .7; margin-right: 6px; }
+  .cal-etapes button .fait { color: #6ee08a; margin-left: 6px; display: none; }
+  .calibrage.etape-cam .cal-etapes button .fait { display: inline; }
+  .cal-etapes button.actif .fait { color: #1d5a2a; }
+  /* À l'étape de la caméra, le cadre du jeu reste visible, atténué. */
+  .calibrage.etape-cam .cal-cadre { opacity: .45; box-shadow: none; pointer-events: none; }
+  .calibrage.etape-cam .cal-cadre .poignee { display: none; }
+  .calibrage.etape-cam .cal-zones { opacity: .3; }
+  .cal-cams { position: absolute; inset: 0; display: none; z-index: 5; pointer-events: none; }
+  .cal-cams .cal-cam, .cal-cams.sans { pointer-events: auto; }
+  .calibrage.etape-cam .cal-cams { display: block; }
+  .cal-cam { position: absolute; box-sizing: border-box; border: 2px solid var(--laiton);
+    background: rgba(240,192,96,.16); cursor: move; display: grid; place-items: center; }
+  .cal-cam .etiquette { display: grid; justify-items: center; gap: 6px; pointer-events: none;
+    font: 600 12px 'Segoe UI', sans-serif; letter-spacing: .12em; color: #fff3d6; text-shadow: 0 1px 3px #000;
+    background: rgba(12,8,4,.72); padding: 8px 14px; border-radius: 4px; text-align: center; }
+  .cal-cam .etiquette svg { width: 26px; height: 26px; }
+  .cal-cams.sans .cal-cam { display: none; }
+  .cal-cams.sans { cursor: crosshair; }
+  .cal-milieu { position: absolute; top: 0; bottom: 0; left: 50%; border-left: 1px dashed rgba(240,220,180,.55);
+    opacity: 0; transition: opacity .15s; pointer-events: none; }
+  .cal-cams.saisie .cal-milieu { opacity: 1; }
+  .cal-boutons .lien.choisi, .cal-boutons .lien.choisi:hover { color: #1a120b; background: var(--laiton); border-color: var(--laiton); }
+  .calibrage .cal-boutons .cam-seul { display: none; }
+  .calibrage.etape-cam .cal-boutons .cam-seul { display: inline-flex; }
+  .calibrage.etape-cam .cal-boutons .jeu-seul { display: none; }
   .cal-aide { font: 16px/1.5 'Segoe UI', system-ui, sans-serif; color: #c2b293;
               text-align: center; min-height: 14px; }
   .cal-aide b { color: var(--laiton); font-weight: 600; }
@@ -972,8 +1078,10 @@
   /* Le calibrage occupe la place du contenu, le menu de gauche reste. La
      langue du menu ne s'efface plus pendant le calibrage. */
   .calibrage { left: var(--rail); }
+  .cadrage-fait { left: var(--rail); }
   body:has(.calibrage.ouvert) .pied-rail .langues { display: flex; }
   body:has(#alerte-version:not([hidden])) .calibrage { top: 33px; }
+  body:has(#alerte-version:not([hidden])) .cadrage-fait { top: 33px; }
 
   /* Les pages : une seule visible. Elles commencent sous le coin droit. */
   .page { width: 100%; max-width: 820px; padding-top: 14px; }
@@ -1006,6 +1114,7 @@
   .pastille.v { background: #3f8ae0; }
   .pastille.d { background: #d0453a; }
   .pastille.r { background: #5a1712; box-shadow: inset 0 0 0 1.5px #d0453a; }
+  .pastille.x { background: #111; box-shadow: inset 0 0 0 1.5px #8c8f98; }
   .pastille.encours { box-shadow: inset 0 0 0 1.5px var(--laiton); }
   #compteurs { gap: 0; font-size: 13px; letter-spacing: .02em; flex-wrap: wrap; justify-content: center; }
   #compteurs span + span::before { content: "\00b7"; margin: 0 10px; color: var(--trait); }
@@ -1077,6 +1186,36 @@
                   color: var(--laiton); font: 600 13px/1 'Rajdhani', sans-serif; letter-spacing: .14em;
                   padding: 10px 18px; border-radius: 3px; cursor: pointer; display: inline-flex; gap: 9px; align-items: center; }
   .diag .copier:hover { border-color: var(--laiton); }
+
+  /* La console des envois à Twitch (Diagnostic) : dix lignes visibles, la
+     plus récente en bas, comme une console. */
+  .envois { margin-top: 18px; }
+  .envois-tete { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .envois-tete h3 { flex: 1; font: 600 10.5px/1 'Rajdhani', sans-serif; letter-spacing: .16em; text-transform: uppercase;
+                    color: var(--laiton-bas); }
+  .envois-tete button { background: none; border: 1px solid var(--laiton-bas); color: var(--laiton);
+                        font: 600 11px/1 'Rajdhani', sans-serif; letter-spacing: .14em; padding: 6px 10px;
+                        border-radius: 3px; cursor: pointer; }
+  .envois-tete button:hover { border-color: var(--laiton); }
+  .envois-tete button.actif { background: var(--laiton); color: var(--fond); }
+  .envois-console { background: #0b0703; border: 1px solid var(--trait); border-radius: 4px;
+                    font: 12.5px/1.45 Consolas, 'Cascadia Mono', 'Courier New', monospace; color: var(--texte);
+                    height: calc(10 * 1.45em + 12px); overflow-y: auto; padding: 6px 0; user-select: text; }
+  .envois-l { display: grid; grid-template-columns: 70px 74px 1fr; gap: 10px; padding: 0 10px; cursor: pointer;
+              white-space: nowrap; }
+  .envois-l > span { overflow: hidden; text-overflow: ellipsis; }
+  .envois-l:hover { background: rgba(240, 192, 96, .06); }
+  .envois-l.ouvert { background: rgba(240, 192, 96, .10); }
+  .envois-l .h, .envois-l .o { color: var(--discret); }
+  .envois-l .o { text-align: right; }
+  .envois-l .ch { color: var(--vif); }
+  .envois-l.veille .r { color: var(--discret); }
+  .envois-l.refus .r, .envois-l.refus .o { color: var(--alerte); }
+  .envois-vide { color: var(--discret); padding: 0 10px; }
+  .envois-msg { margin: 2px 10px 6px 90px; padding: 6px 8px; border-left: 2px solid var(--laiton-bas); background: #120a04;
+                white-space: pre-wrap; word-break: break-all; color: #cdbfa5; cursor: text; }
+  .envois-msg mark { background: rgba(110, 224, 138, .18); color: var(--vif); border-radius: 2px; }
+  .envois-aide { color: var(--discret); font-size: 12.5px; margin-top: 5px; }
 
   /* Le journal, un cadre comme les autres, toujours ouvert. */
   .journal.cadre { margin-top: 0; }
@@ -1192,15 +1331,22 @@
 
 
   <div class="page" id="page-partie">
-  <!-- Premier lancement : la connexion à Twitch, avant tout le reste. -->
-  <div class="accueil" id="accueil" hidden>
-    <p id="accueil-texte"></p>
-    <button class="valider" id="accueil-connecter"></button>
+  <!-- Avant de commencer : une petite liste de ce qui reste à faire
+       (Kwev, 27 octobre). Chaque ligne disparaît une fois faite, la liste
+       entière quand tout est fait. -->
+  <div class="avant" id="avant" hidden>
+    <div class="avant-titre" id="avant-titre"></div>
+    <button type="button" class="avant-ligne" id="avant-twitch"><span class="puce"></span><span id="avant-twitch-txt"></span><span class="fleche">›</span></button>
+    <button type="button" class="avant-ligne" id="avant-cadrage"><span class="puce"></span><span id="avant-cadrage-txt"></span><span class="fleche">›</span></button>
   </div>
 
   <!-- La partie, comme les spectateurs la voient. -->
   <section class="cadre" id="cadre-partie">
     <h2 id="titre-partie">Partie</h2>
+    <!-- Le délai réglé par le streamer, sur le bord droit du cadre : une
+         confirmation s'il l'a voulu, un avertissement s'il l'a oublié
+         (Kwev, 28 octobre). Rien sans délai. -->
+    <button type="button" class="delai-badge" id="delai-badge" hidden></button>
     <div class="partie-ligne">
       <div class="jours" id="jours"></div>
       <div class="compteurs" id="compteurs"></div>
@@ -1304,15 +1450,45 @@
     </div>
     <div class="panneau-onglet" data-panneau="diag">
       <div class="diag" id="diag"></div>
+      <!-- Hors de #diag, qui est repeint chaque seconde : la console garde
+           ainsi sa position de défilement et la ligne ouverte. -->
+      <div class="envois" id="envois">
+        <div class="envois-tete"><h3 id="envois-titre"></h3>
+          <button type="button" id="envois-figer"></button><button type="button" id="envois-copier"></button></div>
+        <div class="envois-console" id="envois-console"></div>
+        <div class="envois-aide" id="envois-aide"></div>
+      </div>
+      <div class="diag">
+        <button type="button" class="copier" id="diag-copier"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5" y="5" width="8.5" height="9" rx="1.5"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h6"/></svg><span></span></button>
+      </div>
     </div>
   </div>
 
+  </div>
+
+  <div class="cadrage-fait" id="cadrage-fait">
+    <p id="cadrage-fait-texte"></p>
+    <button class="valider" id="cadrage-refaire"></button>
+    <div class="cal-scene resume-scene" id="resume-scene" aria-hidden="true">
+      <div class="cal-cadre" id="resume-cadre"></div>
+      <div class="resume-jeu" id="resume-jeu"></div>
+      <div class="cal-zones" id="resume-zones"></div>
+      <div class="cal-cams">
+        <div class="cal-cam" id="resume-cam">
+          <div class="etiquette"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="6.5" width="14" height="11" rx="2"/><path d="M16.5 10.5l5-3v9l-5-3z"/></svg><span id="resume-cam-txt"></span></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="calibrage" id="calibrage">
     <div class="cal-entete">
       <div class="cal-titre" id="cal-titre">Où se trouve le jeu dans votre stream ?</div>
       <div class="cal-consigne" id="cal-consigne"></div>
+      <div class="cal-etapes">
+        <button type="button" class="actif" id="et-jeu"><span class="num">1</span><span id="et-jeu-txt"></span><span class="fait">✓</span></button>
+        <button type="button" id="et-cam"><span class="num">2</span><span id="et-cam-txt"></span></button>
+      </div>
     </div>
 
     <div class="cal-scene" id="cal-scene" tabindex="0">
@@ -1331,12 +1507,21 @@
         <span class="poignee sw"></span><span class="poignee se"></span>
       </div>
       <div class="cal-zones" id="cal-zones"></div>
+      <div class="cal-cams" id="cal-cams">
+        <div class="cal-milieu"></div>
+        <div class="cal-cam" id="cal-cam">
+          <span class="poignee nw"></span><span class="poignee ne"></span>
+          <span class="poignee sw"></span><span class="poignee se"></span>
+          <div class="etiquette"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2.5" y="6.5" width="14" height="11" rx="2"/><path d="M16.5 10.5l5-3v9l-5-3z"/></svg><span id="cal-cam-etiquette"></span></div>
+        </div>
+      </div>
     </div>
 
     <div class="cal-aide" id="cal-aide"></div>
 
     <div class="cal-boutons">
-      <button class="lien" id="cal-plein"><svg viewBox="0 0 16 16" width="14" height="14" fill="none"
+      <button class="lien cam-seul" id="cal-sans-cam"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="4" width="9" height="8" rx="1.5"/><path d="M10.5 7l4-2.5v7l-4-2.5M1 1l14 14"/></svg><span id="cal-sans-cam-txt"></span></button>
+      <button class="lien jeu-seul" id="cal-plein"><svg viewBox="0 0 16 16" width="14" height="14" fill="none"
         stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg><span id="cal-plein-txt"></span></button>
       <div style="flex:1"></div>
       <button class="lien" id="cal-annuler"></button>
@@ -1402,6 +1587,16 @@
       calValider:    'VALIDER',
       calPas169:     'Cette capture n\u2019est pas en 16/9. Recadrez-la, sinon le calibrage sera faux.',
       calAide:       'Capturez votre [aperçu OBS], pas votre écran : c\u2019est lui que voient vos spectateurs.',
+      calEtapeJeu: "Le jeu",
+      calEtapeCam: "Votre caméra",
+      calSuivant: "SUIVANT",
+      calTitreCam: "Où est votre caméra ?",
+      calConsigneCam: "Placez le cadre sur votre caméra et tirez ses coins pour l’ajuster. La réserve de vos spectateurs s’affichera de l’autre côté.",
+      calSansCam: "PAS DE CAMÉRA",
+      calCamEtiquette: "VOTRE CAMÉRA",
+      calCamGauche: "Caméra [à gauche] : la réserve de vos spectateurs s’affichera à droite.",
+      calCamDroite: "Caméra [à droite] : la réserve de vos spectateurs s’affichera à gauche.",
+      calCamAucune: "[Pas de caméra] : la réserve reste là où vos spectateurs la placent. Cliquez dans l’image pour remettre un cadre.",
       dossierOk:     'Dossier du jeu reconnu.',
       dossierNon:    'Ce dossier ne contient pas le jeu.',
       connecte:      'Connecté.',
@@ -1461,6 +1656,16 @@
       calValider:    'SAVE',
       calPas169:     'This capture is not 16:9. Crop it, otherwise the calibration will be wrong.',
       calAide:       'Capture your [OBS preview], not your screen: that is what your viewers see.',
+      calEtapeJeu: "The game",
+      calEtapeCam: "Your camera",
+      calSuivant: "NEXT",
+      calTitreCam: "Where is your camera?",
+      calConsigneCam: "Place the frame over your camera and drag its corners to adjust it. Your viewers’ stash will be shown on the other side.",
+      calSansCam: "NO CAMERA",
+      calCamEtiquette: "YOUR CAMERA",
+      calCamGauche: "Camera [on the left]: your viewers’ stash will be shown on the right.",
+      calCamDroite: "Camera [on the right]: your viewers’ stash will be shown on the left.",
+      calCamAucune: "[No camera]: the stash stays wherever your viewers put it. Click in the picture to bring the frame back.",
       dossierOk:     'Game folder recognised.',
       dossierNon:    'This folder does not contain the game.',
       connecte:      'Connected.',
@@ -1520,6 +1725,16 @@
       calAnnuler: "CANCELAR",
       calValider: "GUARDAR",
       calAide: "Captura tu [vista previa de OBS], no tu pantalla: es lo que ven tus espectadores.",
+      calEtapeJeu: "El juego",
+      calEtapeCam: "Tu cámara",
+      calSuivant: "SIGUIENTE",
+      calTitreCam: "¿Dónde está tu cámara?",
+      calConsigneCam: "Coloca el marco sobre tu cámara y arrastra sus esquinas para ajustarlo. La reserva de tus espectadores se mostrará en el otro lado.",
+      calSansCam: "SIN CÁMARA",
+      calCamEtiquette: "TU CÁMARA",
+      calCamGauche: "Cámara [a la izquierda]: la reserva de tus espectadores se mostrará a la derecha.",
+      calCamDroite: "Cámara [a la derecha]: la reserva de tus espectadores se mostrará a la izquierda.",
+      calCamAucune: "[Sin cámara]: la reserva se queda donde la pongan tus espectadores. Haz clic en la imagen para volver a poner el marco.",
       dossierOk: "Carpeta del juego reconocida.",
       dossierNon: "Esta carpeta no contiene el juego.",
       connecte: "Conectado.",
@@ -1579,6 +1794,16 @@
       calAnnuler: "ANNULLA",
       calValider: "SALVA",
       calAide: "Cattura la tua [anteprima OBS], non lo schermo: è ciò che vedono i tuoi spettatori.",
+      calEtapeJeu: "Il gioco",
+      calEtapeCam: "La tua webcam",
+      calSuivant: "AVANTI",
+      calTitreCam: "Dov’è la tua webcam?",
+      calConsigneCam: "Posiziona il riquadro sulla tua webcam e trascinane gli angoli per adattarlo. La riserva dei tuoi spettatori apparirà dall’altro lato.",
+      calSansCam: "NESSUNA WEBCAM",
+      calCamEtiquette: "LA TUA WEBCAM",
+      calCamGauche: "Webcam [a sinistra]: la riserva dei tuoi spettatori apparirà a destra.",
+      calCamDroite: "Webcam [a destra]: la riserva dei tuoi spettatori apparirà a sinistra.",
+      calCamAucune: "[Nessuna webcam]: la riserva resta dove la mettono i tuoi spettatori. Clicca nell’immagine per rimettere il riquadro.",
       dossierOk: "Cartella del gioco riconosciuta.",
       dossierNon: "Questa cartella non contiene il gioco.",
       connecte: "Connesso.",
@@ -1638,6 +1863,16 @@
       calAnnuler: "ABBRECHEN",
       calValider: "SPEICHERN",
       calAide: "Nimm deine [OBS-Vorschau] auf, nicht deinen Bildschirm: das sehen deine Zuschauer.",
+      calEtapeJeu: "Das Spiel",
+      calEtapeCam: "Deine Kamera",
+      calSuivant: "WEITER",
+      calTitreCam: "Wo ist deine Kamera?",
+      calConsigneCam: "Leg den Rahmen über deine Kamera und zieh an den Ecken, um ihn anzupassen. Das Lager deiner Zuschauer erscheint auf der anderen Seite.",
+      calSansCam: "KEINE KAMERA",
+      calCamEtiquette: "DEINE KAMERA",
+      calCamGauche: "Kamera [links]: das Lager deiner Zuschauer erscheint rechts.",
+      calCamDroite: "Kamera [rechts]: das Lager deiner Zuschauer erscheint links.",
+      calCamAucune: "[Keine Kamera]: das Lager bleibt dort, wo deine Zuschauer es hinlegen. Klick ins Bild, um den Rahmen zurückzuholen.",
       dossierOk: "Spielordner erkannt.",
       dossierNon: "Dieser Ordner enthält das Spiel nicht.",
       connecte: "Verbunden.",
@@ -1697,6 +1932,16 @@
       calAnnuler: "CANCELAR",
       calValider: "GUARDAR",
       calAide: "Captura a tua [pré-visualização OBS], não o teu ecrã: é o que os teus espectadores veem.",
+      calEtapeJeu: "O jogo",
+      calEtapeCam: "A tua câmara",
+      calSuivant: "SEGUINTE",
+      calTitreCam: "Onde está a tua câmara?",
+      calConsigneCam: "Coloca o quadro sobre a tua câmara e arrasta os cantos para o ajustar. A reserva dos teus espectadores aparecerá do outro lado.",
+      calSansCam: "SEM CÂMARA",
+      calCamEtiquette: "A TUA CÂMARA",
+      calCamGauche: "Câmara [à esquerda]: a reserva dos teus espectadores aparecerá à direita.",
+      calCamDroite: "Câmara [à direita]: a reserva dos teus espectadores aparecerá à esquerda.",
+      calCamAucune: "[Sem câmara]: a reserva fica onde os teus espectadores a puserem. Clica na imagem para voltar a pôr o quadro.",
       dossierOk: "Pasta do jogo reconhecida.",
       dossierNon: "Esta pasta não contém o jogo.",
       connecte: "Ligado.",
@@ -1756,6 +2001,16 @@
       calAnnuler: "取消",
       calValider: "保存",
       calAide: "请截取 [OBS 预览]，而不是整个屏幕：观众看到的是前者。",
+      calEtapeJeu: "游戏",
+      calEtapeCam: "你的摄像头",
+      calSuivant: "下一步",
+      calTitreCam: "你的摄像头在哪里？",
+      calConsigneCam: "把方框放在你的摄像头画面上，拖动四角调整大小。观众的储藏会显示在另一侧。",
+      calSansCam: "没有摄像头",
+      calCamEtiquette: "你的摄像头",
+      calCamGauche: "摄像头[在左侧]：观众的储藏将显示在右侧。",
+      calCamDroite: "摄像头[在右侧]：观众的储藏将显示在左侧。",
+      calCamAucune: "[没有摄像头]：储藏保持在观众自己放置的位置。点击画面可重新放置方框。",
       dossierOk: "已识别游戏文件夹。",
       dossierNon: "该文件夹中没有游戏。",
       connecte: "已连接。",
@@ -1815,6 +2070,16 @@
       calAnnuler: "취소",
       calValider: "저장",
       calAide: "화면 전체가 아니라 [OBS 미리보기]를 캡처하세요. 시청자가 보는 것은 그쪽입니다.",
+      calEtapeJeu: "게임",
+      calEtapeCam: "내 카메라",
+      calSuivant: "다음",
+      calTitreCam: "카메라는 어디에 있나요?",
+      calConsigneCam: "카메라 위에 틀을 놓고 모서리를 끌어 크기를 맞추세요. 시청자의 보관함은 반대쪽에 표시됩니다.",
+      calSansCam: "카메라 없음",
+      calCamEtiquette: "내 카메라",
+      calCamGauche: "카메라 [왼쪽]: 시청자의 보관함이 오른쪽에 표시됩니다.",
+      calCamDroite: "카메라 [오른쪽]: 시청자의 보관함이 왼쪽에 표시됩니다.",
+      calCamAucune: "[카메라 없음]: 보관함은 시청자가 둔 자리에 그대로 있습니다. 이미지를 클릭하면 틀이 다시 나타납니다.",
       dossierOk: "게임 폴더를 확인했습니다.",
       dossierNon: "이 폴더에는 게임이 없습니다.",
       connecte: "연결되었습니다.",
@@ -1944,10 +2209,27 @@
 
   function poserNom(el, o) {
     el.textContent = '';
-    if (o.ench) {
+    if (o.ench || o.tiny) {
       var e = document.createElement('span');
       e.className = 'ench';
-      e.textContent = nomEnchantement(o.ench);
+      if (o.tiny) {
+        var tiny = document.createElement('span');
+        tiny.className = 'tiny';
+        tiny.textContent = nomEnchantement('Tiny');
+        if (o.ench) {
+          var point = document.createElement('span');
+          point.className = 'point';
+          point.textContent = ' \u00b7';
+          tiny.appendChild(point);
+        }
+        e.appendChild(tiny);
+        if (o.ench) e.appendChild(document.createTextNode(' '));
+      }
+      if (o.ench) {
+        var nomE = document.createElement('span');
+        nomE.textContent = nomEnchantement(o.ench);
+        e.appendChild(nomE);
+      }
       el.appendChild(e);
     }
     el.appendChild(document.createTextNode(o.nom));
@@ -2056,31 +2338,38 @@
     fr: { Golden: 'Doré', Heavy: 'Lourd', Icy: 'Glacé', Turbo: 'Turbo',
           Shielded: 'Blindé', Restorative: 'Guérisseur', Toxic: 'Toxique',
           Fiery: 'Ardent', Shiny: 'Brillant', Deadly: 'Mortel',
-          Radiant: 'Radieux', Obsidian: 'Obsidienne', Mossy: 'Moussu' },
+          Radiant: 'Radieux', Obsidian: 'Obsidienne', Mossy: 'Moussu',
+          Tiny: 'Minuscule' },
     de: { Golden: 'Golden', Heavy: 'Schwer', Icy: 'Eisig', Turbo: 'Turbo',
           Shielded: 'Geschützt', Restorative: 'Heilend', Toxic: 'Giftig',
           Fiery: 'Feurig', Shiny: 'Glänzend', Deadly: 'Tödlich',
-          Radiant: 'Strahlend', Obsidian: 'Obsidian', Mossy: 'Moosig' },
+          Radiant: 'Strahlend', Obsidian: 'Obsidian', Mossy: 'Moosig',
+          Tiny: 'Winzig' },
     es: { Golden: 'Dorado', Heavy: 'Pesado', Icy: 'Helado', Turbo: 'Turbo',
           Shielded: 'Blindado', Restorative: 'Restaurador', Toxic: 'Tóxico',
           Fiery: 'Ardiente', Shiny: 'Brillante', Deadly: 'Mortal',
-          Radiant: 'Radiante', Obsidian: 'Obsidiana', Mossy: 'Musgoso' },
+          Radiant: 'Radiante', Obsidian: 'Obsidiana', Mossy: 'Musgoso',
+          Tiny: 'Diminuto' },
     it: { Golden: 'Dorato', Heavy: 'Pesante', Icy: 'Ghiacciato', Turbo: 'Turbo',
           Shielded: 'Schermato', Restorative: 'Ristoratore', Toxic: 'Tossico',
           Fiery: 'Infuocato', Shiny: 'Lucente', Deadly: 'Letale',
-          Radiant: 'Radioso', Obsidian: 'Ossidiana', Mossy: 'Muschioso' },
+          Radiant: 'Radioso', Obsidian: 'Ossidiana', Mossy: 'Muschioso',
+          Tiny: 'Minuscolo' },
     pt: { Golden: 'Dourado', Heavy: 'Pesado', Icy: 'Gelado', Turbo: 'Turbo',
           Shielded: 'Blindado', Restorative: 'Restaurador', Toxic: 'Tóxico',
           Fiery: 'Flamejante', Shiny: 'Brilhante', Deadly: 'Mortal',
-          Radiant: 'Radiante', Obsidian: 'Obsidiana', Mossy: 'Musgoso' },
+          Radiant: 'Radiante', Obsidian: 'Obsidiana', Mossy: 'Musgoso',
+          Tiny: 'Minúsculo' },
     ko: { Golden: '황금', Heavy: '무거운', Icy: '얼음', Turbo: '터보',
           Shielded: '보호', Restorative: '회복', Toxic: '유독',
           Fiery: '화염', Shiny: '광휘', Deadly: '치명',
-          Radiant: '찬란', Obsidian: '흑요석', Mossy: '이끼' },
+          Radiant: '찬란', Obsidian: '흑요석', Mossy: '이끼',
+          Tiny: '초소형' },
     zh: { Golden: '黄金', Heavy: '沉重', Icy: '冰寒', Turbo: '涡轮',
           Shielded: '护盾', Restorative: '恢复', Toxic: '剧毒',
           Fiery: '炽焰', Shiny: '闪耀', Deadly: '致命',
-          Radiant: '辉光', Obsidian: '黑曜', Mossy: '苔藓' },
+          Radiant: '辉光', Obsidian: '黑曜', Mossy: '苔藓',
+          Tiny: '微型' },
   };
 
   function nomEnchantement(nom) {
@@ -2384,6 +2673,7 @@
   function majDelai(d) {
     var n = document.getElementById('n-delai');
     if (n) n.value = d;
+    majBadgeDelai(d);
 
     var connu = false;
     [].forEach.call(document.querySelectorAll('#delai button'), function (b) {
@@ -2399,10 +2689,31 @@
   }
 
 
+  /* Le délai choisi par le streamer, rappelé en rouge sur le cadre Partie ;
+     un clic ouvre l'onglet du délai. */
+  function majBadgeDelai(d) {
+    var b = document.getElementById('delai-badge');
+    if (!b) return;
+    d = parseInt(d, 10) || 0;
+    if (d <= 0) { b.hidden = true; return; }
+    var t = (typeof TV3 !== 'undefined' && TV3) || {};
+    var duree = (d >= 60 && d % 60 === 0)
+      ? (t.delaiMin || '{n} min').replace('{n}', d / 60)
+      : (t.delaiS || '{n} s').replace('{n}', d);
+    b.textContent = (t.delaiBadge || 'Votre délai de stream : {d}').replace('{d}', duree);
+    b.title = t.delaiBadgeAide || '';
+    b.hidden = false;
+  }
+  document.addEventListener('click', function (e) {
+    if (!e.target || e.target.id !== 'delai-badge') return;
+    var r = document.querySelector('#rail button[data-onglet="delai"]');
+    if (r) r.click();
+  });
+
   /* ── V3 : textes du bandeau, de la partie, des onglets, du diagnostic et
      du journal ─────────────────────────────────────────────────────────── */
   var TV3_TOUS = {
-    fr: { majDispo: "Mise à jour disponible", dSecJeu: "Jeu", dSecTwitch: "Twitch", dSecApp: "Application", dModNom: "Version de la DLL", dAJour: "à jour", dVersionJeu: "Version du jeu", dLecture: "Lecture du jeu", dLectureIlya: "dernière écriture du mod il y a {n} s", dLectureAucune: "aucune écriture du mod", dEnvois: "Envois", dEnvoisTxt: "{n} messages depuis {h}", dAucunRefus: "aucun refus", dRefus: "{n} refus, dernier à {h} ({r})", r429: "trop de messages", r401: "jeton expiré", rTaille: "message trop gros", rConnexion: "pas de connexion", rAutre: "erreur {c}", dDetail: "Détail du message", pPlateau: "Plateau", pFace: "En face", pReserve: "Réserve", pTalents: "Vos talents", pFaceTalents: "Talents adverses", pAutres: "Partie, langue, cadrage", dDelai: "Délai", dDelaiTxt: "{s} s · {n} plateau(x) en attente", dProchain: "prochain envoi dans {n} s", dVersion: "Version", dDispo: "{v} disponible", dCopier: "COPIER LE DIAGNOSTIC", dCopie: "COPIÉ",
+    fr: { eTitre: "Messages envoyés à Twitch", eFiger: "FIGER", eReprendre: "REPRENDRE", eCopier: "COPIER", eCopie: "COPIÉ", eAide: "Les 50 derniers envois, le plus récent en bas. Cliquez sur une ligne pour voir le message complet : ce qui a changé depuis l'envoi précédent est en vert.", eVide: "aucun envoi pour l'instant", eChang: "{n} changements", eChang1: "1 changement", eRenvoi: "renvoi, rien de changé", eVeille: "signe de vie (hors partie)", eRefuse: "refusé : {r}", eOct: "{o} o", delaiBadge: "Votre délai de stream : {d}", delaiBadgeAide: "Le délai que vous avez réglé vous-même : les cartes arrivent aux spectateurs avec ce retard. Cliquez pour le modifier.", delaiS: "{n} s", delaiMin: "{n} min", majDispo: "Mise à jour disponible", dSecJeu: "Jeu", dSecTwitch: "Twitch", dSecApp: "Application", dModNom: "Version de la DLL", dAJour: "à jour", dVersionJeu: "Version du jeu", dLecture: "Lecture du jeu", dLectureIlya: "dernière écriture du mod il y a {n} s", dLectureAucune: "aucune écriture du mod", dEnvois: "Envois", dEnvoisTxt: "{n} messages depuis {h}", dAucunRefus: "aucun refus", dRefus: "{n} refus, dernier à {h} ({r})", r429: "trop de messages", r401: "jeton expiré", rTaille: "message trop gros", rConnexion: "pas de connexion", rAutre: "erreur {c}", dDetail: "Détail du message", pPlateau: "Plateau", pFace: "En face", pReserve: "Réserve", pTalents: "Vos talents", pFaceTalents: "Talents adverses", pAutres: "Partie, langue, cadrage", dDelai: "Délai", dDelaiTxt: "{s} s · {n} plateau(x) en attente", dProchain: "prochain envoi dans {n} s", dVersion: "Version", dDispo: "{v} disponible", dCopier: "COPIER LE DIAGNOSTIC", dCopie: "COPIÉ",
           heros: 'Héros', defaites: 'Défaites', reglages: 'Réglages',
           jeu: 'Jeu', jeuLance: 'lancé', jeuFerme: 'fermé', jeuDossier: 'dossier introuvable',
           partie: 'Partie', enCours: 'en cours', aucune: 'aucune',
@@ -2419,7 +2730,7 @@
           jPartie: 'Nouvelle partie ({h})', jVictoire: 'Jour {j} : victoire', jDefaite: 'Jour {j} : défaite',
           jRefus: 'Jour {j} : refus de la mort', jTalent: '{n} passe en {r}',
           raretes: { Bronze: 'Bronze', Silver: 'Argent', Gold: 'Or', Diamond: 'Diamant', Legendary: 'Légendaire' } },
-    en: { majDispo: "Update available", dSecJeu: "Game", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "DLL version", dAJour: "up to date", dVersionJeu: "Game version", dLecture: "Game reading", dLectureIlya: "last write by the mod {n} s ago", dLectureAucune: "no write from the mod", dEnvois: "Sends", dEnvoisTxt: "{n} messages since {h}", dAucunRefus: "no rejection", dRefus: "{n} rejected, last at {h} ({r})", r429: "too many messages", r401: "token expired", rTaille: "message too large", rConnexion: "no connection", rAutre: "error {c}", dDetail: "Message breakdown", pPlateau: "Board", pFace: "Facing", pReserve: "Stash", pTalents: "Your skills", pFaceTalents: "Opponent skills", pAutres: "Run, language, layout", dDelai: "Delay", dDelaiTxt: "{s} s · {n} board(s) queued", dProchain: "next send in {n} s", dVersion: "Version", dDispo: "{v} available", dCopier: "COPY DIAGNOSTICS", dCopie: "COPIED",
+    en: { eTitre: "Messages sent to Twitch", eFiger: "FREEZE", eReprendre: "RESUME", eCopier: "COPY", eCopie: "COPIED", eAide: "The last 50 sends, newest at the bottom. Click a line to see the full message: what changed since the previous send is in green.", eVide: "nothing sent yet", eChang: "{n} changes", eChang1: "1 change", eRenvoi: "resend, nothing changed", eVeille: "heartbeat (outside a run)", eRefuse: "rejected: {r}", eOct: "{o} B", delaiBadge: "Your stream delay: {d}", delaiBadgeAide: "The delay you set yourself: cards reach viewers this much later. Click to change it.", delaiS: "{n} s", delaiMin: "{n} min", majDispo: "Update available", dSecJeu: "Game", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "DLL version", dAJour: "up to date", dVersionJeu: "Game version", dLecture: "Game reading", dLectureIlya: "last write by the mod {n} s ago", dLectureAucune: "no write from the mod", dEnvois: "Sends", dEnvoisTxt: "{n} messages since {h}", dAucunRefus: "no rejection", dRefus: "{n} rejected, last at {h} ({r})", r429: "too many messages", r401: "token expired", rTaille: "message too large", rConnexion: "no connection", rAutre: "error {c}", dDetail: "Message breakdown", pPlateau: "Board", pFace: "Facing", pReserve: "Stash", pTalents: "Your skills", pFaceTalents: "Opponent skills", pAutres: "Run, language, layout", dDelai: "Delay", dDelaiTxt: "{s} s · {n} board(s) queued", dProchain: "next send in {n} s", dVersion: "Version", dDispo: "{v} available", dCopier: "COPY DIAGNOSTICS", dCopie: "COPIED",
           heros: 'Hero', defaites: 'Losses', reglages: 'Settings',
           jeu: 'Game', jeuLance: 'running', jeuFerme: 'closed', jeuDossier: 'folder not found',
           partie: 'Run', enCours: 'in progress', aucune: 'none',
@@ -2436,7 +2747,7 @@
           jPartie: 'New run ({h})', jVictoire: 'Day {j}: win', jDefaite: 'Day {j}: loss',
           jRefus: 'Day {j}: death averted', jTalent: '{n} upgraded to {r}',
           raretes: { Bronze: 'Bronze', Silver: 'Silver', Gold: 'Gold', Diamond: 'Diamond', Legendary: 'Legendary' } },
-    de: { majDispo: "Update verfügbar", dSecJeu: "Spiel", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "DLL-Version", dAJour: "aktuell", dVersionJeu: "Spielversion", dLecture: "Spiel lesen", dLectureIlya: "letzte Schreibung des Mods vor {n} s", dLectureAucune: "keine Schreibung des Mods", dEnvois: "Sendungen", dEnvoisTxt: "{n} Nachrichten seit {h}", dAucunRefus: "keine Ablehnung", dRefus: "{n} abgelehnt, zuletzt um {h} ({r})", r429: "zu viele Nachrichten", r401: "Token abgelaufen", rTaille: "Nachricht zu groß", rConnexion: "keine Verbindung", rAutre: "Fehler {c}", dDetail: "Aufteilung der Nachricht", pPlateau: "Brett", pFace: "Gegenüber", pReserve: "Lager", pTalents: "Deine Fähigkeiten", pFaceTalents: "Gegnerische Fähigkeiten", pAutres: "Lauf, Sprache, Ausrichtung", dDelai: "Verzögerung", dDelaiTxt: "{s} s · {n} Bretter in der Warteschlange", dProchain: "nächster Versand in {n} s", dVersion: "Version", dDispo: "{v} verfügbar", dCopier: "DIAGNOSE KOPIEREN", dCopie: "KOPIERT",
+    de: { eTitre: "An Twitch gesendete Nachrichten", eFiger: "ANHALTEN", eReprendre: "FORTSETZEN", eCopier: "KOPIEREN", eCopie: "KOPIERT", eAide: "Die letzten 50 Sendungen, die neueste unten. Klicken Sie auf eine Zeile, um die ganze Nachricht zu sehen: Was sich seit der vorherigen Sendung geändert hat, ist grün.", eVide: "noch nichts gesendet", eChang: "{n} Änderungen", eChang1: "1 Änderung", eRenvoi: "erneut gesendet, nichts geändert", eVeille: "Lebenszeichen (außerhalb einer Partie)", eRefuse: "abgelehnt: {r}", eOct: "{o} B", delaiBadge: "Ihre Stream-Verzögerung: {d}", delaiBadgeAide: "Die Verzögerung, die Sie selbst eingestellt haben: Die Karten erreichen die Zuschauer entsprechend später. Zum Ändern klicken.", delaiS: "{n} s", delaiMin: "{n} Min.", majDispo: "Update verfügbar", dSecJeu: "Spiel", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "DLL-Version", dAJour: "aktuell", dVersionJeu: "Spielversion", dLecture: "Spiel lesen", dLectureIlya: "letzte Schreibung des Mods vor {n} s", dLectureAucune: "keine Schreibung des Mods", dEnvois: "Sendungen", dEnvoisTxt: "{n} Nachrichten seit {h}", dAucunRefus: "keine Ablehnung", dRefus: "{n} abgelehnt, zuletzt um {h} ({r})", r429: "zu viele Nachrichten", r401: "Token abgelaufen", rTaille: "Nachricht zu groß", rConnexion: "keine Verbindung", rAutre: "Fehler {c}", dDetail: "Aufteilung der Nachricht", pPlateau: "Brett", pFace: "Gegenüber", pReserve: "Lager", pTalents: "Deine Fähigkeiten", pFaceTalents: "Gegnerische Fähigkeiten", pAutres: "Lauf, Sprache, Ausrichtung", dDelai: "Verzögerung", dDelaiTxt: "{s} s · {n} Bretter in der Warteschlange", dProchain: "nächster Versand in {n} s", dVersion: "Version", dDispo: "{v} verfügbar", dCopier: "DIAGNOSE KOPIEREN", dCopie: "KOPIERT",
           heros: 'Held', defaites: 'Niederlagen', reglages: 'Einstellungen',
           jeu: 'Spiel', jeuLance: 'läuft', jeuFerme: 'geschlossen', jeuDossier: 'Ordner nicht gefunden',
           partie: 'Lauf', enCours: 'läuft', aucune: 'keiner',
@@ -2453,7 +2764,7 @@
           jPartie: 'Neuer Lauf ({h})', jVictoire: 'Tag {j}: Sieg', jDefaite: 'Tag {j}: Niederlage',
           jRefus: 'Tag {j}: Tod abgewendet', jTalent: '{n} steigt auf {r}',
           raretes: { Bronze: 'Bronze', Silver: 'Silber', Gold: 'Gold', Diamond: 'Diamant', Legendary: 'Legendär' } },
-    es: { majDispo: "Actualización disponible", dSecJeu: "Juego", dSecTwitch: "Twitch", dSecApp: "Aplicación", dModNom: "Versión de la DLL", dAJour: "actualizado", dVersionJeu: "Versión del juego", dLecture: "Lectura del juego", dLectureIlya: "última escritura del mod hace {n} s", dLectureAucune: "ninguna escritura del mod", dEnvois: "Envíos", dEnvoisTxt: "{n} mensajes desde las {h}", dAucunRefus: "ningún rechazo", dRefus: "{n} rechazos, el último a las {h} ({r})", r429: "demasiados mensajes", r401: "token caducado", rTaille: "mensaje demasiado grande", rConnexion: "sin conexión", rAutre: "error {c}", dDetail: "Desglose del mensaje", pPlateau: "Tablero", pFace: "Enfrente", pReserve: "Reserva", pTalents: "Tus habilidades", pFaceTalents: "Habilidades rivales", pAutres: "Partida, idioma, encuadre", dDelai: "Retraso", dDelaiTxt: "{s} s · {n} tablero(s) en espera", dProchain: "próximo envío en {n} s", dVersion: "Versión", dDispo: "{v} disponible", dCopier: "COPIAR DIAGNÓSTICO", dCopie: "COPIADO",
+    es: { eTitre: "Mensajes enviados a Twitch", eFiger: "PAUSAR", eReprendre: "REANUDAR", eCopier: "COPIAR", eCopie: "COPIADO", eAide: "Los últimos 50 envíos, el más reciente abajo. Haga clic en una línea para ver el mensaje completo: lo que cambió desde el envío anterior aparece en verde.", eVide: "ningún envío por ahora", eChang: "{n} cambios", eChang1: "1 cambio", eRenvoi: "reenvío, sin cambios", eVeille: "señal de vida (fuera de partida)", eRefuse: "rechazado: {r}", eOct: "{o} B", delaiBadge: "Su retraso de stream: {d}", delaiBadgeAide: "El retraso que usted mismo ha configurado: las cartas llegan a los espectadores con este retraso. Haga clic para cambiarlo.", delaiS: "{n} s", delaiMin: "{n} min", majDispo: "Actualización disponible", dSecJeu: "Juego", dSecTwitch: "Twitch", dSecApp: "Aplicación", dModNom: "Versión de la DLL", dAJour: "actualizado", dVersionJeu: "Versión del juego", dLecture: "Lectura del juego", dLectureIlya: "última escritura del mod hace {n} s", dLectureAucune: "ninguna escritura del mod", dEnvois: "Envíos", dEnvoisTxt: "{n} mensajes desde las {h}", dAucunRefus: "ningún rechazo", dRefus: "{n} rechazos, el último a las {h} ({r})", r429: "demasiados mensajes", r401: "token caducado", rTaille: "mensaje demasiado grande", rConnexion: "sin conexión", rAutre: "error {c}", dDetail: "Desglose del mensaje", pPlateau: "Tablero", pFace: "Enfrente", pReserve: "Reserva", pTalents: "Tus habilidades", pFaceTalents: "Habilidades rivales", pAutres: "Partida, idioma, encuadre", dDelai: "Retraso", dDelaiTxt: "{s} s · {n} tablero(s) en espera", dProchain: "próximo envío en {n} s", dVersion: "Versión", dDispo: "{v} disponible", dCopier: "COPIAR DIAGNÓSTICO", dCopie: "COPIADO",
           heros: 'Héroe', defaites: 'Derrotas', reglages: 'Ajustes',
           jeu: 'Juego', jeuLance: 'abierto', jeuFerme: 'cerrado', jeuDossier: 'carpeta no encontrada',
           partie: 'Partida', enCours: 'en curso', aucune: 'ninguna',
@@ -2470,7 +2781,7 @@
           jPartie: 'Nueva partida ({h})', jVictoire: 'Día {j}: victoria', jDefaite: 'Día {j}: derrota',
           jRefus: 'Día {j}: muerte evitada', jTalent: '{n} sube a {r}',
           raretes: { Bronze: 'Bronce', Silver: 'Plata', Gold: 'Oro', Diamond: 'Diamante', Legendary: 'Legendario' } },
-    it: { majDispo: "Aggiornamento disponibile", dSecJeu: "Gioco", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "Versione della DLL", dAJour: "aggiornata", dVersionJeu: "Versione del gioco", dLecture: "Lettura del gioco", dLectureIlya: "ultima scrittura del mod {n} s fa", dLectureAucune: "nessuna scrittura del mod", dEnvois: "Invii", dEnvoisTxt: "{n} messaggi dalle {h}", dAucunRefus: "nessun rifiuto", dRefus: "{n} rifiuti, l'ultimo alle {h} ({r})", r429: "troppi messaggi", r401: "token scaduto", rTaille: "messaggio troppo grande", rConnexion: "nessuna connessione", rAutre: "errore {c}", dDetail: "Dettaglio del messaggio", pPlateau: "Plancia", pFace: "Di fronte", pReserve: "Riserva", pTalents: "Le tue abilità", pFaceTalents: "Abilità avversarie", pAutres: "Partita, lingua, inquadratura", dDelai: "Ritardo", dDelaiTxt: "{s} s · {n} plance in attesa", dProchain: "prossimo invio tra {n} s", dVersion: "Versione", dDispo: "{v} disponibile", dCopier: "COPIA DIAGNOSTICA", dCopie: "COPIATO",
+    it: { eTitre: "Messaggi inviati a Twitch", eFiger: "BLOCCA", eReprendre: "RIPRENDI", eCopier: "COPIA", eCopie: "COPIATO", eAide: "Gli ultimi 50 invii, il più recente in basso. Clicchi su una riga per vedere il messaggio completo: ciò che è cambiato dall'invio precedente è in verde.", eVide: "nessun invio per ora", eChang: "{n} modifiche", eChang1: "1 modifica", eRenvoi: "reinvio, nulla di cambiato", eVeille: "segnale di vita (fuori partita)", eRefuse: "rifiutato: {r}", eOct: "{o} B", delaiBadge: "Il suo ritardo di stream: {d}", delaiBadgeAide: "Il ritardo che ha impostato lei: le carte arrivano agli spettatori con questo ritardo. Clicchi per modificarlo.", delaiS: "{n} s", delaiMin: "{n} min", majDispo: "Aggiornamento disponibile", dSecJeu: "Gioco", dSecTwitch: "Twitch", dSecApp: "App", dModNom: "Versione della DLL", dAJour: "aggiornata", dVersionJeu: "Versione del gioco", dLecture: "Lettura del gioco", dLectureIlya: "ultima scrittura del mod {n} s fa", dLectureAucune: "nessuna scrittura del mod", dEnvois: "Invii", dEnvoisTxt: "{n} messaggi dalle {h}", dAucunRefus: "nessun rifiuto", dRefus: "{n} rifiuti, l'ultimo alle {h} ({r})", r429: "troppi messaggi", r401: "token scaduto", rTaille: "messaggio troppo grande", rConnexion: "nessuna connessione", rAutre: "errore {c}", dDetail: "Dettaglio del messaggio", pPlateau: "Plancia", pFace: "Di fronte", pReserve: "Riserva", pTalents: "Le tue abilità", pFaceTalents: "Abilità avversarie", pAutres: "Partita, lingua, inquadratura", dDelai: "Ritardo", dDelaiTxt: "{s} s · {n} plance in attesa", dProchain: "prossimo invio tra {n} s", dVersion: "Versione", dDispo: "{v} disponibile", dCopier: "COPIA DIAGNOSTICA", dCopie: "COPIATO",
           heros: 'Eroe', defaites: 'Sconfitte', reglages: 'Impostazioni',
           jeu: 'Gioco', jeuLance: 'avviato', jeuFerme: 'chiuso', jeuDossier: 'cartella non trovata',
           partie: 'Partita', enCours: 'in corso', aucune: 'nessuna',
@@ -2487,7 +2798,7 @@
           jPartie: 'Nuova partita ({h})', jVictoire: 'Giorno {j}: vittoria', jDefaite: 'Giorno {j}: sconfitta',
           jRefus: 'Giorno {j}: morte evitata', jTalent: '{n} sale a {r}',
           raretes: { Bronze: 'Bronzo', Silver: 'Argento', Gold: 'Oro', Diamond: 'Diamante', Legendary: 'Leggendario' } },
-    pt: { majDispo: "Atualização disponível", dSecJeu: "Jogo", dSecTwitch: "Twitch", dSecApp: "Aplicativo", dModNom: "Versão da DLL", dAJour: "atualizado", dVersionJeu: "Versão do jogo", dLecture: "Leitura do jogo", dLectureIlya: "última escrita do mod há {n} s", dLectureAucune: "nenhuma escrita do mod", dEnvois: "Envios", dEnvoisTxt: "{n} mensagens desde {h}", dAucunRefus: "nenhuma recusa", dRefus: "{n} recusas, a última às {h} ({r})", r429: "mensagens demais", r401: "token expirado", rTaille: "mensagem grande demais", rConnexion: "sem conexão", rAutre: "erro {c}", dDetail: "Detalhe da mensagem", pPlateau: "Tabuleiro", pFace: "À frente", pReserve: "Reserva", pTalents: "Suas habilidades", pFaceTalents: "Habilidades do oponente", pAutres: "Partida, idioma, enquadramento", dDelai: "Atraso", dDelaiTxt: "{s} s · {n} tabuleiro(s) na fila", dProchain: "próximo envio em {n} s", dVersion: "Versão", dDispo: "{v} disponível", dCopier: "COPIAR DIAGNÓSTICO", dCopie: "COPIADO",
+    pt: { eTitre: "Mensagens enviadas à Twitch", eFiger: "PAUSAR", eReprendre: "RETOMAR", eCopier: "COPIAR", eCopie: "COPIADO", eAide: "Os últimos 50 envios, o mais recente embaixo. Clique em uma linha para ver a mensagem completa: o que mudou desde o envio anterior aparece em verde.", eVide: "nenhum envio por enquanto", eChang: "{n} alterações", eChang1: "1 alteração", eRenvoi: "reenvio, nada mudou", eVeille: "sinal de vida (fora de partida)", eRefuse: "recusado: {r}", eOct: "{o} B", delaiBadge: "Seu atraso de transmissão: {d}", delaiBadgeAide: "O atraso que você mesmo definiu: as cartas chegam aos espectadores com esse atraso. Clique para alterá-lo.", delaiS: "{n} s", delaiMin: "{n} min", majDispo: "Atualização disponível", dSecJeu: "Jogo", dSecTwitch: "Twitch", dSecApp: "Aplicativo", dModNom: "Versão da DLL", dAJour: "atualizado", dVersionJeu: "Versão do jogo", dLecture: "Leitura do jogo", dLectureIlya: "última escrita do mod há {n} s", dLectureAucune: "nenhuma escrita do mod", dEnvois: "Envios", dEnvoisTxt: "{n} mensagens desde {h}", dAucunRefus: "nenhuma recusa", dRefus: "{n} recusas, a última às {h} ({r})", r429: "mensagens demais", r401: "token expirado", rTaille: "mensagem grande demais", rConnexion: "sem conexão", rAutre: "erro {c}", dDetail: "Detalhe da mensagem", pPlateau: "Tabuleiro", pFace: "À frente", pReserve: "Reserva", pTalents: "Suas habilidades", pFaceTalents: "Habilidades do oponente", pAutres: "Partida, idioma, enquadramento", dDelai: "Atraso", dDelaiTxt: "{s} s · {n} tabuleiro(s) na fila", dProchain: "próximo envio em {n} s", dVersion: "Versão", dDispo: "{v} disponível", dCopier: "COPIAR DIAGNÓSTICO", dCopie: "COPIADO",
           heros: 'Herói', defaites: 'Derrotas', reglages: 'Configurações',
           jeu: 'Jogo', jeuLance: 'aberto', jeuFerme: 'fechado', jeuDossier: 'pasta não encontrada',
           partie: 'Partida', enCours: 'em andamento', aucune: 'nenhuma',
@@ -2504,7 +2815,7 @@
           jPartie: 'Nova partida ({h})', jVictoire: 'Dia {j}: vitória', jDefaite: 'Dia {j}: derrota',
           jRefus: 'Dia {j}: morte evitada', jTalent: '{n} sobe para {r}',
           raretes: { Bronze: 'Bronze', Silver: 'Prata', Gold: 'Ouro', Diamond: 'Diamante', Legendary: 'Lenda' } },
-    ko: { majDispo: "업데이트 있음", dSecJeu: "게임", dSecTwitch: "Twitch", dSecApp: "앱", dModNom: "DLL 버전", dAJour: "최신", dVersionJeu: "게임 버전", dLecture: "게임 읽기", dLectureIlya: "모드의 마지막 기록: {n}초 전", dLectureAucune: "모드 기록 없음", dEnvois: "전송", dEnvoisTxt: "{h} 이후 메시지 {n}개", dAucunRefus: "거부 없음", dRefus: "거부 {n}회, 마지막 {h} ({r})", r429: "메시지가 너무 많음", r401: "토큰 만료", rTaille: "메시지가 너무 큼", rConnexion: "연결 없음", rAutre: "오류 {c}", dDetail: "메시지 구성", pPlateau: "보드", pFace: "상대편", pReserve: "보관함", pTalents: "내 스킬", pFaceTalents: "상대 스킬", pAutres: "런, 언어, 화면 배치", dDelai: "지연", dDelaiTxt: "{s}초 · 대기 중인 보드 {n}개", dProchain: "다음 전송까지 {n}초", dVersion: "버전", dDispo: "{v} 사용 가능", dCopier: "진단 복사", dCopie: "복사됨",
+    ko: { eTitre: "Twitch로 보낸 메시지", eFiger: "고정", eReprendre: "재개", eCopier: "복사", eCopie: "복사됨", eAide: "최근 50개 전송이며 가장 최근 항목이 아래에 있습니다. 줄을 클릭하면 전체 메시지를 볼 수 있으며, 이전 전송 이후 바뀐 부분은 초록색입니다.", eVide: "아직 전송 없음", eChang: "변경 {n}개", eChang1: "변경 1개", eRenvoi: "재전송, 변경 없음", eVeille: "생존 신호 (게임 외)", eRefuse: "거부됨: {r}", eOct: "{o} B", delaiBadge: "설정한 방송 지연: {d}", delaiBadgeAide: "직접 설정한 지연 시간입니다. 카드가 시청자에게 이만큼 늦게 전달됩니다. 클릭하여 변경하세요.", delaiS: "{n}초", delaiMin: "{n}분", majDispo: "업데이트 있음", dSecJeu: "게임", dSecTwitch: "Twitch", dSecApp: "앱", dModNom: "DLL 버전", dAJour: "최신", dVersionJeu: "게임 버전", dLecture: "게임 읽기", dLectureIlya: "모드의 마지막 기록: {n}초 전", dLectureAucune: "모드 기록 없음", dEnvois: "전송", dEnvoisTxt: "{h} 이후 메시지 {n}개", dAucunRefus: "거부 없음", dRefus: "거부 {n}회, 마지막 {h} ({r})", r429: "메시지가 너무 많음", r401: "토큰 만료", rTaille: "메시지가 너무 큼", rConnexion: "연결 없음", rAutre: "오류 {c}", dDetail: "메시지 구성", pPlateau: "보드", pFace: "상대편", pReserve: "보관함", pTalents: "내 스킬", pFaceTalents: "상대 스킬", pAutres: "런, 언어, 화면 배치", dDelai: "지연", dDelaiTxt: "{s}초 · 대기 중인 보드 {n}개", dProchain: "다음 전송까지 {n}초", dVersion: "버전", dDispo: "{v} 사용 가능", dCopier: "진단 복사", dCopie: "복사됨",
           heros: '영웅', defaites: '패배', reglages: '설정',
           jeu: '게임', jeuLance: '실행 중', jeuFerme: '종료됨', jeuDossier: '폴더를 찾을 수 없음',
           partie: '런', enCours: '진행 중', aucune: '없음',
@@ -2521,7 +2832,7 @@
           jPartie: '새 런 ({h})', jVictoire: '{j}일차: 승리', jDefaite: '{j}일차: 패배',
           jRefus: '{j}일차: 죽음 회피', jTalent: '{n} → {r}',
           raretes: { Bronze: '브론즈', Silver: '실버', Gold: '골드', Diamond: '다이아몬드', Legendary: '전설' } },
-    zh: { majDispo: "有可用更新", dSecJeu: "游戏", dSecTwitch: "Twitch", dSecApp: "应用", dModNom: "DLL 版本", dAJour: "已是最新", dVersionJeu: "游戏版本", dLecture: "游戏读取", dLectureIlya: "模组最后写入：{n} 秒前", dLectureAucune: "模组没有写入", dEnvois: "发送", dEnvoisTxt: "自 {h} 起 {n} 条消息", dAucunRefus: "无拒绝", dRefus: "{n} 次拒绝，最近一次 {h}（{r}）", r429: "消息过多", r401: "令牌过期", rTaille: "消息过大", rConnexion: "无连接", rAutre: "错误 {c}", dDetail: "消息构成", pPlateau: "棋盘", pFace: "对面", pReserve: "储藏", pTalents: "你的技能", pFaceTalents: "对手技能", pAutres: "对局、语言、画面定位", dDelai: "延迟", dDelaiTxt: "{s} 秒 · {n} 个棋盘排队中", dProchain: "{n} 秒后发送下一条", dVersion: "版本", dDispo: "{v} 可用", dCopier: "复制诊断", dCopie: "已复制",
+    zh: { eTitre: "发送到 Twitch 的消息", eFiger: "冻结", eReprendre: "继续", eCopier: "复制", eCopie: "已复制", eAide: "最近 50 次发送，最新的在最下方。点击一行可查看完整消息：自上次发送以来的变化显示为绿色。", eVide: "尚未发送", eChang: "{n} 处变化", eChang1: "1 处变化", eRenvoi: "重发，无变化", eVeille: "存活信号（对局外）", eRefuse: "被拒绝：{r}", eOct: "{o} B", delaiBadge: "您设置的直播延迟：{d}", delaiBadgeAide: "这是您自己设置的延迟：卡牌会晚这么久才到达观众。点击修改。", delaiS: "{n} 秒", delaiMin: "{n} 分钟", majDispo: "有可用更新", dSecJeu: "游戏", dSecTwitch: "Twitch", dSecApp: "应用", dModNom: "DLL 版本", dAJour: "已是最新", dVersionJeu: "游戏版本", dLecture: "游戏读取", dLectureIlya: "模组最后写入：{n} 秒前", dLectureAucune: "模组没有写入", dEnvois: "发送", dEnvoisTxt: "自 {h} 起 {n} 条消息", dAucunRefus: "无拒绝", dRefus: "{n} 次拒绝，最近一次 {h}（{r}）", r429: "消息过多", r401: "令牌过期", rTaille: "消息过大", rConnexion: "无连接", rAutre: "错误 {c}", dDetail: "消息构成", pPlateau: "棋盘", pFace: "对面", pReserve: "储藏", pTalents: "你的技能", pFaceTalents: "对手技能", pAutres: "对局、语言、画面定位", dDelai: "延迟", dDelaiTxt: "{s} 秒 · {n} 个棋盘排队中", dProchain: "{n} 秒后发送下一条", dVersion: "版本", dDispo: "{v} 可用", dCopier: "复制诊断", dCopie: "已复制",
           heros: '英雄', defaites: '败场', reglages: '设置',
           jeu: '游戏', jeuLance: '运行中', jeuFerme: '已关闭', jeuDossier: '找不到文件夹',
           partie: '对局', enCours: '进行中', aucune: '无',
@@ -2590,28 +2901,44 @@
     document.getElementById('titre-partie').textContent = TV3.titrePartie;
   })();
 
-  /* Premier lancement, ou compte Twitch déconnecté : la connexion passe
-     avant tout le reste, juste sous le titre. Le bouton est celui des
-     réglages. */
-  var ACCUEIL = {
-    fr: 'Vous devez vous connecter avec votre compte Twitch pour utiliser cette application.',
-    en: 'You need to log in with your Twitch account to use this app.',
-    de: 'Du musst dich mit deinem Twitch-Konto anmelden, um diese App zu nutzen.',
-    es: 'Debes iniciar sesión con tu cuenta de Twitch para usar esta aplicación.',
-    it: 'Devi accedere con il tuo account Twitch per usare questa applicazione.',
-    pt: 'Você precisa entrar com sua conta da Twitch para usar este aplicativo.',
-    ko: '이 앱을 사용하려면 Twitch 계정으로 로그인해야 합니다.',
-    zh: '你需要使用 Twitch 账号登录才能使用此应用。',
+  /* Avant de commencer : ce qui reste à faire, en deux lignes au plus.
+     - Twitch, tant que le compte n'est pas connecté ;
+     - le cadrage, tant que la caméra n'a jamais été indiquée (« pas de
+       caméra » compte).
+     Un clic sur une ligne mène au réglage. */
+  var AVANT = {
+    fr: ["Avant de commencer", "Connectez votre compte Twitch", "Faites votre cadrage (jeu et caméra)"],
+    en: ["Before you start", "Connect your Twitch account", "Set up your layout (game and camera)"],
+    de: ["Bevor du loslegst", "Verbinde dein Twitch-Konto", "Richte deinen Ausschnitt ein (Spiel und Kamera)"],
+    es: ["Antes de empezar", "Conecta tu cuenta de Twitch", "Configura tu encuadre (juego y cámara)"],
+    it: ["Prima di iniziare", "Collega il tuo account Twitch", "Imposta l’inquadratura (gioco e webcam)"],
+    pt: ["Antes de começar", "Liga a tua conta Twitch", "Faz o teu enquadramento (jogo e câmara)"],
+    ko: ["시작하기 전에", "Twitch 계정 연결하기", "화면 구성 설정하기 (게임과 카메라)"],
+    zh: ["开始之前", "连接你的 Twitch 账号", "设置画面布局（游戏和摄像头）"],
   };
+  var cadrageFait = null;          // inconnu tant que la configuration n'est pas lue
+  var dernierEtatAccueil = null;
   (function () {
-    document.getElementById('accueil-texte').textContent = ACCUEIL[LANGUE] || ACCUEIL.en;
-    var b = document.getElementById('accueil-connecter');
-    b.textContent = T.seConnecter;
-    b.addEventListener('click', function () { document.getElementById('connecter').click(); });
+    var t = AVANT[LANGUE] || AVANT.en;
+    document.getElementById('avant-titre').textContent = t[0];
+    document.getElementById('avant-twitch-txt').textContent = t[1];
+    document.getElementById('avant-cadrage-txt').textContent = t[2];
+    document.getElementById('avant-twitch').addEventListener('click', function () {
+      document.getElementById('connecter').click();
+    });
+    document.getElementById('avant-cadrage').addEventListener('click', function () {
+      var r = document.querySelector('#rail button[data-onglet="cadrage"]');
+      if (r) r.click();
+    });
   })();
   function peindreAccueil(e) {
-    var sans = (e.code === 'config' && e.detail === 'twitch');
-    document.getElementById('accueil').hidden = !sans;
+    if (e) dernierEtatAccueil = e;
+    e = dernierEtatAccueil || {};
+    var twitch = (e.code === 'config' && e.detail === 'twitch');
+    document.getElementById('avant-twitch').hidden = !twitch;
+    var cadrageReste = (cadrageFait === false);
+    document.getElementById('avant-cadrage').hidden = !cadrageReste;
+    document.getElementById('avant').hidden = !twitch && !cadrageReste;
   }
 
   function peindrePartie(e) {
@@ -2625,8 +2952,8 @@
       return;
     }
     /* Une pastille par jour : bleue pour une victoire, rouge pour une
-       défaite, rouge sombre cerclée pour un refus de la mort, vide pour le
-       jour en cours. Le numéro du jour paraît au survol. */
+       défaite, rouge sombre cerclée pour un refus de la mort, noire pour la
+       défaite qui perd la partie, vide pour le jour en cours. Le numéro du jour paraît au survol. */
     var hist = p.histoire || '';
     var h = '';
     for (var j = 1; j <= p.jour; j++) {
@@ -2636,7 +2963,7 @@
     document.getElementById('jours').innerHTML = h;
     /* Les défaites comptent aussi les refus de la mort : le combat a été
        perdu. */
-    var defaites = (hist.match(/[dr]/g) || []).length;
+    var defaites = (hist.match(/[drx]/g) || []).length;
     var c = '';
     var champ = function (nom, val) {
       return '<span>' + nom + SEP + '<b>' + val + '</b></span>';
@@ -2778,15 +3105,165 @@
     else if (v.app) ligne('ok', TV3.dVersion, v.app + (v.enLigne ? ' · ' + TV3.dAJour : ''));
     else ligne('', TV3.dVersion, '?');
 
-    html.push('<button type="button" class="copier" id="diag-copier">'
-      + '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">'
-      + '<rect x="5" y="5" width="8.5" height="9" rx="1.5"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h6"/></svg>'
-      + '<span>' + (copieRecente ? TV3.dCopie : TV3.dCopier) + '</span></button>');
+    var bc = document.querySelector('#diag-copier span');
+    if (bc) bc.textContent = copieRecente ? TV3.dCopie : TV3.dCopier;
 
     texteDiag = 'Bazaar Scanner - ' + new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC'
       + '\n' + texte.join('\n').replace(/^\n/, '');
     el.innerHTML = html.join('');
   }
+
+  /* La console des envois à Twitch. Elle demande à l'application les
+     envois postérieurs au dernier reçu, chaque seconde, seulement quand
+     l'onglet Diagnostic est affiché et qu'elle n'est pas figée. */
+  var envois = [];             // { n, quand, type, octets, texte, code } : 50 au plus
+  var envoiNumero = 0;
+  var envoiOuvert = null;
+  var envoisFiges = false;
+  var envoisCopieRecente = false;
+  var CLES_SANS_DIFF = { ag: 1 };   // l'âge du plateau change à chaque envoi
+
+  function echapperH(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function lireJson(t) { try { return JSON.parse(t); } catch (e) { return null; } }
+
+  /* Le message réécrit tel que JSON.stringify l'a produit, avec en <mark>
+     les valeurs qui ont changé depuis l'envoi précédent. Les éléments d'un
+     tableau qui portent un emplacement (« s ») sont comparés à celui du même
+     emplacement, les autres par position. */
+  function surligner(v, a, avecDiff, compte) {
+    var diff = avecDiff;
+    if (Array.isArray(v)) {
+      return '[' + v.map(function (x, i) {
+        var avant;
+        if (Array.isArray(a)) {
+          if (x && typeof x === 'object' && 's' in x) avant = a.filter(function (y) { return y && y.s === x.s; })[0];
+          else avant = a[i];
+        }
+        return surligner(x, avant, diff, compte);
+      }).join(',') + ']';
+    }
+    if (v && typeof v === 'object') {
+      return '{' + Object.keys(v).map(function (k) {
+        var avant = (a && typeof a === 'object' && !Array.isArray(a)) ? a[k] : undefined;
+        return echapperH(JSON.stringify(k)) + ':' + surligner(v[k], avant, diff && !CLES_SANS_DIFF[k], compte);
+      }).join(',') + '}';
+    }
+    var s = echapperH(JSON.stringify(v));
+    if (diff && a !== v) { compte.n++; return '<mark>' + s + '</mark>'; }
+    return s;
+  }
+
+  function resumeEnvoi(o) {
+    if (!o) return '';
+    if (o.a && !(o.b || []).length) return TV3.eVeille;
+    var p = [];
+    [['b', 'pPlateau'], ['f', 'pFace'], ['r', 'pReserve'], ['k', 'pTalents']].forEach(function (c) {
+      if (Array.isArray(o[c[0]]) && (o[c[0]].length || c[0] === 'b')) p.push(TV3[c[1]] + ' ' + o[c[0]].length);
+    });
+    return p.join(' · ');
+  }
+
+  function peindreEnvois() {
+    var cons = document.getElementById('envois-console');
+    if (!cons) return;
+    var enBas = cons.scrollTop + cons.clientHeight >= cons.scrollHeight - 4;
+    var haut = cons.scrollTop;
+    var html = [], precedent = null;
+    envois.forEach(function (e) {
+      var o = lireJson(e.texte);
+      var compte = { n: 0 };
+      var corps = o ? surligner(o, precedent, !!precedent, compte) : echapperH(e.texte);
+      var resume, classe = '';
+      if (e.type === 'refus') {
+        classe = 'refus';
+        resume = fmt(TV3.eRefuse, { r: raisonRefus(e.code) });
+      } else {
+        resume = echapperH(resumeEnvoi(o));
+        if (o && o.a && !(o.b || []).length) classe = 'veille';
+        else if (precedent) resume += ' · <span class="ch">' + (compte.n ? (compte.n === 1 ? TV3.eChang1 : fmt(TV3.eChang, { n: compte.n })) : TV3.eRenvoi) + '</span>';
+      }
+      var heure;
+      try { heure = new Date(e.quand).toLocaleTimeString(LANGUE, { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+      catch (x) { heure = new Date(e.quand).toLocaleTimeString(); }
+      html.push('<div class="envois-l ' + classe + (envoiOuvert === e.n ? ' ouvert' : '') + '" data-n="' + e.n + '">'
+        + '<span class="h">' + heure + '</span><span class="o">' + fmt(TV3.eOct, { o: e.octets }) + '</span>'
+        + '<span class="r">' + resume + '</span></div>');
+      if (envoiOuvert === e.n) html.push('<div class="envois-msg">' + corps + '</div>');
+      /* Le message suivant se compare à ce que l'extension a reçu : le
+         dernier envoi RÉUSSI. */
+      if (e.type === 'envoi' && o) precedent = o;
+    });
+    cons.innerHTML = html.length ? html.join('') : '<div class="envois-vide">' + TV3.eVide + '</div>';
+    cons.scrollTop = enBas ? cons.scrollHeight : haut;
+  }
+
+  function peindreTetesEnvois() {
+    var t = function (id, s) { var el = document.getElementById(id); if (el) el.textContent = s; };
+    t('envois-titre', TV3.eTitre);
+    t('envois-aide', TV3.eAide);
+    t('envois-figer', envoisFiges ? TV3.eReprendre : TV3.eFiger);
+    t('envois-copier', envoisCopieRecente ? TV3.eCopie : TV3.eCopier);
+    var f = document.getElementById('envois-figer');
+    if (f) f.classList.toggle('actif', envoisFiges);
+  }
+
+  function relireEnvois() {
+    return fetch('/diag/envois?depuis=' + envoiNumero).then(function (r) { return r.json(); }).then(function (rep) {
+      /* L'application a redémarré : ses numéros repartent de zéro. */
+      if (rep.dernier < envoiNumero) { envois = []; envoiNumero = 0; envoiOuvert = null; return relireEnvois(); }
+      if (!rep.envois || !rep.envois.length) { if (!envois.length) peindreEnvois(); return; }
+      envois = envois.concat(rep.envois).slice(-50);
+      envoiNumero = rep.dernier;
+      peindreEnvois();
+    }).catch(function () { /* l'application est peut-être en train de se fermer */ });
+  }
+
+  document.addEventListener('click', function (ev) {
+    var l = ev.target.closest && ev.target.closest('.envois-l');
+    if (l) {
+      var n = parseInt(l.dataset.n, 10);
+      envoiOuvert = (envoiOuvert === n) ? null : n;
+      peindreEnvois();
+      return;
+    }
+    if (ev.target.closest && ev.target.closest('#envois-figer')) {
+      envoisFiges = !envoisFiges;
+      peindreTetesEnvois();
+      if (!envoisFiges) relireEnvois();
+      return;
+    }
+    if (ev.target.closest && ev.target.closest('#envois-copier')) {
+      /* Le message ouvert s'il y en a un, sinon toute la console. */
+      var choisis = envois.filter(function (e) { return envoiOuvert === null || e.n === envoiOuvert; });
+      var texteC = choisis.map(function (e) {
+        return envoiOuvert !== null ? e.texte
+          : new Date(e.quand).toLocaleTimeString(LANGUE) + '  ' + (e.type === 'refus' ? '[' + raisonRefus(e.code) + '] ' : '') + e.texte;
+      }).join('\n');
+      var finiC = function () {
+        envoisCopieRecente = true; peindreTetesEnvois();
+        setTimeout(function () { envoisCopieRecente = false; peindreTetesEnvois(); }, 1500);
+      };
+      var secoursC = function () {
+        var ta = document.createElement('textarea');
+        ta.value = texteC; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (x) { /* tant pis */ }
+        document.body.removeChild(ta);
+        finiC();
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texteC).then(finiC, secoursC);
+      else secoursC();
+    }
+  });
+
+  setInterval(function () {
+    var o = document.querySelector('#onglets button.actif');
+    if (document.body.dataset.page !== 'reglages' || !o || o.dataset.onglet !== 'diag') return;
+    peindreTetesEnvois();
+    if (!envoisFiges) relireEnvois();
+  }, 1000);
 
   /* « Copier le diagnostic » : le texte, prêt à coller dans un message. */
   var copieRecente = false;
@@ -2920,11 +3397,37 @@
     try { fetch('/fermer?id=' + idFenetre, { method: 'POST', keepalive: true }); } catch (e) { /* tant pis */ }
   });
   var flux = new EventSource('/etat?id=' + idFenetre);
+  /* Fenêtre réduite : elle le dit à l'application, qui cesse de lui envoyer
+     chaque état et lui donne celui du moment à son retour. Avant, elle
+     rejouait à son retour tous les états manqués, un par un (signalé par
+     Kwev le 26 octobre). */
+  function signalerVisibilite() {
+    try {
+      fetch('/visibilite?id=' + idFenetre + '&cachee=' + (document.hidden ? 1 : 0),
+            { method: 'POST', keepalive: true }).catch(function () {});
+    } catch (e) { /* tant pis : elle recevra tout, comme avant */ }
+  }
+  document.addEventListener('visibilitychange', signalerVisibilite);
+  /* Une reconnexion repart d'un flux neuf, qui envoie tout : on redit
+     l'état de la fenêtre si elle est cachée. */
+  flux.onopen = function () { if (document.hidden) signalerVisibilite(); };
+  /* Un seul dessin par image affichée, avec le dernier état reçu : si
+     plusieurs arrivent d'un coup, les précédents ne sont pas dessinés pour
+     rien. Fenêtre cachée : rien n'est dessiné avant son retour. */
+  var aPeindre = null, peintureDemandee = false;
   flux.onmessage = function (ev) {
     var recu = null;
     try { recu = JSON.parse(ev.data); } catch (err) { return; /* trame partielle */ }
-    try { peindre(recu); } catch (err) { /* une erreur d'affichage ne bloque pas la suite */ }
-    try { majMiseAJour(recu.maj); } catch (err) { /* idem */ }
+    try { majMiseAJour(recu.maj); } catch (err) { /* une erreur ne bloque pas la suite */ }
+    aPeindre = recu;
+    if (peintureDemandee) return;
+    peintureDemandee = true;
+    requestAnimationFrame(function () {
+      peintureDemandee = false;
+      var e = aPeindre;
+      aPeindre = null;
+      if (e) { try { peindre(e); } catch (err) { /* une erreur d'affichage ne bloque pas la suite */ } }
+    });
   };
   flux.onerror = function () {
     /* L'application vient de se fermer pour laisser l'installateur la
@@ -2980,9 +3483,65 @@
   function majCalibrageIntegre() {
     if (typeof elCal === 'undefined' || !elCal) return;
     var ouvert = elCal.classList.contains('ouvert');
-    if (surCadrage() && !ouvert) document.getElementById('calibrer').click();
+    /* Cadrage déjà fait : l'onglet le dit, avec un bouton pour le refaire.
+       Pas encore fait : le réglage s'ouvre d'emblée. Inconnu (configuration
+       pas encore lue) : on attend. */
+    if (surCadrage() && !ouvert && cadrageFait === false) document.getElementById('calibrer').click();
     else if (!surCadrage() && ouvert) elCal.classList.remove('ouvert');
+    var fait = surCadrage() && cadrageFait === true && !elCal.classList.contains('ouvert');
+    if (fait) majResumeCadrage();
+    document.getElementById('cadrage-fait').classList.toggle('visible', fait);
   }
+  /* Sous le bouton, le réglage actuel en image, pour le voir sans le
+     refaire : le même aperçu que pendant le cadrage (rangée d'objets, zones,
+     caméra), figé, sur un fond sombre. La capture de l'utilisateur n'est pas
+     gardée (Kwev, 27 octobre). */
+  function majResumeCadrage() {
+    var etat = document.getElementById('etat-cadre').dataset;
+    var c = (etat.cadre || '').split(',').map(parseFloat);
+    var cadre = (c.length === 4 && c.every(isFinite)) ? { l: c[0], t: c[1], w: c[2], h: c[3] }
+                                                      : { l: 0, t: 0, w: 100, h: 100 };
+    var ej = document.getElementById('resume-jeu');
+    ej.style.left = cadre.l + '%'; ej.style.top = cadre.t + '%';
+    ej.style.width = cadre.w + '%'; ej.style.height = cadre.h + '%';
+    var avant = calPlateau;
+    calPlateau = plateauDepuisCadre(cadre);
+    var r = document.getElementById('resume-cadre');
+    r.style.left = calPlateau.l + '%'; r.style.top = calPlateau.t + '%';
+    r.style.width = calPlateau.w + '%'; r.style.height = calPlateau.h + '%';
+    dessinerZones(document.getElementById('resume-zones'));
+    calPlateau = avant;
+    var brut = etat.camera || '';
+    var v = brut.split(',').map(parseFloat);
+    var cam = document.getElementById('resume-cam');
+    var aucune = (brut === 'aucune' || v.length !== 4 || !v.every(isFinite));
+    cam.classList.toggle('sans', aucune);
+    if (!aucune) {
+      cam.style.left = v[0] + '%'; cam.style.top = v[1] + '%';
+      cam.style.width = v[2] + '%'; cam.style.height = v[3] + '%';
+    }
+    document.getElementById('resume-cam-txt').textContent = TC('calCamEtiquette');
+  }
+  var CADRAGE_FAIT = {
+    fr: ["Cadrage et caméra enregistrés.", "REFAIRE LE CADRAGE"],
+    en: ["Layout and camera are set.", "SET UP AGAIN"],
+    de: ["Ausschnitt und Kamera sind eingerichtet.", "NEU EINRICHTEN"],
+    es: ["Encuadre y cámara configurados.", "VOLVER A CONFIGURAR"],
+    it: ["Inquadratura e webcam impostate.", "IMPOSTA DI NUOVO"],
+    pt: ["Enquadramento e câmara configurados.", "CONFIGURAR DE NOVO"],
+    ko: ["화면 구성과 카메라가 설정되었습니다.", "다시 설정"],
+    zh: ["画面布局和摄像头已设置。", "重新设置"],
+  };
+  (function () {
+    var t = CADRAGE_FAIT[LANGUE] || CADRAGE_FAIT.en;
+    document.getElementById('cadrage-fait-texte').textContent = t[0];
+    var b = document.getElementById('cadrage-refaire');
+    b.textContent = t[1];
+    b.addEventListener('click', function () {
+      document.getElementById('cadrage-fait').classList.remove('visible');
+      document.getElementById('calibrer').click();
+    });
+  })();
 
   (function () {
     var n = 'partie';
@@ -3088,6 +3647,10 @@
       majDelai(Math.max(0, Math.min(86400, parseInt(c.DELAI_STREAM, 10) || 0)));
 
       document.getElementById('etat-cadre').dataset.cadre = c.CADRE || '';
+      document.getElementById('etat-cadre').dataset.camera = c.CAMERA || '';
+      cadrageFait = !!(c.CAMERA || '').trim();
+      peindreAccueil();
+      majCalibrageIntegre();
       elCompte.classList.toggle('lie', lie);
       return c;
     });
@@ -3117,19 +3680,25 @@
     var b = this;
     avis('');
 
-    fetch('/connexion').then(function (r) { return r.json(); }).then(function (rep) {
-      avis(rep.message, rep.ok);
-      if (!rep.ok) return;
-      b.textContent = T.enAttenteAuth;
-      surveillerJeton(b);
-    });
+    /* Le nombre de connexions réussies AVANT ce clic : on attend qu'il
+       avance, qu'un compte soit déjà connecté ou non. */
+    var avant = null;
+    relireConfig().then(function (c) { avant = c.CONNEXIONS || 0; })
+      .catch(function () { avant = 0; })
+      .then(function () { return fetch('/connexion'); })
+      .then(function (r) { return r.json(); }).then(function (rep) {
+        avis(rep.message, rep.ok);
+        if (!rep.ok) return;
+        b.textContent = T.enAttenteAuth;
+        surveillerJeton(b, avant);
+      });
   });
 
-  function surveillerJeton(b) {
+  function surveillerJeton(b, avant) {
     var essais = 0;
     var minuteur = setInterval(function () {
       relireConfig().then(function (c) {
-        if (c.RELAY_TOKEN) {
+        if ((c.CONNEXIONS || 0) > avant) {
           clearInterval(minuteur);
           b.textContent = T.seConnecter;
           avis(T.connecte, true);
@@ -3220,10 +3789,10 @@
   document.getElementById('cal-annuler').textContent  = T.calAnnuler;
   document.getElementById('cal-valider').textContent  = T.calValider;
   /* Le passage entre crochets, « [aperçu OBS] », est mis en valeur. */
-  (function () {
+  function poserAideCal(texte) {
     var el = document.getElementById('cal-aide');
     el.textContent = '';
-    String(T.calAide || '').split(/(\[[^\]]*\])/).forEach(function (morceau) {
+    String(texte || '').split(/(\[[^\]]*\])/).forEach(function (morceau) {
       if (/^\[.*\]$/.test(morceau)) {
         var b = document.createElement('b');
         b.textContent = morceau.slice(1, -1);
@@ -3232,7 +3801,13 @@
         el.appendChild(document.createTextNode(morceau));
       }
     });
-  })();
+  }
+  poserAideCal(T.calAide);
+  var TC = function (cle) { return T[cle] || TEXTES.en[cle] || ''; };
+  document.getElementById('et-jeu-txt').textContent = TC('calEtapeJeu');
+  document.getElementById('et-cam-txt').textContent = TC('calEtapeCam');
+  document.getElementById('cal-cam-etiquette').textContent = TC('calCamEtiquette');
+  document.getElementById('cal-sans-cam-txt').textContent = TC('calSansCam');
   document.getElementById('cal-retirer').title        = T.calRetirer;
   document.getElementById('l-cadrage').textContent    = T.cadrage;
   document.getElementById('titre-plateau').textContent = T.titrePlateau;
@@ -3290,8 +3865,9 @@
   function projL(w) { return w * cadreCalcule().w / 100; }
   function projH(h) { return h * cadreCalcule().h / 100; }
 
-  function dessinerZones() {
-    elZones.textContent = '';
+  function dessinerZones(cible) {
+    var elZ = cible || elZones;
+    elZ.textContent = '';
     var B = GEOMETRIE.BOARD;
     var pas = B.width / B.slots;
 
@@ -3301,7 +3877,7 @@
       d.style.top    = pct(projY(B.top));
       d.style.width  = pct(projL(pas));
       d.style.height = pct(projH(B.height));
-      elZones.appendChild(d);
+      elZ.appendChild(d);
     }
 
     (GEOMETRIE.REPERES.cercles || []).forEach(function (c) {
@@ -3311,7 +3887,7 @@
       d.style.top    = pct(projY(c.y));
       d.style.width  = pct(projL(c.w));
       d.style.height = pct(projH(c.h));
-      elZones.appendChild(d);
+      elZ.appendChild(d);
     });
 
     (GEOMETRIE.REPERES.equerres || []).forEach(function (e) {
@@ -3321,7 +3897,7 @@
       d.style.top    = pct(projY(e.y));
       d.style.width  = pct(projL(e.w));
       d.style.height = pct(projH(e.h));
-      elZones.appendChild(d);
+      elZ.appendChild(d);
     });
 
     var L = GEOMETRIE.SKILL_LAYOUTS[0];
@@ -3332,7 +3908,7 @@
       d.style.top    = pct(projY(p[1] - L.h / 2));
       d.style.width  = pct(projL(L.w));
       d.style.height = pct(projH(L.h));
-      elZones.appendChild(d);
+      elZ.appendChild(d);
     });
   }
 
@@ -3470,6 +4046,14 @@
     repetitions = ev.repeat ? repetitions + 1 : 0;
     var facteur = Math.min(1 + Math.pow(repetitions, 1.6) / 12, 40);
 
+    if (etapeCal === 'cam') {
+      if (camAucune) return;
+      camCal[0] = Math.max(0, Math.min(100 - camCal[2], camCal[0] + d[0] * pasX * facteur));
+      camCal[1] = Math.max(0, Math.min(100 - camCal[3], camCal[1] + d[1] * pasY * facteur));
+      dessinerCamera();
+      return;
+    }
+
     if (!calPlateau) calPlateau = plateauParDefaut();
     var p = calPlateau;
 
@@ -3480,13 +4064,104 @@
 
   document.addEventListener('keyup', function () { repetitions = 0; });
 
+  /* ── Étape 2 : la caméra du streamer ─────────────────────────────────────
+     Un rectangle en pourcentage de la scène, comme celui du jeu, mais libre
+     (pas de proportions imposées). Par défaut : à gauche du plateau en plein
+     écran, jusqu'au bas du plateau (validé par Kwev le 23 octobre). Seul son
+     côté compte : centre à gauche du milieu, réserve des spectateurs à
+     droite, et inversement. « Pas de caméra » : rien n'est envoyé. */
+  var CAMERA_DEFAUT = [1.5, 71.6, 17.5, 26.9];
+  var elCams = document.getElementById('cal-cams');
+  var elCam = document.getElementById('cal-cam');
+  var elSansCam = document.getElementById('cal-sans-cam');
+  var etapeCal = 'jeu';
+  var camCal = CAMERA_DEFAUT.slice();
+  var camAucune = false;
+  var saisieCam = null;
+
+  function dessinerCamera() {
+    elCam.style.left = pct(camCal[0]); elCam.style.top = pct(camCal[1]);
+    elCam.style.width = pct(camCal[2]); elCam.style.height = pct(camCal[3]);
+    elCams.classList.toggle('sans', camAucune);
+    elSansCam.classList.toggle('choisi', camAucune);
+    if (etapeCal !== 'cam') return;
+    poserAideCal(camAucune ? TC('calCamAucune')
+      : (camCal[0] + camCal[2] / 2 < 50 ? TC('calCamGauche') : TC('calCamDroite')));
+  }
+
+  function allerEtape(e) {
+    etapeCal = e;
+    var cam = (e === 'cam');
+    elCal.classList.toggle('etape-cam', cam);
+    document.getElementById('et-jeu').classList.toggle('actif', !cam);
+    document.getElementById('et-cam').classList.toggle('actif', cam);
+    document.getElementById('cal-titre').textContent = cam ? TC('calTitreCam') : T.calTitre;
+    elConsigne.textContent = cam ? TC('calConsigneCam') : T.calEncadrer;
+    document.getElementById('cal-valider').textContent = cam ? T.calValider : TC('calSuivant');
+    if (cam) dessinerCamera(); else poserAideCal(T.calAide);
+    elScene.focus();
+  }
+
+  function positionScene(ev) {
+    var r = elScene.getBoundingClientRect();
+    return { x: (ev.clientX - r.left) / r.width * 100, y: (ev.clientY - r.top) / r.height * 100 };
+  }
+
+  elCam.addEventListener('mousedown', function (ev) {
+    var coin = ev.target.classList.contains('poignee')
+      ? ev.target.className.replace('poignee', '').trim() : null;
+    saisieCam = { coin: coin, depart: positionScene(ev), cam: camCal.slice() };
+    elCams.classList.add('saisie');
+    ev.preventDefault();
+    ev.stopPropagation();
+  });
+
+  /* Sans caméra, un clic dans l'image remet un cadre, centré sur le clic. */
+  elCams.addEventListener('mousedown', function (ev) {
+    if (!camAucune || ev.target !== elCams) return;
+    var p = positionScene(ev);
+    camCal = [Math.max(0, Math.min(100 - camCal[2], p.x - camCal[2] / 2)),
+              Math.max(0, Math.min(100 - camCal[3], p.y - camCal[3] / 2)), camCal[2], camCal[3]];
+    camAucune = false;
+    dessinerCamera();
+  });
+
+  document.addEventListener('mousemove', function (ev) {
+    if (!saisieCam) return;
+    var p = positionScene(ev);
+    var dx = p.x - saisieCam.depart.x, dy = p.y - saisieCam.depart.y;
+    var c = saisieCam.cam, MIN = 4;
+    if (!saisieCam.coin) {
+      camCal[0] = Math.max(0, Math.min(100 - c[2], c[0] + dx));
+      camCal[1] = Math.max(0, Math.min(100 - c[3], c[1] + dy));
+    } else {
+      var g = c[0], h = c[1], d = c[0] + c[2], b = c[1] + c[3];
+      if (saisieCam.coin.indexOf('w') >= 0) g = Math.max(0, Math.min(d - MIN, g + dx));
+      else d = Math.min(100, Math.max(g + MIN, d + dx));
+      if (saisieCam.coin.indexOf('n') >= 0) h = Math.max(0, Math.min(b - MIN, h + dy));
+      else b = Math.min(100, Math.max(h + MIN, b + dy));
+      camCal = [g, h, d - g, b - h];
+    }
+    dessinerCamera();
+  });
+  document.addEventListener('mouseup', function () { saisieCam = null; elCams.classList.remove('saisie'); });
+
+  elSansCam.addEventListener('click', function () { camAucune = !camAucune; dessinerCamera(); });
+  document.getElementById('et-jeu').addEventListener('click', function () { allerEtape('jeu'); });
+  document.getElementById('et-cam').addEventListener('click', function () { allerEtape('cam'); });
+
   function ouvrirCalibrage(cadreActuel) {
     calPlateau = cadreActuel ? plateauDepuisCadre(cadreActuel) : plateauParDefaut();
+    /* La caméra enregistrée : un rectangle, « aucune », ou rien encore. */
+    var brut = document.getElementById('etat-cadre').dataset.camera || '';
+    var v = brut.split(',').map(parseFloat);
+    camAucune = (brut === 'aucune');
+    camCal = (v.length === 4 && v.every(isFinite)) ? v : CAMERA_DEFAUT.slice();
     elCal.classList.add('ouvert');
-    elConsigne.textContent = T.calEncadrer;
     elRetirer.hidden = !calImage;
     dessinerCadre();
-    elScene.focus();
+    dessinerCamera();
+    allerEtape('jeu');
   }
 
   /* « Annuler » revient au cadrage enregistré ; « Valider » l'enregistre.
@@ -3503,22 +4178,35 @@
   document.getElementById('cal-annuler').addEventListener('click', fermerCalibrage);
 
   document.getElementById('cal-valider').addEventListener('click', function () {
+    /* Étape 1 : on passe à la caméra ; tout est enregistré à l'étape 2. */
+    if (etapeCal === 'jeu') { allerEtape('cam'); return; }
     var c = cadreCalcule();
     var v = [c.l, c.t, c.w, c.h]
       .map(function (x) { return Math.round(x * 100) / 100; });
     var plein = v[0] === 0 && v[1] === 0 && v[2] === 100 && v[3] === 100;
+    var camera = camAucune ? 'aucune'
+      : camCal.map(function (x) { return Math.round(x * 10) / 10; }).join(',');
     fetch('/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ CADRE: plein ? '' : v.join(',') })
+      body: JSON.stringify({ CADRE: plein ? '' : v.join(','), CAMERA: camera })
     }).then(relireConfig).then(function () {
+      /* Dans l'onglet Cadrage, le réglage reste affiché, sur l'étape de la
+         caméra : le fermer le rouvrait aussitôt sur l'étape du jeu, et le
+         bouton « Suivant » semblait ramener en arrière. Ailleurs, il se
+         ferme comme avant. */
+      /* Dans l'onglet Cadrage : le réglage se ferme et l'onglet dit que le
+         cadrage est fait (Kwev, 27 octobre). */
+      if (surCadrage()) { fermerCalibrage(); return; }
       fermerCalibrage();
       /* Un mot sur le bouton, le temps de le lire. */
       var b = document.getElementById('cal-valider');
-      var avant = b.textContent;
       b.textContent = T.enregistre;
       b.disabled = true;
-      setTimeout(function () { b.textContent = avant; b.disabled = false; }, 1400);
+      setTimeout(function () {
+        b.textContent = (etapeCal === 'cam') ? T.calValider : TC('calSuivant');
+        b.disabled = false;
+      }, 1400);
     });
   });
 

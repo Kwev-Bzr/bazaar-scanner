@@ -56,6 +56,12 @@ Var Maj
 Var MajDir
 Var MajSteam
 Var MajTempo
+; Le même mode, choisi par le streamer qui relance l'installateur à la main
+; sur une installation existante : rien n'est redemandé.
+Var MajManuelle
+Var DossierApp     ; le dossier dont on attend que l'application soit fermée
+Var AttenteCourte  ; « 1 » : ne pas attendre qu'elle se ferme seule, le dire tout de suite
+Var VersionAvant   ; « 3.0.0 » précédé d'une espace, ou vide si inconnue
 
 ; ── Apparence ──
 !define MUI_ICON "icon.ico"
@@ -134,6 +140,9 @@ LangString TEXTE_BIENVENUE   ${LANG_FRENCH}  "Cet assistant va installer Bazaar 
 
 LangString REMPLACER_VERSION ${LANG_ENGLISH} "Bazaar Scanner is already installed.$\r$\n$\r$\nThe previous version will be removed before the new one is installed. Your settings and the game folder are kept.$\r$\n$\r$\nContinue?"
 LangString REMPLACER_VERSION ${LANG_FRENCH}  "Bazaar Scanner est déjà installé.$\r$\n$\r$\nLa version précédente va être retirée avant l'installation de la nouvelle. Vos réglages et le dossier du jeu sont conservés.$\r$\n$\r$\nContinuer ?"
+
+LangString MAJ_TROUVEE ${LANG_ENGLISH} "Bazaar Scanner$VersionAvant is already installed in:$\r$\n$MajDir$\r$\n$\r$\nIt will be updated to version ${VERSION_APP} without asking you anything again: same folder, same game, and your settings (Twitch token, calibration) are kept.$\r$\n$\r$\nYes: update.$\r$\nNo: reinstall and choose the folders again.$\r$\nCancel: quit."
+LangString MAJ_TROUVEE ${LANG_FRENCH}  "Bazaar Scanner$VersionAvant est déjà installé dans :$\r$\n$MajDir$\r$\n$\r$\nIl va être mis à jour vers la version ${VERSION_APP} sans rien vous redemander : même dossier, même jeu, et vos réglages (jeton Twitch, calibrage) sont conservés.$\r$\n$\r$\nOui : mettre à jour.$\r$\nNon : réinstaller en choisissant à nouveau les dossiers.$\r$\nAnnuler : quitter."
 
 LangString TITRE_LISEZMOI    ${LANG_ENGLISH} "Please read before installing"
 LangString TITRE_LISEZMOI    ${LANG_FRENCH}  "À lire avant l'installation"
@@ -261,12 +270,25 @@ FunctionEnd
 ; L'application se ferme d'elle-même juste après avoir lancé la mise à jour.
 ; On attend que son exécutable soit libéré : tant qu'elle tourne, Windows
 ; refuse de le remplacer.
+;
+; Appelée aussi avant TOUTE installation (Kwev, 28 octobre) : une application
+; restée ouverte gardait son ancien exécutable, l'erreur de copie pouvant être
+; ignorée, alors que le mod du jeu, lui, était bien remplacé. Un streamer
+; avait ainsi la réserve du mod 3.0 sans le compteur de l'application 3.0.
+; Le dossier examiné : $DossierApp.
 Function AttendreFermetureApp
   StrCpy $3 0
+  ; Lancé à la main, l'installateur n'a pas à attendre que l'application se
+  ; ferme d'elle-même : si elle est ouverte, on le dit tout de suite.
+  StrCmp $MajManuelle "1" 0 +2
+    StrCpy $3 39
+  StrCmp $AttenteCourte "1" 0 +2
+    StrCpy $3 39
+  StrCmp $DossierApp "" app_fermee
   attente_app:
-    IfFileExists "$MajDir\BazaarScanner.exe" 0 app_fermee
+    IfFileExists "$DossierApp\BazaarScanner.exe" 0 app_fermee
     ClearErrors
-    FileOpen $4 "$MajDir\BazaarScanner.exe" a
+    FileOpen $4 "$DossierApp\BazaarScanner.exe" a
     IfErrors 0 app_libre
     IntOp $3 $3 + 1
     IntCmp $3 40 0 0 app_bloquee
@@ -432,6 +454,7 @@ Function .onInit
     Call LireCheminsConfig
     StrCmp "$MajSteam$MajTempo" "" pas_de_maj
     StrCpy $Maj "1"
+    StrCpy $DossierApp $MajDir
     Call AttendreFermetureApp
   pas_de_maj:
 
@@ -442,11 +465,39 @@ Function .onInit
   StrCmp $R9 "" pasDeVersion
 
   ReadRegStr $R8 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BazaarScanner" "DisplayVersion"
+  StrCpy $VersionAvant ""
+  StrCmp $R8 "" +2
+    StrCpy $VersionAvant " $R8"
   ; En mise à jour, le streamer a déjà confirmé dans l'application.
-  StrCmp $Maj "1" +2
+  StrCmp $Maj "1" desinstaller
+
+    ; Lancé à la main sur une installation existante (demande de Kwev, 26
+    ; octobre) : on le dit, et l'on propose de tout mettre à jour comme le
+    ; fait l'application, sans redemander les dossiers ; config.ini est
+    ; laissé tel quel. Seulement si l'installation et le jeu sont retrouvés,
+    ; sinon l'assistant complet comme avant.
+    StrCmp $MajDir "" demander_remplacer
+    Call LireCheminsConfig
+    StrCmp "$MajSteam$MajTempo" "" demander_remplacer
+    MessageBox MB_YESNOCANCEL|MB_ICONQUESTION "$(MAJ_TROUVEE)" IDYES maj_manuelle IDNO desinstaller
+    Quit
+  maj_manuelle:
+    StrCpy $Maj "1"
+    StrCpy $MajManuelle "1"
+    StrCpy $DossierApp $MajDir
+    Call AttendreFermetureApp
+    Goto desinstaller
+
+  demander_remplacer:
     MessageBox MB_YESNO|MB_ICONQUESTION "$(REMPLACER_VERSION)" IDNO pasDeVersion
 
+  desinstaller:
   ReadRegStr $R7 HKLM "Software\BazaarScanner" "InstallDir"
+  ; Ouverte, l'application empêcherait la désinstallation de retirer son
+  ; exécutable : on demande de la fermer d'abord.
+  StrCpy $DossierApp $R7
+  StrCpy $AttenteCourte "1"
+  Call AttendreFermetureApp
   ; « _? » garde le désinstallateur en place le temps qu'il finisse.
   ExecWait '"$R9" /S _?=$R7'
   Delete "$R7\Uninstall.exe"
@@ -545,6 +596,12 @@ FunctionEnd
 ; ─────────────────────────────────────────────────────────────
 Section "Bazaar Scanner" SecMain
   SectionIn RO
+
+  ; Le dossier choisi peut contenir une copie ouverte, installée autrement
+  ; (zip) ou d'une version sans clé de registre : la fermer d'abord.
+  StrCpy $DossierApp $INSTDIR
+  StrCpy $AttenteCourte "1"
+  Call AttendreFermetureApp
 
   ; Ce qui part dans config.ini : un chemin par version employée, vide pour
   ; l'autre. « SOURCE » désigne celle que l'application lit au démarrage ;

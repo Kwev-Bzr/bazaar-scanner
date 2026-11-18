@@ -73,6 +73,8 @@
       object-fit: fill;
       image-rendering: auto;
     }
+    /* L'illustration d'un objet réduit (Tiny), dessinée à part. */
+    .item-img-wrap canvas.illus-prolongee { width: 100%; height: 94px; display: block; }
 
     #enchant-name {
       font-family: 'Cinzel', serif;
@@ -127,6 +129,10 @@
     .badge-size.taille-Small  { color:#8fd0ff; border-color:rgba(143,208,255,.55); background:rgba(143,208,255,.12); }
     .badge-size.taille-Medium { color:#ff9f3a; border-color:rgba(255,159,58,.55);  background:rgba(255,159,58,.12); }
     .badge-size.taille-Large  { color:#ff5b4d; border-color:rgba(255,91,77,.55);   background:rgba(255,91,77,.12); }
+    /* La taille d'origine d'un objet réduit (Tiny), barrée et estompée. */
+    .badge-size .taille-origine { opacity:.6; font-weight:400; margin-right:2px; }
+    /* Le point entre deux enchantements, dans la couleur du texte. */
+    #enchant-name .point-ench { color:#f0e4c0; }
 
     .badge-tag { color:#c0a870; border-color:rgba(160,110,50,.55); background:rgba(100,65,25,.3); }
     .badge-tag.Instrument { color:#8fb3d9; border-color:rgba(143,179,217,.55); background:rgba(143,179,217,.12); }

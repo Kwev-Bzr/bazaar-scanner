@@ -244,8 +244,9 @@
   var heroJoue = '';
   var modeClasse = false;           // partie classée : « m: 'r' » dans le message
   var modeTournoi = false;          // tournoi : « m: 't' »
+  var tournoiGagne = false;         // premier du tournoi : « tg: 1 » (application 3.1 et suivantes)
   var jourPartie = null;            // le jour en cours (« j »)
-  var histoirePartie = '';          // un résultat par jour joué (« hj ») : v, d, r
+  var histoirePartie = '';          // un résultat par jour joué (« hj ») : v, d, r, x (partie perdue)
 
   /* Les mécaniques expliquées au survol : compteur de victoires et jauge de
      prestige. Leurs textes sont ceux des infobulles du jeu, publiés avec les
@@ -580,7 +581,11 @@
     return '#' + vers(c) + vers(x) + vers(0);
   }
 
-  function appliquerTeinte(el, teinteChoisie, hero) {
+  /* Le fond d'une fiche pour une teinte : un dégradé du sombre au moins
+     sombre, son liseré, et sa couleur la plus sombre. Le compteur de
+     victoires prend le même (Kwev, 26 octobre : il paraissait plus sombre
+     que les fiches et la réserve, et le jaune de Stelle tirait au vert). */
+  function degradeFiche(teinteChoisie, hero) {
     /* Le fond part de sa version dorée ; le liseré et la lueur aussi, un jaune
        assombri tirant au vert. Les lignes, claires, gardent la couleur choisie. */
     var teinte = fondDeTeinte(teinteChoisie);
@@ -589,9 +594,14 @@
     var ecart = (hero && ECART_PAR_HEROS[hero]) || ECART_DEGRADE;
     while (p > 0.25 && clartePercue(melange(teinte, 0, p)) - clarteBord < ecart) p -= 0.02;
     var creux  = melange(teinte, 0, p);
+    return { teinte: teinte, sombre: sombre,
+             fond: 'linear-gradient(155deg, ' + sombre + ' 0%, ' + creux + ' 55%, ' + sombre + ' 100%)' };
+  }
 
-    el.style.background = 'linear-gradient(155deg, ' + sombre + ' 0%, '
-      + creux + ' 55%, ' + sombre + ' 100%)';
+  function appliquerTeinte(el, teinteChoisie, hero) {
+    var d = degradeFiche(teinteChoisie, hero);
+    var teinte = d.teinte;
+    el.style.background = d.fond;
     el.style.borderColor = teinte;
     /* La teinte claire, pour les pastilles du délai et des munitions. */
     el.style.setProperty('--teinte-fiche', teinteChoisie);
@@ -698,6 +708,42 @@
     });
   }
 
+  /* Les polices se chargent à la demande (27 octobre) : viewer.html ne
+     charge plus que Cinzel et Rajdhani, celles de la fiche par défaut. Les
+     autres, qu'une police du menu ou de presentation.json peut demander,
+     viennent de Google Fonts quand le spectateur choisit une police, ou
+     quand il ouvre le menu (chaque police y est écrite dans sa forme).
+     Avant, les vingt familles étaient chargées par tous les spectateurs,
+     avant même le premier affichage. */
+  var FAMILLES_GOOGLE = {
+    'Cinzel': 'Cinzel:wght@600;700', 'Rajdhani': 'Rajdhani:wght@500;600;700',
+    'Noto Serif': 'Noto+Serif:wght@400;600', 'Nunito': 'Nunito:wght@500;600;700',
+    'JetBrains Mono': 'JetBrains+Mono:wght@400;600', 'Comic Neue': 'Comic+Neue:wght@400;700',
+    'Grenze Gotisch': 'Grenze+Gotisch:wght@500;700', 'Anton': 'Anton', 'Bebas Neue': 'Bebas+Neue',
+    'Atkinson Hyperlegible': 'Atkinson+Hyperlegible:wght@400;700', 'Lexend': 'Lexend:wght@400;600',
+    'Lora': 'Lora:wght@400;600', 'Merriweather': 'Merriweather:wght@400;700',
+    'Roboto': 'Roboto:wght@400;600', 'Open Sans': 'Open+Sans:wght@400;600',
+    'Montserrat': 'Montserrat:wght@500;700', 'Oswald': 'Oswald:wght@400;600',
+    'Playfair Display': 'Playfair+Display:wght@500;700', 'Press Start 2P': 'Press+Start+2P',
+    'Caveat': 'Caveat:wght@500;700',
+  };
+  var famillesChargees = { 'Cinzel': 1, 'Rajdhani': 1 };   // déjà dans viewer.html
+  function chargerPolices(piles) {
+    var demandees = [];
+    String(piles || '').split(',').forEach(function (n) {
+      n = n.trim().replace(/^['"]|['"]$/g, '');
+      if (FAMILLES_GOOGLE[n] && !famillesChargees[n]) {
+        famillesChargees[n] = 1;
+        demandees.push(FAMILLES_GOOGLE[n]);
+      }
+    });
+    if (!demandees.length) return;
+    var lien = document.createElement('link');
+    lien.rel = 'stylesheet';
+    lien.href = 'https://fonts.googleapis.com/css2?family=' + demandees.join('&family=') + '&display=swap';
+    document.head.appendChild(lien);
+  }
+
   function appliquerPolice() {
     var p = memoire('bazaar-police-fiche');
     /* La police étroite n'existe plus : qui l'avait choisie revient à celle
@@ -714,6 +760,7 @@
     var pol = p ? policeDe(p) : null;
     var st = elRoot.style;
     if (pol) {
+      chargerPolices(pol.famille);
       elRoot.setAttribute('data-police', p);
       st.setProperty('--police', pol.famille);
       if (pol.espacement) st.setProperty('--police-espacement', pol.espacement);
@@ -1072,9 +1119,47 @@
      caméra du streamer ni son argent. */
   var POSITIONS_RESERVE = ['bg', 'mg', 'md', 'bd'];
 
+  /* La caméra du streamer, telle que l'application la déclare (onglet
+     Cadrage) : un rectangle [gauche, haut, largeur, hauteur] en pourcentage
+     de la vidéo, comme le cadre du jeu. Seul compte le CÔTÉ où elle se
+     trouve, d'après son centre : « g » ou « d ». Nul tant que l'application
+     n'en dit rien (ancienne application, ou pas de caméra) : tout se passe
+     alors comme avant. */
+  var camCote = null;
+
+  function coteCamera(cam) {
+    if (!Array.isArray(cam) || cam.length !== 4) return null;
+    var l = Number(cam[0]), w = Number(cam[2]);
+    if (!isFinite(l) || !isFinite(w) || w <= 0) return null;
+    return (l + w / 2 < 50) ? 'g' : 'd';
+  }
+
+  /* Une réserve du côté de la caméra passe de l'autre côté de l'écran, à la
+     même hauteur. Rien n'est retenu : la position mémorisée du spectateur
+     reste la même, et vaut de nouveau sur un live où elle ne gêne pas.
+     Aucune chaîne n'est mémorisée. */
+  var MIROIR_RESERVE = { bg: 'bd', bd: 'bg', mg: 'md', md: 'mg' };
+
+  /* Le spectateur qui choisit une position pendant ce live l'obtient, même
+     sur la caméra : c'est alors son choix, pas un réglage oublié. */
+  var positionChoisieIci = false;
+
   function positionReserve() {
     var p = memoire('bazaar-reserve-pos') || DEFAUTS['bazaar-reserve-pos'];
-    return POSITIONS_RESERVE.indexOf(p) >= 0 ? p : 'bg';
+    if (POSITIONS_RESERVE.indexOf(p) < 0) p = 'bg';
+    if (!positionChoisieIci && camCote && p.charAt(1) === camCote) return MIROIR_RESERVE[p];
+    return p;
+  }
+
+  /* Le menu montre la position réellement appliquée, qui ne vient plus
+     seulement de la mémoire du spectateur. */
+  var rangPositionReserve = null;
+  function majBoutonsPositionReserve() {
+    if (!rangPositionReserve) return;
+    var p = positionReserve();
+    [].forEach.call(rangPositionReserve.querySelectorAll('button'), function (b) {
+      b.classList.toggle('actif', b.dataset.valeur === p);
+    });
   }
 
   /* La taille d'ouverture dépend de la position. */
@@ -1118,6 +1203,18 @@
   }
 
   var TAILLE_EN_CASES = { Small: 1, Medium: 2, Large: 3 };
+  var TAILLE_PAR_CASES = { 1: 'Small', 2: 'Medium', 3: 'Large' };
+  /* La version du message de l'application, vue au dernier message. */
+  var vAppVue = 0;
+
+  /* Un enchantement sans effet propre (Tiny, qui ne fait que réduire la
+     taille) n'a pas de bouton parmi ceux de la fiche épinglée ni de la
+     recherche. La liste est publiée avec les données (Reglages.bat, onglet
+     Enchantements) : rien n'est écrit en dur ici. */
+  function aUnBouton(e) {
+    var l = (window.BAZAAR_LIBELLES || {}).enchantements_sans_bouton;
+    return !(Array.isArray(l) && l.indexOf(e) >= 0);
+  }
 
 
 
@@ -1126,21 +1223,154 @@
      fois par seconde, coûtait une mise en page complète pour rien. */
   var empreinteReserve = null;
 
+  /* --- Les animations de la réserve (extension 3.0.1, Kwev 28 octobre) ---
+
+     Trois événements, dans la réserve seulement (le plateau, c'est la vidéo
+     du jeu) : un objet qui monte de rareté, qui reçoit un enchantement, ou
+     dont une quête s'accomplit.
+
+     Un échange n'est pas une amélioration : deux Épées, l'une Bronze, l'autre
+     Argent, qui échangent leur place, ne doivent rien déclencher. On ne
+     regarde donc pas une case seule, mais tout l'inventaire (plateau et
+     réserve) : l'animation ne se joue que si l'inventaire a vraiment
+     changé - un Bronze de moins et un Argent de plus pour cet objet - et sur
+     la case où ce même objet a changé. Rien au premier message reçu, après
+     un silence, ni d'une partie à l'autre. */
+  /* Les raretés arrivent dépliées (« Silver ») ; les lettres restent
+     admises par prudence. */
+  var RANG_RARETE_ANIM = { B: 1, S: 2, G: 3, D: 4, L: 5,
+    Bronze: 1, Silver: 2, Gold: 3, Diamond: 4, Legendary: 5 };
+
+  function quetesFinies(qp) {
+    if (typeof qp !== 'string' || !qp) return 0;
+    return qp.split(',').filter(function (q) {
+      var m = /^(\d+)\/(\d+)$/.exec(q.trim());
+      return m && +m[2] > 0 && +m[1] >= +m[2];
+    }).length;
+  }
+
+  function compterInventaire(listes, cleDe) {
+    var n = {};
+    listes.forEach(function (l) {
+      (l || []).forEach(function (it) {
+        if (!it || !it.id) return;
+        var k = it.id + '|' + cleDe(it);
+        n[k] = (n[k] || 0) + 1;
+      });
+    });
+    return n;
+  }
+
+  function animerReserve(avant) {
+    if (!avant || !avant.recu || (Date.now() - avant.recu) > 10000) return;
+    if (avant.hero !== heroJoue) return;
+    if (etatTiroir === 'fermee') return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var contenu = document.getElementById('tiroir-contenu');
+    if (!contenu || !reserve.length) return;
+
+    var ancienne = {};
+    (avant.reserve || []).forEach(function (it) { if (it) ancienne[it.s] = it; });
+
+    var criteres = {
+      q: function (it) { return it.q || ''; },
+      e: function (it) { return it.e || ''; },
+      f: function (it) { return String(quetesFinies(it.qp)); },
+    };
+    var compte = {};
+    Object.keys(criteres).forEach(function (k) {
+      compte[k] = {
+        avant: compterInventaire([avant.board, avant.reserve], criteres[k]),
+        apres: compterInventaire([board, reserve], criteres[k]),
+      };
+    });
+    var vraimentChange = function (k, id, de, vers) {
+      var c = compte[k];
+      return (c.apres[id + '|' + vers] || 0) > (c.avant[id + '|' + vers] || 0)
+          && (c.apres[id + '|' + de] || 0) < (c.avant[id + '|' + de] || 0);
+    };
+
+    reserve.forEach(function (it) {
+      var vieux = ancienne[it.s];
+      if (!it || !vieux || vieux.id !== it.id) return;
+      var caseEl = contenu.querySelector('.case[data-rang="' + it.s + '"]');
+      if (!caseEl) return;
+
+      var deQ = vieux.q || '', versQ = it.q || '';
+      if (deQ !== versQ && (RANG_RARETE_ANIM[versQ] || 0) > (RANG_RARETE_ANIM[deQ] || 0)
+          && vraimentChange('q', it.id, deQ, versQ)) {
+        animerCase(caseEl, 'montee');
+      }
+
+      var deE = vieux.e || '', versE = it.e || '';
+      if (versE && deE !== versE && vraimentChange('e', it.id, deE, versE)) {
+        animerCase(caseEl, 'enchantee');
+      }
+
+      var deF = String(quetesFinies(vieux.qp)), versF = String(quetesFinies(it.qp));
+      if (+versF > +deF && vraimentChange('f', it.id, deF, versF)) {
+        animerCase(caseEl, 'quete');
+      }
+    });
+  }
+
+  function animerCase(caseEl, sorte) {
+    caseEl.classList.add('anime');
+    var el;
+    if (sorte === 'montee') {
+      /* Le reflet prend la couleur du nouveau cadre, éclaircie. */
+      var c = (getComputedStyle(caseEl).borderTopColor.match(/\d+(\.\d+)?/g) || [255, 255, 255]).map(Number);
+      var clair = [0, 1, 2].map(function (i) { return Math.round(c[i] + (255 - c[i]) * 0.55); });
+      el = document.createElement('span');
+      el.className = 'reflet-rarete';
+      el.style.setProperty('--c-reflet', 'rgba(' + clair.join(',') + ',.85)');
+      caseEl.classList.add('montee');
+    } else if (sorte === 'enchantee') {
+      el = document.createElement('span');
+      el.className = 'voile-ench';
+      caseEl.classList.add('enchantee');
+    } else {
+      el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      el.setAttribute('class', 'coche-quete');
+      el.setAttribute('viewBox', '0 0 24 24');
+      el.setAttribute('aria-hidden', 'true');
+      el.innerHTML = '<path d="M4 12.5 L9.5 18 L20 6"/>';
+    }
+    caseEl.appendChild(el);
+    /* La case peut être refaite entre-temps : on nettoie sans s'en soucier. */
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      caseEl.classList.remove('montee', 'enchantee');
+      if (!caseEl.querySelector('.reflet-rarete, .voile-ench, .coche-quete')) caseEl.classList.remove('anime');
+    }, 1700);
+  }
+
   function majTiroirReserve() {
     var tiroir = document.getElementById('tiroir-reserve');
     var contenu = document.getElementById('tiroir-contenu');
     var titre = document.getElementById('tiroir-titre');
     if (!tiroir || !contenu) return;
 
+    /* Ouverte, la case a toujours la taille de sa position : petite au
+       milieu, grande en bas. La position peut changer sans passer par le
+       menu - défaut publié arrivé après le premier tracé, caméra du
+       streamer - et la case restait alors à sa taille d'avant : au milieu
+       à gauche par défaut, elle s'ouvrait en grand. appliquerEtatTiroir
+       refait le tiroir à la bonne taille. */
+    if (etatTiroir !== 'fermee' && etatTiroir !== tailleSelonPosition()) {
+      appliquerEtatTiroir(tailleSelonPosition());
+      return;
+    }
+
     /* Hors partie, ou si le spectateur n'en veut pas. */
     var voulu = (memoire('bazaar-reserve') || DEFAUTS['bazaar-reserve']) !== 'non';
     if (!voulu || (!board.length && !reserve.length)) {
-      tiroir.classList.add('hidden');
+      cacherDoux(tiroir);
       elRoot.style.setProperty('--decalage-boutons', '0px');
       elRoot.removeAttribute('data-boutons');
       return;
     }
-    tiroir.classList.remove('hidden');
+    montrerDoux(tiroir, true);
 
     /* Le thème entre dans l'empreinte : en changer doit refaire le cadre,
        sans quoi le tiroir garderait l'ancienne couleur. */
@@ -1417,6 +1647,22 @@
           + '/images/' + carte.image + (window.BAZAAR_SUFFIXE_CACHE || '') + '")';
       }
 
+      /* Un objet réduit (Tiny) : l'illustration n'est pas écrasée. Grand
+         devenu Moyen : le milieu de l'image, sur toute sa hauteur. Moyen
+         devenu Petit : l'image en largeur, prolongée en haut et en bas,
+         comme en jeu (voir dessinerProlongee). */
+      var tailleOrigine = carte && TAILLE_EN_CASES[carte.size];
+      if (carte && carte.image && tailleOrigine && tailleOrigine > cases) {
+        if (cases >= 2) {
+          case_.style.backgroundSize = 'auto 100%';
+          case_.style.backgroundPosition = 'center';
+        } else if (window.dessinerProlongee) {
+          case_.style.backgroundImage = 'none';
+          window.dessinerProlongee(case_, CFG.DATA_BASE_URL + '/images/' + carte.image
+            + (window.BAZAAR_SUFFIXE_CACHE || ''), window.ZOOM_PETIT_REDUIT || 1);
+        }
+      }
+
       /* La case se comporte comme une zone du plateau : mêmes champs, donc
          même survol, même épinglage, même panneau d'enchantements. */
       case_.__id = it.id;
@@ -1491,9 +1737,14 @@
       i += cases - 1;
     }
 
-    /* Les fiches des objets rangés, préchargées comme celles du plateau. */
+    /* Les fiches des objets rangés, préchargées comme celles du plateau.
+       L'illustration d'une case vient de sa fiche : tant que celle-ci n'est
+       pas arrivée, la case reste vide. On refait donc le tiroir dès son
+       arrivée, au lieu d'attendre le message suivant (jusqu'à deux secondes
+       plus tard, voire davantage sur un plateau immobile). */
     reserve.forEach(function (it) {
-      fetchCard(it.id, false);
+      if (cache.has(cle(it.id))) fetchCard(it.id, false);
+      else fetchCard(it.id, false).then(refaireTiroirBientot);
       (it.se || []).forEach(function (e) { fetchCard(e.i, false, true); });
 
       /* Et son illustration, retenue en mémoire comme les autres. */
@@ -1505,6 +1756,16 @@
        rétablit, mais seulement si le curseur est bien dans la case : sinon
        l'appel forçait un calcul de mise en page pour rien. */
     if (!epinglee && hovered) montrerCeQuEstSousLeCurseur();
+  }
+
+  /* Plusieurs fiches arrivent souvent ensemble : un seul nouveau tracé. */
+  var tiroirARefaire = null;
+  function refaireTiroirBientot() {
+    if (tiroirARefaire) return;
+    tiroirARefaire = setTimeout(function () {
+      tiroirARefaire = null;
+      majTiroirReserve();
+    }, 0);
   }
 
   /* Le passage en plein écran changeait la taille sans que rien ne le dise :
@@ -2096,6 +2357,25 @@
     Object.keys(POSITIONS).forEach(function (l) {
       LIB_OPTIONS[l].bv_haut = POSITIONS[l][0];
       LIB_OPTIONS[l].bv_bas = POSITIONS[l][1];
+    });
+
+    /* Son style. */
+    var STYLES = {
+      fr: ['Style', 'Cristaux', 'Aplats', 'Lettres'],
+      en: ['Style', 'Crystals', 'Flat', 'Letters'],
+      de: ['Stil', 'Kristalle', 'Flach', 'Buchstaben'],
+      es: ['Estilo', 'Cristales', 'Planos', 'Letras'],
+      it: ['Stile', 'Cristalli', 'Piatti', 'Lettere'],
+      pt: ['Estilo', 'Cristais', 'Planos', 'Letras'],
+      ko: ['스타일', '크리스탈', '단색', '글자'],
+      zh: ['样式', '水晶', '纯色', '文字'],
+    };
+    Object.keys(STYLES).forEach(function (l) {
+      var t = STYLES[l];
+      LIB_OPTIONS[l].bv_style = t[0];
+      LIB_OPTIONS[l].bv_cristaux = t[1];
+      LIB_OPTIONS[l].bv_plat = t[2];
+      LIB_OPTIONS[l].bv_lettres = t[3];
     });
   })();
 
@@ -2963,7 +3243,7 @@
       /* Les enchantements de cette carte, s'il y en a. Le premier bouton
          montre l'objet nu. */
       /* Triés sur le nom affiché, dans la langue courante. */
-      var noms = Object.keys(carte.enchantments || {}).sort(function (a, b) {
+      var noms = Object.keys(carte.enchantments || {}).filter(aUnBouton).sort(function (a, b) {
         return nomEnchant(a).localeCompare(nomEnchant(b), langue);
       });
       if (noms.length) {
@@ -3233,8 +3513,10 @@
         if (paire[0]) retenir(cle, paire[0]);
         else { try { window.localStorage.removeItem(cle); } catch (er) { /* refusé */ } }
         var retenu = paire[0] || DEFAUTS[cle] || '';
-        [].forEach.call(rang.querySelectorAll('button'), function (autre) {
-          autre.classList.toggle('actif', autre.dataset.valeur === retenu);
+        /* Les boutons de CETTE ligne seulement : un groupe imbriqué garderait
+           son propre choix. */
+        [].forEach.call(rang.children, function (autre) {
+          if (autre.tagName === 'BUTTON') autre.classList.toggle('actif', autre.dataset.valeur === retenu);
         });
         apres();
       });
@@ -3308,7 +3590,7 @@
     sections:    ['langue', 'theme', 'description', 'reserve', 'victoires'],
     description: ['stats', 'emplacement', 'taille', 'police'],
     reserve:     ['afficher', 'position', 'couleur'],
-    victoires:   ['afficher', 'position', 'taille', 'couleur'],
+    victoires:   ['affichage', 'style', 'taille', 'couleur'],
   };
 
   function ligneStats() {
@@ -3398,6 +3680,60 @@
       [['s', libOpt('bv_s')], ['m', libOpt('bv_m')], ['l', libOpt('bv_l')]],
       function () { majBarreVictoires(true); });
   }
+  /* Afficher et position en une ligne : non, en haut, en bas. Les deux
+     réglages d'avant restent ceux qu'on enregistre : le choix d'un spectateur
+     est repris tel quel. */
+  function ligneAffichageVictoires() {
+    var actuel = function () {
+      return (memoire('bazaar-victoires') || DEFAUTS['bazaar-victoires']) === 'non' ? 'non'
+        : ((memoire('bazaar-victoires-position') || DEFAUTS['bazaar-victoires-position']) === 'bas' ? 'bas' : 'haut');
+    };
+    var ligne = ligneOptions(libOpt('afficher'), 'bazaar-victoires-affichage',
+      [['non', libOpt('off')], ['haut', libOpt('bv_haut')], ['bas', libOpt('bv_bas')]],
+      function () {
+        var v = memoire('bazaar-victoires-affichage');
+        if (v === 'non') retenir('bazaar-victoires', 'non');
+        else { retenir('bazaar-victoires', 'oui'); retenir('bazaar-victoires-position', v); }
+        majBarreVictoires(true);
+      },
+      function (b, v, nom) {
+        if (v === 'non') return;
+        /* Un petit écran, le plateau, et le compteur en haut ou en bas. */
+        var y = v === 'haut' ? 2 : 12.6;
+        var g = '';
+        for (var i = 0; i < 5; i++) {
+          g += '<rect x="' + (9.6 + i * 2.7) + '" y="' + y + '" width="2.1" height="1.5" rx=".4" class="zone"/>';
+        }
+        b.textContent = '';
+        b.title = nom;
+        b.setAttribute('aria-label', nom);
+        b.classList.add('schema');
+        b.innerHTML = '<svg viewBox="0 0 32 18" aria-hidden="true">'
+          + '<rect x=".5" y=".5" width="31" height="17" rx="1.5" class="ecran"/>'
+          + '<rect x="9" y="7.2" width="14" height="4.2" rx=".6" class="plateau"/>' + g + '</svg>';
+      });
+    var a = actuel();
+    [].forEach.call(ligne.querySelectorAll('button'), function (b) {
+      b.classList.toggle('actif', b.dataset.valeur === a);
+    });
+    return ligne;
+  }
+
+  /* Le style, avec un aperçu dans chaque bouton. */
+  function ligneStyleVictoires() {
+    var ligne = ligneOptions(libOpt('bv_style'), 'bazaar-victoires-style',
+      [['plat', libOpt('bv_plat')], ['cristaux', libOpt('bv_cristaux')], ['lettres', libOpt('bv_lettres')]],
+      function () { majBarreVictoires(true); },
+      function (b, v, nom) {
+        var c = function (cl, l) { return '<span class="mini ' + cl + '">' + (v === 'lettres' ? l : '') + '</span>'; };
+        var l = LETTRES_RESULTAT[langue] || LETTRES_RESULTAT.en;
+        b.classList.add('style-compteur');
+        b.innerHTML = '<span class="minis st-' + v + '">' + c('v', l[0]) + c('v', l[0]) + c('d', l[1])
+          + '</span><span class="nom-style">' + nom + '</span>';
+      });
+    return ligne;
+  }
+
   function ligneCouleurVictoires() {
     return ligneOptions(libOpt('couleurReserve'), 'bazaar-victoires-couleur',
       [['theme', libOpt('couleurTheme')], ['neutre', libOpt('couleurNeutre')]],
@@ -3409,9 +3745,12 @@
        réserve à sa place, grande en bas, petite au milieu. Le nom reste en
        infobulle. */
     var ZONES = { bg: [1.5, 13.6, 9, 3], mg: [1.5, 8, 5.6, 2.4], md: [24.9, 8, 5.6, 2.4], bd: [21.5, 13.6, 9, 3] };
-    return (ligneOptions(libOpt('position'), 'bazaar-reserve-pos',
+    var ligne = (ligneOptions(libOpt('position'), 'bazaar-reserve-pos',
       POSITIONS_RESERVE.map(function (p) { return [p, libOpt('pos_' + p)]; }),
-      function () { appliquerPositionReserve(); },
+      function () {
+        positionChoisieIci = true;
+        appliquerPositionReserve();
+      },
       function (b, p, nom) {
         var z = ZONES[p];
         b.textContent = '';
@@ -3424,6 +3763,9 @@
           + '<rect x="' + z[0] + '" y="' + z[1] + '" width="' + z[2] + '" height="' + z[3] + '" rx=".6" class="zone"/>'
           + '</svg>';
       }));
+    rangPositionReserve = ligne.querySelector('.choix-ligne');
+    majBoutonsPositionReserve();
+    return ligne;
   }
 
   function ligneThemes() {
@@ -3507,7 +3849,9 @@
       ev.stopPropagation();
       // Les deux panneaux se recouvriraient : ouvrir l'un ferme l'autre.
       if (elRecherche) elRecherche.classList.remove('deplie');
-      elOptions.classList.toggle('deplie');
+      if (elOptions.classList.toggle('deplie')) {
+        chargerPolices(POLICES.map(function (x) { return x.famille; }).join(','));
+      }
     });
     elOptions.appendChild(bouton);
 
@@ -3522,7 +3866,8 @@
       reserve:     { afficher: ligneAfficherReserve, position: lignePositionReserve,
                      couleur: ligneCouleurReserve },
       victoires:   { afficher: ligneAfficherVictoires, position: lignePositionVictoires,
-                     taille: ligneTailleVictoires, couleur: ligneCouleurVictoires },
+                     taille: ligneTailleVictoires, couleur: ligneCouleurVictoires,
+                     affichage: ligneAffichageVictoires, style: ligneStyleVictoires },
     };
     var TITRES = { langue: libOpt('langue'), description: libOpt('place'),
                    reserve: libOpt('reserve'), victoires: libOpt('victoires'),
@@ -3543,7 +3888,7 @@
       var apres = sections.indexOf('reserve');
       sections.splice(apres >= 0 ? apres + 1 : sections.length, 0, 'victoires');
     }
-    if (!ORDRE_MENU.victoires) ORDRE_MENU.victoires = ['afficher', 'position', 'taille', 'couleur'];
+    if (!ORDRE_MENU.victoires) ORDRE_MENU.victoires = ['affichage', 'style', 'taille', 'couleur'];
 
     sections.forEach(function (nom) {
       if (!TITRES[nom]) return;
@@ -3556,10 +3901,14 @@
         /* Une ligne nouvelle que l'ordre publié ne cite pas encore paraît à
            la fin de sa section, plutôt que de rester invisible. */
         if (nom === 'reserve' && ordre.indexOf('couleur') < 0) ordre.push('couleur');
-        /* La position du compteur, ajoutée après coup : au-dessus de la taille. */
-        if (nom === 'victoires' && ordre.indexOf('position') < 0) {
-          var iTaille = ordre.indexOf('taille');
-          ordre.splice(iTaille >= 0 ? iTaille : ordre.length, 0, 'position');
+        /* Le compteur : « afficher » et « position » d'un ordre publié plus
+           ancien ne font plus qu'une ligne, et son style la suit. */
+        if (nom === 'victoires') {
+          var iAff = ordre.indexOf('afficher');
+          if (iAff >= 0 && ordre.indexOf('affichage') < 0) ordre[iAff] = 'affichage';
+          ordre = ordre.filter(function (c) { return c !== 'afficher' && c !== 'position'; });
+          if (ordre.indexOf('affichage') < 0) ordre.unshift('affichage');
+          if (ordre.indexOf('style') < 0) ordre.splice(ordre.indexOf('affichage') + 1, 0, 'style');
         }
         ordre.forEach(function (cle) {
           if (LIGNES[nom][cle]) sec.appendChild(LIGNES[nom][cle]());
@@ -3624,6 +3973,7 @@
     'bazaar-victoires': 'oui',
     'bazaar-victoires-taille': 'm',
     'bazaar-victoires-position': 'haut',
+    'bazaar-victoires-style': 'plat',      // aplats par défaut (Kwev, 27 octobre)
     'bazaar-victoires-couleur': 'theme',
     'bazaar-police-fiche': '',
   };
@@ -3638,6 +3988,43 @@
     police: 'bazaar-police-fiche', stats: 'bazaar-stats',
     reserve: 'bazaar-reserve', position_reserve: 'bazaar-reserve-pos',
     theme: 'bazaar-theme-fiche',
+    reserve_couleur: 'bazaar-reserve-couleur',
+    victoires: 'bazaar-victoires', victoires_position: 'bazaar-victoires-position',
+    victoires_style: 'bazaar-victoires-style', victoires_taille: 'bazaar-victoires-taille',
+    victoires_couleur: 'bazaar-victoires-couleur',
+  };
+  /* Le comportement réglable depuis Reglages.bat (bloc « extension » de
+     presentation.json) : [valeur du code, minimum, maximum]. Reglages.bat lit
+     cette table dans ce fichier : une clé ajoutée ici y paraît d'elle-même.
+     Les variables qui s'en servent sont posées plus bas, chacune à sa place. */
+  var REGLAGES_EXTENSION = {
+    marge_video_ms:           [400, 0, 3000],
+    revelation_jcj_ms:        [10000, 0, 30000],
+    revelation_jce_ms:        [2000, 0, 30000],
+    silence_ms:               [30000, 5000, 300000],
+    fiche_ecart_vertical_px:  [14, 0, 100],
+    fiche_ecart_lateral_px:   [28, 0, 100],
+    compteur_lignes_des_jour: [20, 2, 100],
+    compteur_jours_par_ligne: [15, 5, 40],
+  };
+  var POSER_REGLAGE = {
+    marge_video_ms:           function (n) { MARGE_VIDEO_MS = n; },
+    revelation_jcj_ms:        function (n) { RETARD_PVP_MS = n; },
+    revelation_jce_ms:        function (n) { RETARD_PVE_MS = n; },
+    silence_ms:               function (n) { SILENCE_MS = n; },
+    fiche_ecart_vertical_px:  function (n) { DECALAGE = n; },
+    fiche_ecart_lateral_px:   function (n) { ECART_HORIZONTAL = n; },
+    compteur_lignes_des_jour: function (n) { JOURS_LIGNES = n; },
+    compteur_jours_par_ligne: function (n) { JOURS_PAR_LIGNE = n; },
+  };
+
+  /* Les valeurs admises pour les défauts ajoutés avec l'extension 3.0.1 : une
+     faute de frappe dans presentation.json ne doit pas casser le compteur. */
+  var VALEURS_DEFAUTS = {
+    reserve_couleur: ['theme', 'neutre'],
+    victoires: ['oui', 'non'], victoires_position: ['haut', 'bas'],
+    victoires_style: ['plat', 'cristaux', 'lettres'], victoires_taille: ['s', 'm', 'l'],
+    victoires_couleur: ['theme', 'neutre'],
   };
 
   function nombre(v, min, max) {
@@ -3646,6 +4033,16 @@
 
   function integrerPresentation(p) {
     if (!p || typeof p !== 'object') return;
+
+    /* Le comportement (onglet « Extension » de Reglages.bat) : des nombres
+       bornés ; une valeur absente ou hors bornes garde celle du code. */
+    if (p.extension && typeof p.extension === 'object') {
+      Object.keys(REGLAGES_EXTENSION).forEach(function (cle) {
+        var r = REGLAGES_EXTENSION[cle];
+        var n = nombre(p.extension[cle], r[1], r[2]);
+        if (n !== null && POSER_REGLAGE[cle]) POSER_REGLAGE[cle](Math.round(n));
+      });
+    }
 
     /* Les couleurs des étiquettes en haut des fiches : tailles, talent et
        types. Des codes hexadécimaux seulement ; tout le reste est ignoré. */
@@ -3668,7 +4065,9 @@
     /* Les choix par défaut, pour qui n'a encore rien choisi. */
     if (p.defauts && typeof p.defauts === 'object') {
       Object.keys(CLES_DEFAUTS).forEach(function (k) {
-        if (typeof p.defauts[k] === 'string') DEFAUTS[CLES_DEFAUTS[k]] = p.defauts[k];
+        if (typeof p.defauts[k] !== 'string') return;
+        if (VALEURS_DEFAUTS[k] && VALEURS_DEFAUTS[k].indexOf(p.defauts[k]) < 0) return;
+        DEFAUTS[CLES_DEFAUTS[k]] = p.defauts[k];
       });
     }
 
@@ -3725,7 +4124,7 @@
 
     /* L'ordre du menu. */
     if (p.menu && typeof p.menu === 'object') {
-      ['sections', 'description', 'reserve'].forEach(function (k) {
+      ['sections', 'description', 'reserve', 'victoires'].forEach(function (k) {
         if (Array.isArray(p.menu[k])) {
           ORDRE_MENU[k] = p.menu[k].filter(function (x) { return typeof x === 'string'; });
         }
@@ -3741,6 +4140,7 @@
     if (etatTiroir !== 'fermee') appliquerEtatTiroir(tailleSelonPosition());
     empreinteReserve = null;
     majTiroirReserve();
+    majBoutonsPositionReserve();
   }
 
   /* « Global » montre tous les paliers d'un objet ; « Current » seulement
@@ -3923,20 +4323,65 @@
      des fiches qui ne viendraient jamais. */
   var controlesVisibles = false;
   var derniereReception = 0;
-  var SILENCE_MS = 30000;
+  var SILENCE_MS = REGLAGES_EXTENSION.silence_ms[0];
 
   function fluxActif() {
     return derniereReception > 0
         && (Date.now() - derniereReception) < SILENCE_MS;
   }
 
+  /* L'application tourne, hors partie (menu du jeu, jeu fermé) : elle envoie
+     alors un signe de vie (« a: 1 », application 3.1 et suivantes) toutes
+     les dix secondes. Les boutons restent affichés SEULEMENT si la catégorie
+     du stream est The Bazaar : un streamer qui joue à autre chose avec
+     l'application ouverte ne doit pas voir les boutons sur sa vidéo (Kwev,
+     27 octobre). La catégorie vient de Twitch (« game » du contexte). */
+  var categorieBazaar = false;
+  var derniereVeille = 0;
+
+  /* La catégorie ne se lit pas de façon fiable dans le contexte de Twitch :
+     « game » y reste vide au chargement, et ne se remplit que si le
+     streamer change de catégorie pendant le live (essayé par Kwev le 28
+     octobre : rien). On la demande donc à l'API de Twitch (Get Channel
+     Information), avec le jeton que Twitch donne à chaque spectateur de
+     l'extension (« helixToken ») : api.twitch.tv est permise d'office,
+     30 demandes par minute au plus et par spectateur. Une demande au plus
+     par minute, et seulement quand l'application envoie son signe de vie
+     hors partie : un stream en pleine partie n'en fait aucune. */
+  var authTwitch = null;
+  var derniereVerifCategorie = 0;
+  var VERIF_CATEGORIE_MS = 60000;
+  function verifierCategorie(forcer) {
+    var a = authTwitch;
+    if (!a || !a.helixToken || !a.clientId || !a.channelId) return;
+    var maintenant = Date.now();
+    if (!forcer && maintenant - derniereVerifCategorie < VERIF_CATEGORIE_MS) return;
+    derniereVerifCategorie = maintenant;
+    fetch('https://api.twitch.tv/helix/channels?broadcaster_id=' + encodeURIComponent(a.channelId), {
+      headers: { 'Client-Id': a.clientId, 'Authorization': 'Extension ' + a.helixToken },
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var c = j && j.data && j.data[0];
+        if (!c) return;
+        var etait = categorieBazaar;
+        categorieBazaar = /^\s*the bazaar\s*$/i.test(String(c.game_name || ''));
+        if (etait !== categorieBazaar) majInterface();
+      })
+      .catch(function () { /* réseau : on réessaiera au prochain signe de vie */ });
+  }
+  function interfaceActive() {
+    return fluxActif()
+        || (categorieBazaar && derniereVeille > 0 && (Date.now() - derniereVeille) < SILENCE_MS);
+  }
+
   function majInterface() {
-    var montrer = controlesVisibles && fluxActif();
+    var montrer = controlesVisibles && interfaceActive();
     montrerSelecteur(montrer);
     montrerOptions(montrer);
     montrerRecherche(montrer);
 
-    if (!fluxActif()) {
+    if (!interfaceActive()) {
       // Le rappel n'a plus rien à annoncer : on le retire sans le marquer vu.
       cacherTuto();
       if (elRecherche) elRecherche.classList.remove('deplie');
@@ -4070,6 +4515,13 @@
     if ((memoire('bazaar-victoires-couleur') || DEFAUTS['bazaar-victoires-couleur']) === 'neutre') {
       return NEUTRE_RESERVE.cadre;
     }
+    return teinteDuTheme();
+  }
+
+  /* La teinte du thème choisi, seule. Les menus la suivent toujours : la
+     couleur « neutre » du compteur de victoires ne vaut que pour lui. Elle
+     teintait aussi les menus, qui suivaient le compteur au lieu du thème. */
+  function teinteDuTheme() {
     var theme = elRoot.getAttribute('data-theme') || 'heros';
     if (theme === 'heros') return TEINTE_HEROS[heroJoue] || NEUTRE_RESERVE.cadre;
     if (theme === THEME_NEUTRE) return BRUN_CUIR;
@@ -4096,20 +4548,83 @@
     return motifsGemmes[d];
   }
 
-  /* La teinte des deux menus, options et index : celle du thème, comme le
-     compteur de victoires. Le texte des titres en est une version lisible. */
+  /* La teinte des deux menus, options et index : celle du thème, quelle que
+     soit la couleur choisie pour le compteur de victoires. Le texte des
+     titres en est une version lisible. */
   var teinteMenusPosee = null;
   function majTeinteMenus() {
     if (!elRoot) return;
     var teinte;
     /* Appelée dès le premier thème posé, avant que tout soit prêt : sans
        teinte calculable, on garde le doré par défaut de la feuille. */
-    try { teinte = teinteBarreVictoires(); } catch (e) { return; }
+    try { teinte = teinteDuTheme(); } catch (e) { return; }
     if (!teinte) return;
     if (teinte === teinteMenusPosee) return;
     teinteMenusPosee = teinte;
     elRoot.style.setProperty('--teinte-menu', teinte);
     elRoot.style.setProperty('--texte-menu', teinteLisible(teinte));
+  }
+
+  /* Le style du compteur : aplats (par défaut), cristaux, ou une lettre par jour. */
+  var STYLES_BARRE = ['plat', 'cristaux', 'lettres'];
+  function styleBarre() {
+    var s = memoire('bazaar-victoires-style') || DEFAUTS['bazaar-victoires-style'];
+    return STYLES_BARRE.indexOf(s) >= 0 ? s : 'plat';
+  }
+  /* La lettre d'une victoire et d'une défaite, comme dans les classements
+     sportifs de chaque langue. Une langue absente prend celles de l'anglais. */
+  var LETTRES_RESULTAT = {
+    en: ['W', 'L'], fr: ['V', 'D'], de: ['S', 'N'], es: ['V', 'D'], it: ['V', 'P'],
+    pt: ['V', 'D'], ru: ['В', 'П'], uk: ['В', 'П'], ja: ['勝', '負'], ko: ['승', '패'],
+    zh: ['胜', '负'], 'zh-tw': ['勝', '負'],
+  };
+  function lettreResultat(r) {
+    if (!r) return '';
+    var l = LETTRES_RESULTAT[langue] || LETTRES_RESULTAT.en;
+    return r === 'v' ? l[0] : l[1];
+  }
+
+  /* Les longues parties (un tournoi n'a pas de limite de jours) : à partir
+     du 20e jour, la barre passe sur plusieurs lignes de 15 jours (Kwev, 26
+     octobre). */
+  var JOURS_LIGNES = REGLAGES_EXTENSION.compteur_lignes_des_jour[0],
+      JOURS_PAR_LIGNE = REGLAGES_EXTENSION.compteur_jours_par_ligne[0];
+  /* Paraître et disparaître en douceur : le compteur et la réserve
+     glissent un peu depuis leur bord en apparaissant au début d'une partie,
+     et y repartent à la fin (Kwev, 26 octobre). Par une transition sur
+     « opacity » et « translate », qui ne gêne pas les animations de la
+     barre (fond, bord) ni son « transform ». */
+  var DUREE_SORTIE_MS = 350;
+  function montrerDoux(el, parAnimation) {
+    if (el.__sortie) { clearTimeout(el.__sortie); el.__sortie = null; }
+    if (!el.classList.contains('hidden') && !el.classList.contains('cache-doux')) return;
+    var etaitCache = el.classList.contains('hidden');
+    el.classList.remove('hidden');
+    if (etaitCache && !parAnimation) {
+      el.classList.add('cache-doux');
+      void el.offsetWidth;               // le point de départ, avant la transition
+    }
+    el.classList.remove('cache-doux');
+    if (!etaitCache || !parAnimation) return;
+    /* L'entrée de la réserve est une animation, et non une transition : le côté de la
+       réserve (gauche ou droite) est fixé après coup, quand elle est placée.
+       Une transition partait alors du côté par défaut, et une réserve à
+       droite arrivait par la gauche ; l'animation, elle, change de sens avec
+       le côté. */
+    el.classList.remove('entree');
+    void el.offsetWidth;
+    el.classList.add('entree');
+    clearTimeout(el.__finEntree);
+    el.__finEntree = setTimeout(function () { el.classList.remove('entree'); }, 600);
+  }
+  function cacherDoux(el) {
+    if (el.classList.contains('hidden') || el.__sortie) return;
+    el.classList.add('cache-doux');
+    el.__sortie = setTimeout(function () {
+      el.__sortie = null;
+      el.classList.add('hidden');
+      el.classList.remove('cache-doux');
+    }, DUREE_SORTIE_MS);
   }
 
   function majBarreVictoires(force) {
@@ -4120,22 +4635,26 @@
     majTeinteMenus();
     var montrer = voulu && jourPartie && partieEnCours();
     if (!montrer) {
-      if (elBarreVictoires) elBarreVictoires.classList.add('hidden');
+      if (elBarreVictoires) cacherDoux(elBarreVictoires);
       empreinteBarre = null;
+      barreTracee = null;     // en revenant, pas d'animation de rattrapage
       return;
     }
     if (!elBarreVictoires) {
       elBarreVictoires = document.createElement('div');
       elBarreVictoires.id = 'barre-victoires';
+      elBarreVictoires.className = 'hidden';
       elBarreVictoires.setAttribute('aria-hidden', 'true');
       elRoot.appendChild(elBarreVictoires);
     }
     var taille = memoire('bazaar-victoires-taille') || DEFAUTS['bazaar-victoires-taille'];
     var teinte = teinteBarreVictoires();
     var enBas = (memoire('bazaar-victoires-position') || DEFAUTS['bazaar-victoires-position']) === 'bas';
-    var empreinte = [jourPartie, histoirePartie, taille, teinte, enBas, window.innerHeight].join('|');
-    elBarreVictoires.classList.remove('hidden');
+    var style = styleBarre();
+    var empreinte = [jourPartie, histoirePartie, taille, teinte, enBas, window.innerHeight, modeTournoi, tournoiGagne,
+                     style, langue, compteurs && compteurs.pr].join('|');
     elBarreVictoires.classList.toggle('bas', enBas);
+    montrerDoux(elBarreVictoires);
     if (empreinte === empreinteBarre && !force) return;
     empreinteBarre = empreinte;
 
@@ -4144,18 +4663,134 @@
     var echelle = Math.max(0.6, Math.min(2.2, window.innerHeight / 720));
     elBarreVictoires.style.fontSize = (10 * echelle * facteur).toFixed(2) + 'px';
     elBarreVictoires.style.setProperty('--teinte-barre', teinte);
-    elBarreVictoires.style.setProperty('--fond-barre', melange(teinte, 0, 0.86));
-    elBarreVictoires.style.setProperty('--bord-barre', melange(teinte, 0, 0.4));
-    elBarreVictoires.style.setProperty('--texte-barre', teinteLisible(teinte));
+    /* Couleur du thème : le fond et le liseré des fiches (dégradé posé par la
+       feuille de style sous le contenu). Neutre : un fond uni, comme avant. */
+    if ((memoire('bazaar-victoires-couleur') || DEFAUTS['bazaar-victoires-couleur']) !== 'neutre') {
+      var themeBarre = elRoot.getAttribute('data-theme') || 'heros';
+      var fiche = degradeFiche(teinte, themeBarre === 'heros' ? heroJoue : (HERO_DU_THEME[themeBarre] || null));
+      elBarreVictoires.style.setProperty('--fond-fiche-barre', fiche.fond);
+      elBarreVictoires.style.setProperty('--fond-barre', fiche.sombre);
+      elBarreVictoires.style.setProperty('--bord-barre', fiche.teinte);
+    } else {
+      elBarreVictoires.style.removeProperty('--fond-fiche-barre');
+      elBarreVictoires.style.setProperty('--fond-barre', melange(teinte, 0, 0.86));
+      elBarreVictoires.style.setProperty('--bord-barre', melange(teinte, 0, 0.4));
+    }
+    /* Les numéros des jours : toujours le beige des descriptions (Kwev, 26
+       octobre) ; dans la couleur du thème, ils étaient peu lisibles. */
+    elBarreVictoires.style.setProperty('--texte-barre', '#f0e4c0');
+
+    /* Ce qui vient d'arriver depuis le tracé précédent, pour l'animer : un
+       résultat posé sur un cristal, un jour ajouté au bout de la barre.
+       Rien au premier tracé (spectateur qui arrive en cours de partie), ni
+       pour une nouvelle partie, ni quand seuls la taille ou le thème
+       changent. */
+    var avant = barreTracee;
+    var suite = !!avant && jourPartie >= avant.jour
+      && histoirePartie.indexOf(avant.histoire) === 0;
+    var resultatNeuf = false;
+
+    /* La fin de la partie, et son métal (validé par Kwev le 25 octobre) :
+         - perdue avec 4 à 6 victoires : bronze ; avec 7 à 9 : argent ;
+         - 10 victoires : or, ou diamant (platine) avec 20 de prestige ou plus.
+       Pendant la partie, les victoires restent bleues. À la fin, la vague
+       les passe au métal une à une, la barre suit en fondu, et UNE coupe
+       se pose à droite du dernier jour. Aucune coupe pendant la partie.
+       Les défaites gardent leur rouge, la case noire de la mort reste la
+       dernière. À la mort, le fond de la barre vire au noir, puis au métal
+       s'il y en a un. Rien de tout cela en tournoi. */
+    var nbVictoires = (histoirePartie.match(/v/g) || []).length;
+    var perdue = histoirePartie.charAt(histoirePartie.length - 1) === 'x';
+    var fin = null;
+    /* En tournoi, pas de palier : la partie continue après 10 victoires, et
+       seul le premier du tournoi reçoit le diamant, quels que soient ses
+       victoires, ses défaites et son prestige (Kwev, 26 octobre). */
+    if (modeTournoi) {
+      if (tournoiGagne) fin = 'platine';
+    } else {
+      if (nbVictoires >= 10) {
+        var pr = compteurs && compteurs.pr;
+        /* Sans le prestige (application ancienne), une partie sans défaite
+           vaut le diamant, comme avant. */
+        fin = (typeof pr === 'number') ? (pr >= 20 ? 'platine' : 'or')
+                                       : (/[drx]/.test(histoirePartie) ? 'or' : 'platine');
+      } else if (perdue && nbVictoires >= 7) fin = 'argent';
+      else if (perdue && nbVictoires >= 4) fin = 'bronze';
+    }
+    var rangCoupeFinale = fin ? { bronze: 4, argent: 7, or: 10, platine: 10 }[fin] : 0;   // 10 : la dixième ferme la vague
+    /* Elle arrive sous les yeux du spectateur : la vague se joue. */
+    var finNeuve = !!fin && suite && avant.fin !== fin;
+    /* La mort, sous les yeux du spectateur : les ténèbres. La vague attend
+       qu'elles soient retombées. */
+    var mortNeuve = perdue && suite && avant.histoire.length < histoirePartie.length;
 
     var html = '';
+    var victoires = 0;
+    var rangVague = 0;          // l'ordre de passage dans la vague
     for (var d = 1; d <= jourPartie; d++) {
       var r = histoirePartie.charAt(d - 1);
-      html += '<div class="jour"><div class="gemme ' + (r || 'vide') + ' m' + motifGemme(d) + '"></div>'
+      if (r === 'v') victoires++;
+      var neuf = suite && r && d > avant.histoire.length;
+      if (neuf) resultatNeuf = true;
+      var arrive = suite && d > avant.jour;
+      var vague = finNeuve && r === 'v' && !neuf;
+      /* La dixième victoire, qui ferme la vague d'une partie gagnée. */
+      var dixieme = finNeuve && neuf && r === 'v' && rangCoupeFinale === 10;
+      /* Pendant la vague, une victoire reste bleue jusqu'à son tour. */
+      var metal = (r === 'v' && fin && !vague) ? fin : null;
+      /* Ce qui prend la place du numéro : la couronne brisée du refus de
+         la mort, le crâne de la partie perdue. */
+      var insigne = r === 'r' || r === 'x';
+      html += '<div class="jour' + (arrive ? ' arrive' : '') + (metal ? ' ' + metal : '')
+            + (insigne ? ' insigne' : '')
+            + (vague ? ' vague" style="--i:' + (rangVague++) : '') + (dixieme ? ' dixieme' : '') + '">'
+            + '<div class="logement">'
+            /* La dixième attend la fin de la vague : sa case reste vide jusque-là. */
+            + (dixieme ? '<div class="gemme vide"></div>' : '')
+            + '<div class="gemme ' + (r || 'vide') + ' m' + motifGemme(d) + (neuf ? ' neuve' : '') + (dixieme ? ' dessus' : '')
+              + '" data-l="' + lettreResultat(r) + '"></div>'
+            /* Le cristal du métal, posé sur l'ancien et révélé par la vague. */
+            + (vague ? '<div class="gemme v voile m' + motifGemme(d) + '" data-l="' + lettreResultat('v') + '"></div>' : '')
+            + (r === 'r' ? '<div class="couronne' + (neuf ? ' neuve' : '') + '"></div>' : '')
+            + (r === 'x' ? '<div class="crane' + (neuf ? ' neuve' : '') + '"></div>' : '')
+            + '</div>'
             + '<div class="num">' + d + '</div></div>';
     }
+    /* La coupe de la fin, une seule, à droite du dernier jour : la barre
+       s'élargit pour elle une fois la vague passée, puis elle tombe. */
+    if (fin) {
+      html += '<div class="coupe-fin' + (finNeuve ? ' neuve' : '') + '">'
+            + '<div class="coupe ' + fin + (finNeuve ? ' neuve' : '') + '"></div></div>';
+    }
+    /* Les ténèbres de la mort : des volutes qui s'étirent de chaque côté de
+       la barre, puis reviennent d'un coup, comme un élastique. */
+    if (mortNeuve) html += '<div class="tenebres" aria-hidden="true"><i class="g"></i><i class="d"></i></div>';
     elBarreVictoires.innerHTML = html;
+    ['bronze', 'argent', 'or', 'platine'].forEach(function (m) {
+      elBarreVictoires.classList.toggle('fin-' + m, fin === m);
+    });
+    elBarreVictoires.classList.toggle('fin', !!fin);
+    /* La partie perdue : le fond de la barre au noir. Sous les yeux du
+       spectateur, il y vire ; le métal, s'il y en a un, part de ce noir. */
+    elBarreVictoires.classList.toggle('perdue', perdue);
+    elBarreVictoires.classList.toggle('mort-neuve', mortNeuve);
+    elBarreVictoires.classList.toggle('lignes', jourPartie >= JOURS_LIGNES);
+    elBarreVictoires.style.setProperty('--jours-par-ligne', JOURS_PAR_LIGNE);
+    elBarreVictoires.classList.toggle('style-plat', style === 'plat');
+    elBarreVictoires.classList.toggle('style-lettres', style === 'lettres');
+    /* La vague : une victoire après l'autre, puis la barre entière, réglées
+       par la feuille de style d'après le rang de chaque jour. Après une mort,
+       elle part une fois les ténèbres retombées. */
+    elBarreVictoires.classList.toggle('fin-neuve', finNeuve);
+    elBarreVictoires.classList.toggle('apres-mort', finNeuve && mortNeuve);
+    elBarreVictoires.style.setProperty('--vagues', rangVague);
+
+    /* Le jour qui s'ajoute attend la fin de l'animation du résultat, quand
+       les deux arrivent ensemble à la fin d'un combat. */
+    elBarreVictoires.classList.toggle('apres-resultat', resultatNeuf);
+    barreTracee = { jour: jourPartie, histoire: histoirePartie, fin: fin };
   }
+  var barreTracee = null;   // le dernier jour et l'historique dessinés
 
   window.addEventListener('resize', function () { majBarreVictoires(); majEchelleMenu(); });
 
@@ -4281,8 +4916,8 @@
     corps.appendChild(ligne);
   }
 
-  var DECALAGE = 14;              // pixels entre le curseur et la fiche, en hauteur
-  var ECART_HORIZONTAL = 28;      // et sur le côté
+  var DECALAGE = REGLAGES_EXTENSION.fiche_ecart_vertical_px[0];        // pixels entre le curseur et la fiche, en hauteur
+  var ECART_HORIZONTAL = REGLAGES_EXTENSION.fiche_ecart_lateral_px[0];  // et sur le côté
   var dernierPointeur = null;     // pour replacer la fiche après son rendu
 
   function suivre(ev) {
@@ -4372,21 +5007,24 @@
 
     var f = (epinglee ? elPanel : (elCard || elPanel)).getBoundingClientRect();
 
-    /* Moitié basse du lecteur : la fiche au-dessus du curseur ; moitié
-       haute : en dessous. Le passage de l'un à l'autre ne saute pas : dans
-       une bande au milieu du lecteur, la fiche glisse progressivement d'un
-       côté à l'autre du curseur. Contre un bord, elle s'arrête à la marge et
-       y reste, au lieu de basculer de l'autre côté comme avant. */
+    /* La fiche suit le curseur sans retard. Elle se tient AU-DESSUS du
+       curseur pour un élément de la moitié basse du lecteur, EN DESSOUS pour
+       un élément de la moitié haute. Ce côté est choisi une fois, quand la
+       fiche change, d'après le centre de l'élément survolé, et ne bouge plus
+       tant qu'on reste sur lui. Contre le haut ou le bas du
+       lecteur, elle s'arrête à la marge ; contre le bord droit, elle passe à
+       gauche du curseur (plus bas). */
     var marge = margeFiche();
     var H = cadreR.height;
-    var dessous = y + DECALAGE;                    // fiche sous le curseur
-    var dessus = y - DECALAGE - f.height;          // fiche au-dessus
-    var debut = H * 0.35, fin = H * 0.65;          // la bande de passage
-    var t = Math.min(1, Math.max(0, (y - debut) / (fin - debut)));
-    t = t * t * (3 - 2 * t);                       // départ et arrivée en douceur
-    var ly = dessous + (dessus - dessous) * t;
+    var quelleV = hovered ? (hovered.id + '|' + (hovered.etiquette || '')) : null;
+    if (quelleV !== ficheDuHaut || ficheEnHaut === null) {
+      ficheDuHaut = quelleV;
+      ficheEnHaut = centreSurvole(y, cadreR) >= H / 2;
+    }
+    var ly = ficheEnHaut ? y - DECALAGE - f.height : y + DECALAGE;
     ly = Math.min(ly, H - marge - f.height);
     ly = Math.max(ly, marge);
+
 
     /* À côté du curseur, avec assez d'écart pour ne pas toucher la flèche,
        qui s'étend vers la droite. */
@@ -4427,6 +5065,26 @@
   }
 
   var coteFiche = null;          // côté du curseur où se tient la fiche
+  var ficheEnHaut = null;        // fiche au-dessus du curseur (sinon dessous)
+  var ficheDuHaut = null;        // la fiche pour laquelle ce choix vaut
+
+  /* Hauteur du centre de l'élément survolé, dans le lecteur : la zone qui
+     porte la fiche montrée (même carte, même emplacement). On la cherche
+     par ce qu'elle porte et non sous le curseur, dont la dernière position
+     connue peut dater d'avant l'entrée dans la zone. Introuvable : la
+     hauteur du curseur. */
+  function centreSurvole(y, cadreR) {
+    if (hovered) {
+      var zones = elRoot.querySelectorAll('.hotspot, .case');
+      for (var i = 0; i < zones.length; i++) {
+        var z = zones[i];
+        if (z.__id !== hovered.id || (z.__etiquette || null) !== (hovered.etiquette || null)) continue;
+        var r = z.getBoundingClientRect();
+        return (r.top + r.bottom) / 2 - cadreR.top;
+      }
+    }
+    return y;
+  }
   var ficheDuCote = null;        // la fiche pour laquelle ce côté vaut
   var minuterieGlisse = null;
 
@@ -4531,7 +5189,7 @@
      enchantement, quêtes, valeurs des jetons, critique, emplacement. */
   function signatureVivante(id, estTalent) {
     var v = exemplaireVivant(id, estTalent);
-    return JSON.stringify([v.q, v.e, v.qp, v.jv, v.cc, v.mc, v.cd, v.am, v.ta, v.se]);
+    return JSON.stringify([v.q, v.e, v.qp, v.jv, v.cc, v.mc, v.cd, v.am, v.ta, v.se, v.e2, v.n]);
   }
 
   function paint(id, estTalent) {
@@ -4579,6 +5237,25 @@
        boutons. Ailleurs, on montre la carte telle qu'elle est. */
     var ench = (hovered && hovered.enchant) || live.e || null;
 
+    /* L'enchantement AJOUTÉ à l'exemplaire (« e2 » : Tiny), qui s'affiche
+       avant l'autre, comme en jeu (« Tiny · Restorative »). Il n'a pas
+       d'effet propre : il ne change que la taille. */
+    var enchAjoute = (typeof live.e2 === 'string' && live.e2 && live.e2 !== ench)
+      ? live.e2 : null;
+
+    /* La taille RÉELLE de l'exemplaire, déduite du nombre de cases qu'il
+       occupe (« n », envoyé depuis toujours) : un objet Grand rendu Moyen par
+       Tiny occupe deux cases. La fiche publiée ne connaît que la taille
+       d'origine, qu'on garde pour la signaler. */
+    var tailleReelle = card.size;
+    /* L'application (depuis la 3.0, message v4) n'envoie « n » qu'au-delà
+       d'une case : absent, il vaut 1. Une plus ancienne ne l'envoyait
+       peut-être pas : on ne déduit alors rien. */
+    var estUneRencontre = !!(card.isEncounter || (hovered && hovered.rencontre));
+    if (!estTalent && !estUneRencontre && card.size && live.id && vAppVue >= 4) {
+      tailleReelle = TAILLE_PAR_CASES[live.n || 1] || card.size;
+    }
+
     window.showItem(Object.assign({ found: true }, card, {
       socketEffect:        ficheEffet((hovered && hovered.socket) || live.se),
       isSkill:             !!estTalent,
@@ -4596,8 +5273,10 @@
          « Current » : on l'épingle pour l'étudier. */
       statsGlobales:       !!(epinglee && epinglee.id === id),
       enchantmentName:     ench,
+      enchantementAjoute:  enchAjoute,
       enchantmentTooltips: ench ? (card.enchantments && card.enchantments[ench]) || [] : [],
-      size:                card.size
+      size:                tailleReelle,
+      tailleOrigine:       tailleReelle !== card.size ? card.size : null
     }, selonEnchantement(card, ench), multicastVivant(card, live, id),
        delaisVivants(card, live, id)));
 
@@ -4689,7 +5368,7 @@
     if (!epinglee) return;
 
     var carte = cache.get(cle(epinglee.id));
-    var noms = carte && Object.keys(carte.enchantments || {}).sort(function (a, b) {
+    var noms = carte && Object.keys(carte.enchantments || {}).filter(aUnBouton).sort(function (a, b) {
       return nomEnchant(a).localeCompare(nomEnchant(b), langue);
     });
     if (!noms || !noms.length) return;
@@ -4853,20 +5532,23 @@
     derniereSouris = { x: ev.clientX, y: ev.clientY };
     if (!bouge || epinglee) return;
 
-    /* Rien d'affiché : rien à cacher. « elementFromPoint » force le
-       navigateur à recalculer la mise en page ; l'appeler à chaque mouvement
-       alors qu'aucune fiche n'est visible coûtait cher pour rien. */
+    /* Rien d'affiché : rien à cacher. */
     if (!hovered) return;
 
     /* Sur une zone, le survol réaffiche aussitôt la bonne fiche ; ailleurs,
-       la fiche s'efface. */
-    var sousLeCurseur = document.elementFromPoint(ev.clientX, ev.clientY);
-    if (sousLeCurseur && sousLeCurseur.classList
-        && (sousLeCurseur.classList.contains('hotspot')
-            /* Les cases du tiroir ne sont pas des zones du plateau, mais le
-               survol doit y tenir de la même façon : sans cela la fiche
-               s'effaçait aussitôt montrée. */
-            || sousLeCurseur.classList.contains('case'))) return;
+       la fiche s'efface.
+
+       On demande au navigateur ce qu'IL voit sous la souris (la cible de
+       l'événement), et non « elementFromPoint ». Celui-ci ne prend que des
+       pixels entiers, alors que le navigateur suit la souris au dixième de
+       pixel : en entrant sur une carte par son bord, il la déclarait
+       survolée, la fiche paraissait, puis « elementFromPoint » tombait sur
+       le pixel juste à côté et la cachait. La souris étant déjà « entrée »,
+       la fiche ne revenait plus : il fallait sortir de la carte et y
+       revenir. Les cases du tiroir comptent comme les zones du plateau. */
+    var sousLeCurseur = ev.target && ev.target.closest
+      && ev.target.closest('.hotspot, .case');
+    if (sousLeCurseur) return;
 
     hide();
   }, true);
@@ -4923,13 +5605,28 @@
   var latenceSpectateur = 0;
 
   var RETARD_MS = (CFG.RETARD_MS !== undefined) ? CFG.RETARD_MS : 0;
-  var RETARD_PVP_MS = (CFG.RETARD_PVP_MS !== undefined) ? CFG.RETARD_PVP_MS : 10000;
+  var RETARD_PVP_MS = (CFG.RETARD_PVP_MS !== undefined) ? CFG.RETARD_PVP_MS : REGLAGES_EXTENSION.revelation_jcj_ms[0];
 
   /* Un combat contre un monstre se dévoile plus vite : son plateau n'est pas
      celui d'un adversaire qui pourrait regarder le stream. */
-  var RETARD_PVE_MS = (CFG.RETARD_PVE_MS !== undefined) ? CFG.RETARD_PVE_MS : 2000;
+  var RETARD_PVE_MS = (CFG.RETARD_PVE_MS !== undefined) ? CFG.RETARD_PVE_MS : REGLAGES_EXTENSION.revelation_jce_ms[0];
+  /* Marge ajoutée quand l'application donne l'âge du plateau (« ag ») : la
+     latence que Twitch mesure ne couvre pas l'encodage et l'envoi par OBS,
+     et le plateau paraissait environ 0,2 s avant la vidéo (Kwev, 28
+     octobre). Réglable sans téléverser l'extension : « extension.
+     marge_video_ms » dans presentation.json (Reglages.bat, onglet
+     Extension), publié avec les données. */
+  var MARGE_VIDEO_MS = REGLAGES_EXTENSION.marge_video_ms[0];
 
-  var enAttente = null;          // { msg, echeance }
+  /* Les messages en attente de leur heure, dans l'ordre d'arrivée : chacun
+     paraît au bout de SON retard, comme sur la vidéo.
+
+     Il n'y avait qu'une place : un message arrivé pendant l'attente
+     remplaçait le précédent mais gardait son échéance. Avec 5 s de latence,
+     la fiche ne changeait donc qu'une fois toutes les 6 s, et montrait alors
+     le dernier message reçu, en avance sur la vidéo. Rien de plus n'est
+     reçu : au plus un message par seconde, gardé le temps de la latence. */
+  var fileRetard = [];           // [{ msg, echeance }], échéances croissantes
   var horlogeRetard = null;
 
   var attente = null;          // « pvp », « pve », ou rien
@@ -4992,6 +5689,14 @@
   }
 
   function recevoir(msg) {
+    /* Le signe de vie de l'application hors partie : rien à afficher, il
+       ne touche ni au plateau ni au compteur. */
+    if (msg && msg.a === 1) {
+      derniereVeille = Date.now();
+      verifierCategorie(false);
+      majInterface();
+      return;
+    }
     if (!msg || !Array.isArray(msg.b)) return;
 
     var debut = debutCombat(msg);
@@ -5024,33 +5729,55 @@
       + (debut === 'pvp' ? RETARD_PVP_MS
        : debut === 'pve' ? RETARD_PVE_MS
        : RETARD_MS);
+
+    /* L'âge du plateau (application 3.1, « ag », en ms) : le temps écoulé
+       entre l'écriture du plateau par le mod et l'envoi, délai voulu par le
+       streamer déduit. La vidéo, elle, part dès l'événement : attendre toute
+       la latence à partir de la réception ajoutait ce trajet au retard
+       (environ une seconde, et deux de plus avec l'ancien réglage par défaut
+       de l'application). On le retire donc de l'attente. Il reste le transit
+       par Twitch, qu'on ne peut pas mesurer : la fiche ne paraît jamais avant
+       la vidéo. Une application plus ancienne n'envoie pas le champ. */
+    if (typeof msg.ag === 'number' && msg.ag >= 0) {
+      retard = Math.max(0, retard - Math.min(msg.ag, 60000)) + MARGE_VIDEO_MS;
+    }
     /* Un message sans retard propre ne passe pas devant un combat qui attend
        encore sa révélation : il prend sa place dans l'attente. */
-    if (!retard && !enAttente) { applyBoard(msg); return; }
+    if (!retard && !fileRetard.length) { applyBoard(msg); return; }
 
-    if (!enAttente) {
-      enAttente = { msg: msg, echeance: Date.now() + retard };
-    } else {
-      enAttente.msg = msg;
-      if (debut) {
-        enAttente.echeance = Math.max(enAttente.echeance, Date.now() + retard);
-      }
+    /* Jamais avant le message précédent : un combat qui attend sa
+       révélation retient ceux qui le suivent. */
+    var echeance = Date.now() + retard;
+    if (fileRetard.length) {
+      echeance = Math.max(echeance, fileRetard[fileRetard.length - 1].echeance);
     }
+    /* Un combat commence : la bande d'en face vient d'être vidée, et les
+       messages d'avant qui attendent encore ne la font pas réapparaître. */
+    if (debut) {
+      fileRetard.forEach(function (e) { e.msg = sansFace(e.msg); });
+    }
+    fileRetard.push({ msg: msg, echeance: echeance });
 
-    if (!horlogeRetard) horlogeRetard = setInterval(examinerRetard, 200);
+    /* Garde-fou : une latence de plusieurs minutes ne garde pas plus de
+       300 messages ; les plus anciens cèdent leur place. */
+    if (fileRetard.length > 300) fileRetard.splice(0, fileRetard.length - 300);
+
+    if (!horlogeRetard) horlogeRetard = setInterval(examinerRetard, 100);
   }
 
   function examinerRetard() {
-    if (!enAttente) {
+    var maintenant = Date.now();
+    var echu = null;
+    while (fileRetard.length && fileRetard[0].echeance <= maintenant) {
+      echu = fileRetard.shift();
+    }
+    /* Plusieurs messages échus d'un coup : seul le plus récent compte. */
+    if (echu) applyBoard(echu.msg);
+
+    if (!fileRetard.length) {
       clearInterval(horlogeRetard);
       horlogeRetard = null;
-      return;
     }
-    if (Date.now() < enAttente.echeance) return;
-
-    var msg = enAttente.msg;
-    enAttente = null;
-    applyBoard(msg);
   }
 
   /* Version minimale attendue de l'application compagnon. En deçà, elle
@@ -5097,6 +5824,7 @@
 
   function verifierVersionApp(msg) {
     var v = (typeof msg.v === 'number') ? msg.v : 1;
+    vAppVue = v;
 
     if (v >= VERSION_APP_MIN) {
       if (elVersion) { elVersion.remove(); elVersion = null; }
@@ -5222,11 +5950,22 @@
   function applyBoard(msg) {
     if (!msg || !Array.isArray(msg.b)) return;
     deplierMessage(msg);
+    /* L'état d'avant, pour les animations de la réserve. */
+    var avantReserve = {
+      board: board, reserve: reserve, hero: heroJoue,
+      recu: dernierApplique ? derniereReception : 0,
+    };
     dernierApplique = msg;
     verifierVersionApp(msg);
 
     derniereReception = Date.now();
     dernierDelai = (typeof msg.d === 'number' && msg.d > 0) ? msg.d : 0;
+
+    /* La caméra du streamer : la réserve se place ailleurs. Ce n'est pas un
+       état de la partie, et le retour au menu ne l'efface pas. */
+    var cam = coteCamera(msg.cam);
+    var camChangee = (cam !== camCote);
+    camCote = cam;
     majInterface();
     board  = msg.b;
     skills = Array.isArray(msg.k) ? msg.k : [];
@@ -5238,8 +5977,9 @@
     heroJoue = (typeof msg.h === 'string') ? msg.h : '';
     modeClasse = (msg.m === 'r');
     modeTournoi = (msg.m === 't');
+    tournoiGagne = modeTournoi && msg.tg === 1;
     jourPartie = Number.isInteger(msg.j) && msg.j > 0 ? msg.j : null;
-    histoirePartie = (typeof msg.hj === 'string') ? msg.hj.replace(/[^vdr]/g, '') : '';
+    histoirePartie = (typeof msg.hj === 'string') ? msg.hj.replace(/[^vdrx]/g, '') : '';
     var avantCompteurs = JSON.stringify(compteurs);
     compteurs = {
       vi: Number.isInteger(msg.vi) ? msg.vi : null,
@@ -5286,7 +6026,9 @@
     if (board.length || enFace.length) peutEtreTuto('bazaar-tuto-vu');
 
     prechargerTout();   // au survol, tout est déjà en mémoire
-    majTiroirReserve();
+    if (camChangee) appliquerPositionReserve();
+    else majTiroirReserve();
+    try { animerReserve(avantReserve); } catch (e) { /* une animation ratée ne gêne rien */ }
 
     /* La réserve en fait partie : sans elle, la fiche d'un objet rangé était
        masquée au message suivant, une seconde après le survol. */
@@ -5328,7 +6070,12 @@
     if (!T) { log('helper Twitch absent'); return; }
 
     log('en attente de Twitch\u2026');
-    T.onAuthorized(function () { log('connecté, en attente du plateau\u2026'); });
+    T.onAuthorized(function (auth) {
+      log('connecté, en attente du plateau\u2026');
+      var premiere = !authTwitch;
+      authTwitch = auth || null;
+      if (premiere) verifierCategorie(true);
+    });
 
     T.onContext && T.onContext(function (ctx) {
       if (!ctx) return;
@@ -5350,6 +6097,14 @@
       if ('arePlayerControlsVisible' in ctx) {
         controlesVisibles = !!ctx.arePlayerControlsVisible;
         majInterface();
+      }
+
+      /* Quand Twitch la donne (changement de catégorie en direct), elle
+         vaut aussitôt ; vide, elle ne dit rien et l'API fait foi. */
+      if (ctx.game) {
+        var etaitBazaar = categorieBazaar;
+        categorieBazaar = /^\s*the bazaar\s*$/i.test(String(ctx.game));
+        if (etaitBazaar !== categorieBazaar) majInterface();
       }
 
       if (langueMemorisee() || !ctx.language) return;

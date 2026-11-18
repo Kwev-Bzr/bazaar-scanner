@@ -100,8 +100,13 @@ const PORT       = 3210;
 const JETON_LOCAL = require('node:crypto').randomBytes(18).toString('hex');
 let codeConnexion = null;
 let codeConnexionExpire = 0;
+/* Connexions Twitch réussies depuis le lancement : la fenêtre attend que ce
+   nombre avance. Attendre seulement qu'un jeton existe ne marchait pas pour
+   un changement de compte : l'ancien jeton était déjà là, la fenêtre
+   s'arrêtait aussitôt et gardait l'ancien nom. */
+let connexionsRecues = 0;
 const ROUTES_PROTEGEES = ['/config', '/connexion', '/parcourir', '/langue', '/fermer',
-                          '/maj/installer', '/maj/annuler'];
+                          '/maj/installer', '/maj/annuler', '/diag/envois'];
 
 function echapperHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -130,6 +135,9 @@ const CONFIG_DEFAUT = [
   '# CADRE       : où se trouve le jeu dans votre scène OBS, en pourcentage',
   '#               (gauche,haut,largeur,hauteur). Vide = plein cadre.',
   '#               Renseigné par le bouton Calibrer, pas à la main.',
+  '# CAMERA      : où se trouve votre caméra dans la scène, en pourcentage',
+  '#               (gauche,haut,largeur,hauteur), ou « aucune ». Vide = pas',
+  '#               encore indiqué. Renseigné par le Cadrage, étape 2.',
   '',
   'RELAY_TOKEN=',
   'TWITCH_NOM=',
@@ -138,11 +146,14 @@ const CONFIG_DEFAUT = [
   'SOURCE=steam',
   'BAZAAR_PATH=',
   'CADRE=',
+  'CAMERA=',
   'TAILLE=m',
-  '# DELAI_STREAM : délai de votre stream, en secondes. 2 par défaut.',
-  '#               Il s\'AJOUTE au retard de l\'extension. À régler si vous',
-  '#               diffusez en différé, en tournoi par exemple.',
-  'DELAI_STREAM=2',
+  '# DELAI_STREAM : délai que vous ajoutez vous-même à votre stream (OBS,',
+  '#               tournoi), en secondes. 0 par défaut : l\'extension suit',
+  '#               déjà la vidéo de chaque spectateur.',
+  'DELAI_STREAM=0',
+  '# DELAI_VERIFIE : tenu par l\'application, ne pas modifier.',
+  'DELAI_VERIFIE=',
   '',
 ].join('\r\n');
 
@@ -314,7 +325,31 @@ function diffuserEtat() {
   try { majDiagnostic(); } catch (e) { /* le diagnostic ne doit rien bloquer */ }
   try { majEtatMiseAJour(); } catch (e) { /* pas encore prête au démarrage */ }
   const charge = 'data: ' + JSON.stringify(etat) + '\n\n';
-  for (const r of abonnes) { try { r.write(charge); } catch (e) { /* client parti */ } }
+  for (const r of abonnes) ecrireFenetre(r, charge);
+}
+
+/* Une fenêtre réduite cesse parfois de lire son flux (le navigateur la met
+   en sommeil). Chaque état était pourtant mis en file pour elle : à son
+   retour, elle les recevait tous, dans l'ordre, et rejouait la partie avant
+   d'arriver à l'état réel (signalé par Kwev le 26 octobre ; mesuré : 240
+   états en retard, 1 Mo, après une minute). Désormais, tant que la fenêtre
+   n'a pas lu ce qu'on lui a envoyé, seul le DERNIER état est gardé pour elle,
+   et il part dès qu'elle reprend sa lecture. */
+function ecrireFenetre(r, charge) {
+  /* Fenêtre réduite (ou cachée) : rien ne part, elle recevra l'état du
+     moment en revenant. Voir « /visibilite ». */
+  if (r.cachee) return;
+  if (r.bouchee) { r.enAttente = charge; return; }
+  let libre = true;
+  try { libre = r.write(charge); } catch (e) { return; /* fenêtre partie */ }
+  if (libre) return;
+  r.bouchee = true;
+  r.once('drain', () => {
+    r.bouchee = false;
+    const suivant = r.enAttente;
+    r.enAttente = null;
+    if (suivant) ecrireFenetre(r, suivant);
+  });
 }
 
 const LARGEUR_PAR_TAILLE = { Small: 5.1, Medium: 9.8, Large: 14.5 };
@@ -333,6 +368,11 @@ function cartesCompactes(liste, avecPosition) {
       const cases = SLOTS_PAR_TAILLE[c.Size] || 1;
       if (cases !== 1) it.n = cases;
       if (c.Enchantment && c.Enchantment !== 'None') it.e = c.Enchantment;
+      /* Tiny : un attribut de l'objet pour le jeu, envoyé comme enchantement
+         AJOUTÉ (« e2 »), seulement s'il est présent. L'extension 3.1 l'affiche
+         avant l'autre (« Minuscule · Funeste ») ; les plus anciennes l'ignorent.
+         L'enchantement à effet reste dans « e ». */
+      if (c.Tiny === true) it.e2 = 'Tiny';
       if (c.Tier) it.q = rareteCourte(c.Tier);
 
       const type = String(c.Type || '');
@@ -409,7 +449,7 @@ function cartesCompactes(liste, avecPosition) {
    message. Relevé toutes les dix secondes au plus : la date d'un fichier ne
    change pas plus vite. */
 /* Depuis la V3, le mod porte le même numéro que l'application. */
-const MOD_ATTENDU = '3.0.0';
+const MOD_ATTENDU = '3.1.0';
 let versionJeuVue = null;       // Application.version, lue par le mod
 let derniereEcritureMod = null; // date du dernier board_state.json lu
 let modVu = null;
@@ -456,24 +496,8 @@ function noter(type, details) {
   if (etat.journal.length > 40) etat.journal.length = 40;
 }
 
-/* Les talents qui changent de rareté, notés au journal. */
-let raretesTalents = null;
-const RANG_RARETE = { Bronze: 0, Silver: 1, Gold: 2, Diamond: 3, Legendary: 4 };
-function suivreTalents(state) {
-  const actuel = new Map();
-  for (const c of (state && state.Skills) || []) {
-    if (c && c.TemplateId) actuel.set(c.TemplateId, { nom: traduire(c.Name) || c.Name || '?', q: c.Tier });
-  }
-  if (raretesTalents) {
-    for (const [id, v] of actuel) {
-      const avant = raretesTalents.get(id);
-      if (avant && (RANG_RARETE[v.q] || 0) > (RANG_RARETE[avant.q] || 0)) {
-        noter('talent', { nom: v.nom, rarete: v.q });
-      }
-    }
-  }
-  raretesTalents = actuel;
-}
+/* Les talents qui montaient de rareté étaient notés au journal ; retiré le
+   27 octobre (Kwev) : le journal garde les résultats des combats. */
 
 /* ── L'historique des jours, pour le compteur de victoires ──────────────────
    Le jeu ne garde pas l'historique des combats ; on le reconstitue au fil de
@@ -507,8 +531,41 @@ function enPartieReelle(state) {
   return h !== '' && h !== 'Common';
 }
 
+/* Le tournoi perdu, puis le mode spectateur (Kwev, 26 octobre) : éliminé,
+   le joueur regarde les autres jusqu'à la fin du tournoi, et le jeu montre
+   alors LEUR partie. Le compteur reste figé sur la sienne jusqu'au retour au
+   menu principal. La mort (« x ») est confirmée après DELAI_CONSTAT_MS sans
+   remontée du prestige (sinon c'était un refus de la mort), dès l'écran de
+   chargement qui précède le mode spectateur, ou dès que l'écran montre une
+   autre partie (autre héros, jour ou victoires en baisse) ; on fige alors
+   les compteurs tels qu'au moment de la mort. Au menu principal (héros
+   « Common »), tout se libère ; l'écran de chargement, lui, ne libère rien. */
+function enregistrerPartie() {
+  try { fs.writeFileSync(CHEMIN_PARTIE, JSON.stringify(partie)); } catch (e) { /* sans gravité */ }
+}
+function autrePartieAffichee(state) {
+  const entier = x => Number.isInteger(x) ? x : null;
+  return !partie || partie.hero !== (state.Hero || '')
+    || (Number.isInteger(state.Jour) && state.Jour < partie.jour)
+    || (entier(state.Victoires) !== null && entier(partie.vi) !== null && state.Victoires < partie.vi);
+}
+
 function suivrePartie(state) {
+  /* Le compteur figé se libère au menu principal (héros « Common »), ou
+     quand une partie neuve commence : un jour plus petit que celui de la
+     mort (les joueurs regardés en sont au même jour, ou plus loin). */
+  if (partie && (partie.fige || partie.mort)
+      && (String((state && state.Hero) || '') === 'Common'
+          || (Number.isInteger(state && state.Jour) && partie.fige && state.Jour < partie.fige.jour))) {
+    delete partie.fige; delete partie.mort; enregistrerPartie();
+  }
   if (!enPartieReelle(state)) return null;
+  if (partie && partie.mort && !partie.fige
+      && (Date.now() - partie.mort.t >= DELAI_CONSTAT_MS || autrePartieAffichee(state))) {
+    partie.fige = partie.mort;
+    enregistrerPartie();
+  }
+  if (partie && partie.fige) return partie.jours;
   const j = state && state.Jour, vi = state && state.Victoires, pr = state && state.Prestige;
   if (!Number.isInteger(j) || j < 1) return null;
   const entier = x => Number.isInteger(x) ? x : null;
@@ -523,14 +580,13 @@ function suivrePartie(state) {
     partie = { hero: state.Hero || '', jour: j, vi: entier(vi), pr: entier(pr),
                jours: 'v'.repeat(Math.min(victoires, j - 1)) + 'd'.repeat(defaites) };
     noter('partie', { hero: partie.hero, jour: j });
-    raretesTalents = null;
   }
 
   const poser = (r) => {
     const libre = partie.jours.length;            // le premier jour sans résultat
     if (libre < Math.max(j, partie.jour)) {
       partie.jours += r;
-      noter(r === 'v' ? 'victoire' : (r === 'r' ? 'refus' : 'defaite'), { jour: libre + 1 });
+      noter(r === 'v' ? 'victoire' : (r === 'r' ? 'refus' : 'defaite'), { jour: libre + 1 });   // « x » : une défaite
     }
   };
 
@@ -540,11 +596,25 @@ function suivrePartie(state) {
     }
     if (entier(pr) !== null && entier(partie.pr) !== null) {
       if (pr < partie.pr) {
-        /* La perte vaut le jour : si elle devait vider le prestige et qu'il
-           en reste 1, c'est le refus de la mort. */
-        poser(pr === 1 && partie.pr - Math.max(j, partie.jour) <= 0 ? 'r' : 'd');
-      } else if (partie.pr === 0 && pr === 1 && partie.jours.endsWith('d')) {
+        /* La perte vaut le jour du combat : le premier jour sans résultat
+           (le compteur du jeu est parfois déjà passé au jour suivant). Le
+           refus de la mort, c'est une perte qui aurait fait tomber le
+           prestige SOUS 1, et le jeu qui en rend 1. Tomber pile à 1 (20
+           de prestige, défaites aux jours 1, 3, 7 et 8) n'est qu'une
+           défaite : la comparaison avec le jour du compteur prenait ce cas
+           pour un refus (signalé par Kwev le 25 octobre). */
+        /* Le prestige tombé à 0 : la partie est perdue (« x »). S'il remonte
+           ensuite à 1, c'était un refus de la mort, corrigé juste dessous. */
+        const jourCombat = partie.jours.length + 1;
+        poser(pr === 1 && partie.pr - jourCombat < 1 ? 'r' : (pr === 0 ? 'x' : 'd'));
+        /* Tournoi perdu : de quoi figer le compteur (voir plus haut). */
+        if (pr === 0 && /x$/.test(partie.jours) && /tourn/i.test(String(state.Mode || ''))) {
+          partie.mort = { t: Date.now(), jour: partie.jours.length, vi: entier(vi), pr: 0,
+                          px: entier(state.PrestigeMax), mode: state.Mode || '', classee: !!state.Classee };
+        }
+      } else if (partie.pr === 0 && pr === 1 && /[dx]$/.test(partie.jours)) {
         partie.jours = partie.jours.slice(0, -1) + 'r';
+        delete partie.mort;
         noter('refus', { jour: partie.jours.length });
       }
     }
@@ -562,16 +632,25 @@ function suivrePartie(state) {
 
      Seulement après cinq secondes sans changement : le jeu ne met pas
      forcément le jour et les victoires à jour au même instant, et une victoire
-     en cours d'enregistrement ne doit pas passer pour une défaite. */
+     en cours d'enregistrement ne doit pas passer pour une défaite.
+
+     Le refus de la mort sans baisse visible : un joueur à 1 de prestige,
+     sans être déjà passé par les portes de la mort, perd un combat ; le jeu
+     l'y envoie et lui laisse 1. Le prestige ne bouge pas, seul le jour
+     avance : le jour qui manque, juste après, est ce refus (« r »). Une
+     seule fois par partie : la défaite suivante le fait tomber à 0. */
   const joues = j - 1;
   if (entier(vi) !== null && partie.jours.length < joues
       && (partie.jours.match(/v/g) || []).length >= vi) {
     const cle = j + '/' + vi + '/' + (entier(pr) === null ? '' : pr);
     if (constatPartie.cle !== cle) constatPartie = { cle, depuis: Date.now() };
     else if (Date.now() - constatPartie.depuis >= DELAI_CONSTAT_MS) {
+      const refusSansBaisse = joues - partie.jours.length === 1
+        && pr === 1 && partie.pr === 1 && !/r/.test(partie.jours);
       while (partie.jours.length < joues) {
-        partie.jours += 'd';
-        noter('defaite', { jour: partie.jours.length });
+        const r = refusSansBaisse ? 'r' : 'd';
+        partie.jours += r;
+        noter(r === 'r' ? 'refus' : 'defaite', { jour: partie.jours.length });
       }
     }
   }
@@ -641,6 +720,7 @@ function apercuCartes(liste) {
       nom: (c.Type === 'PvpEncounter') ? 'PVP' : (traduire(c.Name) || '?'),
       tier: c.Tier || '',
       ench: (c.Enchantment && c.Enchantment !== 'None') ? c.Enchantment : '',
+      tiny: c.Tiny === true,
 
       se: (c.SocketEffects || [])
         .map(e => String(e).split('|')[1])
@@ -683,13 +763,21 @@ let dernierPublie = null;
 function publierAvecDelai(objets, talents, cadre, extra) {
   /* Le spectateur n'a plus à retarder quoi que ce soit : son lecteur reste
      mesuré de son côté. */
-  const charge = { objets, talents, cadre, extra };
+  /* « capture » : le moment où le mod a écrit ce plateau. Il change à chaque
+     relevé, et n'entre donc pas dans l'empreinte ; « retenu », le délai
+     voulu par le streamer. Ensemble, ils donnent l'âge du message à l'envoi,
+     que l'extension retire de son attente. */
+  const reste = Object.assign({}, extra || {});
+  const capture = (typeof reste.capture === 'number') ? reste.capture : Date.now();
+  delete reste.capture;
 
-  const empreinte = JSON.stringify([objets, talents, extra]);
+  const empreinte = JSON.stringify([objets, talents, reste]);
   const delai = Math.max(0, lireDelaiStream()) * 1000;
+  const charge = { objets, talents, cadre,
+                   extra: Object.assign(reste, { capture: capture, retenu: delai }) };
 
   if (!delai) {
-    pubsub.publishBoard(objets, talents, cadre, null, extra);
+    pubsub.publishBoard(objets, talents, cadre, null, charge.extra);
     dernierPublie = empreinte;
     return;
   }
@@ -716,7 +804,13 @@ function publierVide() {
   if (!actif || videDiffuse) return;
   videDiffuse = true;
   try {
-    publierAvecDelai([], [], lireCadre(), { delaiStream: lireDelaiStream() });
+    /* Plus de « d » (délai du streamer) avec ce plateau vide : l'application
+       l'a déjà retenu tout ce temps avant l'envoi, et l'extension, qui le
+       prenait pour un délai à attendre encore, l'attendait une seconde fois
+       (en tournoi, 60 s de plus avant de vider le plateau). Sans « d »,
+       l'extension n'attend que la latence du spectateur, comme pour tout
+       autre plateau. */
+    publierAvecDelai([], [], lireCadre(), { camera: lireCamera() });
   } catch (e) { /* rien à diffuser n'est pas une erreur */ }
 }
 
@@ -820,6 +914,20 @@ function lireCadre() {
   if (v[2] <= 0 || v[3] <= 0) return null;
   if (v[0] === 0 && v[1] === 0 && v[2] === 100 && v[3] === 100) return null;
   return v.map(x => Math.round(x * 100) / 100);
+}
+
+/* La caméra du streamer, indiquée à l'étape 2 du Cadrage : un rectangle en
+   pourcentage de la vidéo, [gauche, haut, largeur, hauteur]. L'extension
+   n'en regarde que le côté (centre à gauche ou à droite du milieu) et place
+   la réserve des spectateurs de l'autre côté. « aucune », ou rien : pas de
+   champ dans le message, la réserve reste où le spectateur la met. */
+function lireCamera() {
+  const brut = (config.CAMERA || '').trim();
+  if (!brut || brut === 'aucune') return null;
+  const v = brut.split(',').map(x => parseFloat(x));
+  if (v.length !== 4 || v.some(x => !isFinite(x))) return null;
+  if (v[2] <= 0 || v[3] <= 0) return null;
+  return v.map(x => Math.round(x * 10) / 10);
 }
 
 /* Version de cette application, inscrite à la construction depuis le fichier
@@ -1276,6 +1384,7 @@ function cycle() {
     etat.faceTitre = '';
     derniereBande = null;
     publierVide();
+    try { pubsub.publishVeille(); } catch (e) { /* rien à diffuser n'est pas une erreur */ }
     return definirEtat('attente', MOTIFS.ferme);
   }
 
@@ -1293,6 +1402,7 @@ function cycle() {
     etat.faceTitre = '';
     derniereBande = null;
     publierVide();
+    try { pubsub.publishVeille(); } catch (e) { /* rien à diffuser n'est pas une erreur */ }
     return definirEtat('attente', MOTIFS.ferme);
   }
 
@@ -1303,6 +1413,10 @@ function cycle() {
   if (state && typeof state.VersionJeu === 'string' && state.VersionJeu) versionJeuVue = state.VersionJeu;
 
   if (!state || state.Ready === false) {
+    /* Un écran de chargement juste après une mort en tournoi : c'est le
+       passage en spectateur (Kwev, 26 octobre). Le compteur se fige aussitôt,
+       sans attendre les cinq secondes. */
+    if (partie && partie.mort && !partie.fige) { partie.fige = partie.mort; enregistrerPartie(); }
     etat.objets = etat.talents = 0;
     etat.plateau = [];
     etat.listeTalents = [];
@@ -1314,6 +1428,7 @@ function cycle() {
     etat.faceTitre = '';
     derniereBande = null;
     publierVide();
+    try { pubsub.publishVeille(); } catch (e) { /* rien à diffuser n'est pas une erreur */ }
     return definirEtat('attente', MOTIFS.horsJeu);
   }
 
@@ -1400,19 +1515,27 @@ function cycle() {
   etat.faceTitre = titreDeLaBande(state);
 
   if (state.Mod) modVu = state.Mod;
-  suivreTalents(state);
   const histoire = suivrePartie(state);
   const reelle = enPartieReelle(state);
-  etat.partie = (reelle && Number.isInteger(state.Jour)) ? {
-    jour: state.Jour, histoire: histoire || '', hero: state.Hero || '',
-    vi: state.Victoires, pr: state.Prestige, px: state.PrestigeMax,
-    mode: state.Classee ? 'classee' : (/tourn/i.test(String(state.Mode || '')) ? 'tournoi' : 'normal'),
+  /* Éliminé d'un tournoi et spectateur : les compteurs restent ceux du
+     joueur au moment de sa mort, pas ceux de la partie regardée. */
+  const fige = reelle && partie && partie.fige;
+  const compte = fige ? { Jour: fige.jour, Victoires: fige.vi, Prestige: fige.pr, PrestigeMax: fige.px,
+                          Mode: fige.mode, Classee: fige.classee, Hero: partie.hero }
+                      : state;
+  etat.partie = (reelle && Number.isInteger(compte.Jour)) ? {
+    jour: compte.Jour, histoire: histoire || '', hero: compte.Hero || '',
+    vi: compte.Victoires, pr: compte.Prestige, px: compte.PrestigeMax,
+    mode: compte.Classee ? 'classee' : (/tourn/i.test(String(compte.Mode || '')) ? 'tournoi' : 'normal'),
+    spectateur: !!fige,
   } : null;
 
   noterSession();
 
   videDiffuse = false;
   publierAvecDelai(objets, talents, lireCadre(), {
+    capture: derniereEcritureMod || Date.now(),
+    camera: lireCamera(),
     hero: reelle ? (state.Hero || '') : '',
     face: bandePourTwitch(enFace),
     reserveAffichee: reserveAffichee,
@@ -1421,14 +1544,19 @@ function cycle() {
     faceCentree: !!state.FaceCentree,
     /* Hors partie (menu principal), ni compteurs ni jour : la barre des
        victoires et les zones disparaissent chez les spectateurs. */
-    victoires: reelle ? state.Victoires : null,
-    prestige: reelle ? state.Prestige : null,
-    prestigeMax: reelle ? state.PrestigeMax : null,
-    classee: reelle ? state.Classee : null,
-    mode: reelle ? state.Mode : null,
-    jour: reelle ? state.Jour : null,
+    victoires: reelle ? compte.Victoires : null,
+    prestige: reelle ? compte.Prestige : null,
+    prestigeMax: reelle ? compte.PrestigeMax : null,
+    classee: reelle ? compte.Classee : null,
+    mode: reelle ? compte.Mode : null,
+    jour: reelle ? compte.Jour : null,
     histoire: histoire,
   });
+  /* Au menu du jeu (héros « Common »), avec un délai de stream, le plateau
+     vide n'est pas répété : sans signe de vie, l'extension retirait ses
+     boutons au bout de 30 s, même en catégorie The Bazaar. publishVeille
+     ne part que si rien n'est parti depuis 10 s. */
+  try { pubsub.publishVeille(); } catch (e) { /* rien à diffuser n'est pas une erreur */ }
 
   const liaison = pubsub.etat();
   if (liaison.connecte === false) definirEtat('erreur', liaison.erreur);
@@ -1637,6 +1765,23 @@ const serveur = http.createServer((req, res) => {
     return;
   }
 
+  /* La fenêtre dit qu'elle est réduite ou cachée (cachee=1), puis qu'elle
+     revient (cachee=0) : on cesse de lui envoyer chaque état, et elle reçoit
+     l'état du moment dès son retour, au lieu de rejouer tous ceux qu'elle a
+     manqués. Le signe de vie continue, elle compte toujours comme ouverte. */
+  if (url.pathname === '/visibilite' && req.method === 'POST') {
+    const id = url.searchParams.get('id') || '';
+    const cachee = url.searchParams.get('cachee') === '1';
+    for (const r of abonnes) {
+      if (!id || r.idFenetre !== id) continue;
+      r.cachee = cachee;
+      r.enAttente = null;
+      if (!cachee) ecrireFenetre(r, 'data: ' + JSON.stringify(etat) + '\n\n');
+    }
+    res.writeHead(204).end();
+    return;
+  }
+
   /* La mise à jour intégrée : lancer, ou annuler (un téléchargement en
      cours, ou une erreur affichée, pour revenir à la proposition). */
   if (url.pathname === '/maj/installer' && req.method === 'POST') {
@@ -1674,6 +1819,7 @@ const serveur = http.createServer((req, res) => {
       if (pseudo) maj.TWITCH_NOM = pseudo;
       ecrireConfig(maj);
       appliquerConfig();
+      connexionsRecues++;
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(
@@ -1733,11 +1879,20 @@ const serveur = http.createServer((req, res) => {
     return;
   }
 
+  /* La console des envois (onglet Diagnostic) : seulement les envois
+     postérieurs au numéro donné. */
+  if (url.pathname === '/diag/envois' && req.method === 'GET') {
+    const depuis = parseInt(url.searchParams.get('depuis'), 10) || 0;
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end(JSON.stringify(pubsub.envoisDepuis(depuis)));
+  }
+
   if (url.pathname === '/config' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify({
       RELAY_TOKEN: config.RELAY_TOKEN || '',
       TWITCH_NOM:  config.TWITCH_NOM  || '',
+      CONNEXIONS:  connexionsRecues,
       BAZAAR_PATH: config.BAZAAR_PATH || '',
 
       /* Les deux installations et celle que l'application lit. Sans ces
@@ -1754,6 +1909,7 @@ const serveur = http.createServer((req, res) => {
       SOURCE:      (config.SOURCE === 'tempo') ? 'tempo' : 'steam',
 
       CADRE:       config.CADRE       || '',
+      CAMERA:      config.CAMERA      || '',
       VERSION,
       VERSION_EN_LIGNE: versionEnLigne,
       DELAI_STREAM: lireDelaiStream(),
@@ -1771,7 +1927,7 @@ const serveur = http.createServer((req, res) => {
            qu'à la main dans config.ini, jamais depuis une page. */
         for (const cle of ['RELAY_TOKEN', 'TWITCH_NOM',
                            'BAZAAR_PATH', 'STEAM_PATH', 'TEMPO_PATH',
-                           'SOURCE', 'CADRE', 'DELAI_STREAM']) {
+                           'SOURCE', 'CADRE', 'CAMERA', 'DELAI_STREAM']) {
           if (typeof recu[cle] === 'string') maj[cle] = recu[cle].trim();
         }
         ecrireConfig(maj);
@@ -1791,8 +1947,52 @@ const serveur = http.createServer((req, res) => {
 
 if (!fs.existsSync(CONFIG_INI)) fs.writeFileSync(CONFIG_INI, CONFIG_DEFAUT, 'utf8');
 
+/* Les délais de quelques secondes hérités des versions 1 et 2 (Kwev,
+   28 octobre). Avant que l'extension ne mesure elle-même la latence de
+   chaque spectateur, on réglait ici ~2 s pour la compenser ; aujourd'hui ce
+   réglage s'AJOUTE à la mesure, et les cartes arrivent en retard. Beaucoup
+   de streamers l'ont gardé sans le savoir. Une seule fois, au premier
+   lancement de la 3.1 : moins de 10 s, il repasse à 0. Un vrai délai de
+   stream (tournoi, OBS : 60 s, 300 s...) est gardé. */
+try {
+  const ini = lireConfig();
+  if (!ini.DELAI_VERIFIE) {
+    const n = parseInt(ini.DELAI_STREAM, 10);
+    const maj = { DELAI_VERIFIE: '1' };
+    if (Number.isFinite(n) && n > 0 && n < 10) {
+      maj.DELAI_STREAM = '0';
+      console.log('[info] DELAI_STREAM : ' + n + ' s, hérité des versions 1 et 2, remis à 0 '
+        + '(l\'extension mesure désormais la latence de chaque spectateur)');
+    }
+    ecrireConfig(maj);
+  }
+} catch (e) { /* config illisible : appliquerConfig le signalera */ }
+
 appliquerConfig();
-setInterval(cycle, INTERVALLE);
+
+/* Le relevé suit le mod : dès que board_state.json change, et au moins une
+   fois par seconde comme avant (jeu fermé, fichier périmé...).
+
+   Lire le fichier à heure fixe, toutes les secondes, sans lien avec le
+   moment où le mod l'écrit, ajoutait jusqu'à une seconde de retard (une
+   demi-seconde en moyenne) à tout ce que voient les spectateurs. Regarder la
+   date du fichier cinq fois par seconde ne coûte presque rien ; le fichier
+   n'est lu que lorsqu'il a changé, soit une fois par seconde, au rythme du
+   mod. Les envois vers Twitch restent limités à un par seconde. */
+let dateEtatLue = 0;
+let dernierCycle = 0;
+setInterval(() => {
+  let date = 0;
+  try { if (actif) date = fs.statSync(cheminEtatPlateau(config)).mtimeMs; }
+  catch (e) { /* pas de fichier : le relevé de chaque seconde s'en charge */ }
+
+  const maintenant = Date.now();
+  if ((date && date !== dateEtatLue) || maintenant - dernierCycle >= INTERVALLE) {
+    dateEtatLue = date;
+    dernierCycle = maintenant;
+    cycle();
+  }
+}, 200);
 
 serveur.listen(PORT, '127.0.0.1', () => {
   const url = `http://127.0.0.1:${PORT}/`;

@@ -418,6 +418,59 @@ const badgesRow   = document.getElementById('badges-row');
 const heroPortEl  = document.getElementById('hero-portraits');
 const bodyEl      = document.getElementById('item-body');
 const itemImgWrap = document.getElementById('item-img-wrap');
+
+/* ── L'illustration d'un objet réduit (Tiny) ─────────────────────────────
+   Un objet Grand devenu Moyen montre le MILIEU de son illustration, sur
+   toute la hauteur (object-fit / background « cover »). Un Moyen devenu
+   Petit la montre en entier en largeur, un peu zoomée, centrée, le haut et
+   le bas prolongés par leur dernière ligne de pixels : c'est ce que fait le
+   jeu. Ce dernier cas se dessine dans un canevas ; dessiner une image d'un
+   autre site ne demande aucune autorisation, seule sa lecture en
+   demanderait. Servi à la fiche et aux cases de la réserve. */
+const CASES_PAR_TAILLE = { Small: 1, Medium: 2, Large: 3 };
+const ZOOM_PETIT_REDUIT = 1.25;
+const IMAGES_PROLONGEES = {};
+
+function retirerProlongee(conteneur) {
+  delete conteneur.dataset.prolongee;
+  const ancien = conteneur.querySelector('canvas.illus-prolongee');
+  if (ancien) ancien.remove();
+}
+
+function dessinerProlongee(conteneur, url, zoom) {
+  retirerProlongee(conteneur);
+  conteneur.dataset.prolongee = url;
+  let img = IMAGES_PROLONGEES[url];
+  if (!img) { img = IMAGES_PROLONGEES[url] = new Image(); img.src = url; }
+  let essais = 0;
+  const dessiner = () => {
+    if (conteneur.dataset.prolongee !== url) return;     // autre image entre-temps
+    const cw = conteneur.clientWidth, ch = conteneur.clientHeight;
+    if (!cw || !ch) { if (++essais < 30) requestAnimationFrame(dessiner); return; }
+    const dpr = window.devicePixelRatio || 1;
+    const c = document.createElement('canvas');
+    c.className = 'illus-prolongee';
+    c.width = Math.round(cw * dpr); c.height = Math.round(ch * dpr);
+    const g = c.getContext('2d');
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const dw = c.width * (zoom || 1), dh = ih * dw / iw;
+    const dx = (c.width - dw) / 2, dy = (c.height - dh) / 2;
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, 0, 0, iw, ih, dx, dy, dw, dh);
+    if (dy > 0) {
+      g.drawImage(img, 0, 0, iw, 1, dx, 0, dw, dy + 1);
+      g.drawImage(img, 0, ih - 1, iw, 1, dx, dy + dh - 1, dw, c.height - dy - dh + 1);
+    }
+    const ancien = conteneur.querySelector('canvas.illus-prolongee');
+    if (ancien) ancien.remove();
+    conteneur.insertBefore(c, conteneur.firstChild);
+  };
+  if (img.complete && img.naturalWidth) requestAnimationFrame(dessiner);
+  else img.addEventListener('load', () => requestAnimationFrame(dessiner), { once: true });
+}
+window.dessinerProlongee = dessinerProlongee;
+window.retirerProlongee = retirerProlongee;
+window.ZOOM_PETIT_REDUIT = ZOOM_PETIT_REDUIT;
 const itemImg     = document.getElementById('item-img');
 let hideTimer = null;
 /* La fiche ne disparaît pas seule au bout de cinq secondes, comme dans
@@ -553,9 +606,29 @@ function showItem(data) {
   const enchantPubliees = (window.BAZAAR_LIBELLES || {}).couleurs_enchantements;
   const enchantColor = (enchantPubliees && enchantPubliees[data.enchantmentName])
     || ENCHANTMENT_COLORS[data.enchantmentName] || '#f0c060';
-  if (data.enchantmentName) {
-    enchantNameEl.textContent = trad(ENCHANT_FR, data.enchantmentName, 'enchantements');
-    enchantNameEl.style.color = enchantColor;
+  /* Un enchantement AJOUTÉ (Tiny) passe devant l'autre, dans sa couleur,
+     séparé par un point couleur du texte : « Tiny · Restorative », comme en
+     jeu. Seul, il s'affiche seul. */
+  const couleurEnchant = n => (enchantPubliees && enchantPubliees[n]) || ENCHANTMENT_COLORS[n] || '#f0c060';
+  const ajoute = data.enchantementAjoute && data.enchantementAjoute !== data.enchantmentName
+    ? data.enchantementAjoute : null;
+  if (ajoute || data.enchantmentName) {
+    enchantNameEl.textContent = '';
+    const morceau = (n, couleur) => {
+      const s = document.createElement('span');
+      s.textContent = trad(ENCHANT_FR, n, 'enchantements');
+      s.style.color = couleur;
+      enchantNameEl.appendChild(s);
+    };
+    if (ajoute) morceau(ajoute, couleurEnchant(ajoute));
+    if (ajoute && data.enchantmentName) {
+      const point = document.createElement('span');
+      point.className = 'point-ench';
+      point.textContent = ' \u00b7 ';
+      enchantNameEl.appendChild(point);
+    }
+    if (data.enchantmentName) morceau(data.enchantmentName, enchantColor);
+    enchantNameEl.style.color = data.enchantmentName ? enchantColor : couleurEnchant(ajoute);
     enchantNameEl.style.display = '';
   } else {
     enchantNameEl.style.display = 'none';
@@ -587,6 +660,16 @@ function showItem(data) {
     }
     itemImgWrap.style.display = '';
     itemImg.onerror = () => { itemImgWrap.style.display = 'none'; };
+
+    /* Un objet réduit (Tiny) : l'illustration n'est pas écrasée. */
+    retirerProlongee(itemImgWrap);
+    itemImg.style.objectFit = '';
+    itemImg.style.display = '';
+    const avant = CASES_PAR_TAILLE[data.tailleOrigine], apres = CASES_PAR_TAILLE[data.size];
+    if (!data.isSkill && avant && apres && avant > apres) {
+      if (apres >= 2) itemImg.style.objectFit = 'cover';
+      else { itemImg.style.display = 'none'; dessinerProlongee(itemImgWrap, source, ZOOM_PETIT_REDUIT); }
+    }
   } else {
     itemImgWrap.style.display = 'none';
   }
@@ -595,7 +678,13 @@ function showItem(data) {
 
   const E = window.BAZAAR_ETIQUETTES || {};
   if (data.isSkill) badgesRow.innerHTML += `<span class="badge badge-size"${styleEtiquette(E.talent)}>${lib('talent')}</span>`;
-  else if (data.size) badgesRow.innerHTML += `<span class="badge badge-size taille-${esc(data.size)}"${styleEtiquette((E.tailles || {})[data.size])}>${esc(trad(SIZE_FR, data.size, 'tailles'))}</span>`;
+  else if (data.size) {
+    /* Une taille changée en partie (Tiny) montre d'abord la taille d'origine,
+       barrée : « Grand Moyen ». */
+    const origine = data.tailleOrigine
+      ? `<s class="taille-origine">${esc(trad(SIZE_FR, data.tailleOrigine, 'tailles'))}</s> ` : '';
+    badgesRow.innerHTML += `<span class="badge badge-size taille-${esc(data.size)}${origine ? ' taille-changee' : ''}"${styleEtiquette((E.tailles || {})[data.size])}>${origine}${esc(trad(SIZE_FR, data.size, 'tailles'))}</span>`;
+  }
   if (data.tags?.length) {
     data.tags.filter(t => !HIDDEN_TAGS.has(t))
       .forEach(t => { badgesRow.innerHTML += `<span class="badge-tag ${esc(t)}"${styleEtiquette((E.types || {})[t])}>${esc(trad(TAG_FR, t, 'tags'))}</span>`; });
@@ -730,8 +819,20 @@ function rendreEffetEmplacement(effets) {
   };
   const gabarit = (cle, contenu) => esc(lib(cle)).split('{}').join(contenu);
 
+  /* L'article suit le genre du nom : « un Fourneau », mais « une Glacière ».
+     Les données publient, par langue, l'article des seuls emplacements qui
+     s'écartent de « uneNote », sous leur code (articles_emplacements). Sans
+     cette table, ou pour un code qu'elle ne cite pas, « uneNote » comme
+     avant. */
+  const p = publies();
+  const articles = (p && p.l && p.l.articles_emplacements) || null;
+  const articleDe = e => {
+    const a = articles && e.code ? articles[e.code] : null;
+    return (typeof a === 'string' && a.indexOf('{}') >= 0) ? a : lib('uneNote');
+  };
+
   connus.forEach(e => {
-    notes.push(gabarit('uneNote', motEffet(e)));
+    notes.push(esc(articleDe(e)).split('{}').join(motEffet(e)));
   });
 
   var morceaux = [];

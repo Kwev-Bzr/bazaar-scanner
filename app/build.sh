@@ -187,6 +187,36 @@ if [ -z "$MAKENSIS" ]; then
 fi
 echo "   makensis : $MAKENSIS"
 
+# ── La DLL du mod, reprise depuis sa compilation ──────────────────────────
+#
+# Elle vivait ici en copie, et personne ne la remettait à jour : l'installateur
+# a distribué pendant un mois une version d'août, amputée des effets
+# d'emplacement, des enchantements et de l'ordre des talents corrigé.
+#
+# On la reprend donc à la source à chaque construction, et on refuse de bâtir
+# si elle est plus ancienne que Plugin.cs.
+DLL_SOURCE="../Workplace/mod/bin/Debug/netstandard2.1/BazaarScannerBridge.dll"
+PLUGIN_SOURCE="../Workplace/mod/Plugin.cs"
+
+if [ -f "$DLL_SOURCE" ]; then
+  if [ -f "$PLUGIN_SOURCE" ] && [ "$PLUGIN_SOURCE" -nt "$DLL_SOURCE" ]; then
+    echo
+    echo "   Plugin.cs est plus récent que la DLL compilée."
+    echo "   Recompile le mod avant de construire :"
+    echo "     cd ../Workplace/mod && dotnet build"
+    exit 1
+  fi
+
+  if [ ! -f "BazaarScannerBridge.dll" ] || [ "$DLL_SOURCE" -nt "BazaarScannerBridge.dll" ]; then
+    cp "$DLL_SOURCE" BazaarScannerBridge.dll
+    echo "   DLL du mod reprise depuis $DLL_SOURCE"
+  else
+    echo "   DLL du mod déjà à jour"
+  fi
+else
+  echo "   (compilation du mod introuvable : la DLL locale est employée telle quelle)"
+fi
+
 MANQUE=""
 [ -f "BazaarScannerBridge.dll" ] || MANQUE="$MANQUE BazaarScannerBridge.dll"
 [ -d "bepinex_payload" ]         || MANQUE="$MANQUE bepinex_payload/"

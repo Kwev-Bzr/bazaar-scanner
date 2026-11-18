@@ -156,7 +156,7 @@ async function envoyer(message) {
        état reçu. En V2, ce cas restait muet : une bande d'en face figée,
        sans aucune explication. */
     marquer(false, 'message trop volumineux pour Twitch : diffusion suspendue');
-    noterRefus('taille');
+    noterRefus('taille', texte);
     return;
   }
 
@@ -184,7 +184,7 @@ async function envoyer(message) {
        occupée jusqu'au prochain ramassage de la mémoire. */
     if (res.status === 429) {
       try { await res.body?.cancel(); } catch (e) { /* rien */ }
-      noterRefus(429);
+      noterRefus(429, texte);
       return;
     }
 
@@ -201,7 +201,7 @@ async function envoyer(message) {
       if (res.status === 401) jetonDelegue = null;
 
       marquer(false, 'Twitch ' + res.status + ' - ' + String(motif).slice(0, 90));
-      noterRefus(res.status);
+      noterRefus(res.status, texte);
       return;
     }
 
@@ -211,10 +211,11 @@ async function envoyer(message) {
     statistiques.envois++;
     dernierMessage = { quand: Date.now(), octets: Buffer.byteLength(texte), max: MAX_BYTES,
                        parties: poidsParPartie(message, texte) };
+    noterEnvoi('envoi', texte);
   } catch (e) {
     log('error', 'échec de l\u2019envoi : ' + e.message);
     marquer(false, 'pas de connexion');
-    noterRefus('connexion');
+    noterRefus('connexion', texte);
   }
 }
 
@@ -284,12 +285,24 @@ function publishBoard(objets, talents, cadre, coin, enFace) {
   }
 
   if (cadre) message.c = cadre;
+  /* La caméra du streamer, [gauche, haut, largeur, hauteur] en % de la
+     vidéo : l'extension 3.0.1 place la réserve de l'autre côté. Une
+     extension plus ancienne ignore le champ. */
+  if (enFace && Array.isArray(enFace.camera) && enFace.camera.length === 4) message.cam = enFace.camera;
+
+  /* Le moment où le mod a écrit ce plateau, et le délai voulu par le
+     streamer : l'âge du message (« ag ») en est tiré au moment même de
+     l'envoi. Hors signature : ils changent à chaque relevé. */
+  if (enFace && typeof enFace.capture === 'number') {
+    message._capture = enFace.capture;
+    message._retenu = enFace.retenu || 0;
+  }
 
   const signature = JSON.stringify([message.b, message.k, message.c, message.p,
                                     message.f, message.r, message.fk, message.fc,
                                     message.t, message.d, message.h, message.ra,
                                     message.vi, message.pr, message.px, message.m,
-                                    message.j, message.hj]);
+                                    message.j, message.hj, message.cam]);
   const maintenant = Date.now();
 
   const change = signature !== derniereSignature;
@@ -298,7 +311,33 @@ function publishBoard(objets, talents, cadre, coin, enFace) {
 
   enAttente = message;
   derniereSignature = signature;
+  planifierEnvoi(maintenant);
+}
 
+/* Le signe de vie hors partie (application 3.1) : jeu fermé ou au menu,
+   l'application se taisait après un plateau vide, et l'extension retirait
+   ses boutons au bout de 30 s. Elle envoie désormais « a: 1 » toutes les
+   dix secondes : l'extension 3.0.1 garde alors ses boutons, mais seulement
+   si la catégorie du stream est The Bazaar. Le plateau et les talents vides
+   restent dans le message : une extension plus ancienne n'y voit qu'un
+   plateau vide. Rien ne part si un message est parti il y a moins de 10 s. */
+const VEILLE_MS = 10000;
+let derniereVeille = 0;
+function publishVeille() {
+  if (!cfg) return;
+  const maintenant = Date.now();
+  if (maintenant - dernierEnvoi < VEILLE_MS || maintenant - derniereVeille < VEILLE_MS) return;
+  /* Un plateau en attente d'envoi passe d'abord : le signe de vie ne doit
+     jamais le remplacer. */
+  if (enAttente || minuteur) return;
+  if (!derniereVeille) log('info', 'signe de vie hors partie envoyé (toutes les 10 s tant que rien d\u2019autre ne part)');
+  derniereVeille = maintenant;
+  enAttente = { v: 4, lang: cfg.lang, b: [], k: [], a: 1 };
+  derniereSignature = null;      // le prochain plateau réel part, même identique au dernier
+  planifierEnvoi(maintenant);
+}
+
+function planifierEnvoi(maintenant) {
   const attente = Math.max(0, MIN_INTERVAL_MS - (maintenant - dernierEnvoi));
   if (minuteur) return;
 
@@ -311,6 +350,18 @@ function publishBoard(objets, talents, cadre, coin, enFace) {
     dernierEnvoi = Date.now();
     const m = enAttente;
     enAttente = null;
+    /* L'âge du plateau (extension 3.0.1) : le temps passé depuis son
+       écriture par le mod, attente d'envoi comprise, délai voulu par le
+       streamer déduit. L'extension le retire de son attente, pour que la
+       fiche suive la vidéo et non la réception. Une extension plus ancienne
+       ignore le champ. Toujours présent quand l'âge est connu, même nul :
+       sa présence dit à l'extension d'appliquer sa marge. */
+    if (typeof m._capture === 'number') {
+      const age = Math.round(dernierEnvoi - m._capture - (m._retenu || 0));
+      m.ag = Math.max(0, Math.min(age, 60000));
+    }
+    delete m._capture;
+    delete m._retenu;
     envoiEnCours = true;
     Promise.resolve().then(() => envoyer(m))
       .catch(() => { /* envoyer signale déjà ses erreurs */ })
@@ -329,9 +380,28 @@ let dernierMessage = null;     // { quand, octets, max, parties } du dernier env
 /* Les envois depuis le lancement, et les refus : trop de messages (429),
    jeton expiré (401), message trop gros, ou pas de connexion. */
 const statistiques = { depuis: Date.now(), envois: 0, refus: 0, dernierRefus: null };
-function noterRefus(code) {
+function noterRefus(code, texte) {
   statistiques.refus++;
   statistiques.dernierRefus = { quand: Date.now(), code: code };
+  noterEnvoi('refus', texte, code);
+}
+
+/* Les derniers envois, réussis ou refusés, avec leur texte exact : la
+   console de l'onglet Diagnostic. En mémoire seulement, jamais sur le
+   disque ; 50 envois de 5 Ko au plus. Chaque envoi a un numéro, pour que la
+   fenêtre ne demande que les nouveaux. */
+const ENVOIS_GARDES = 50;
+const envoisRecents = [];
+let numeroEnvoi = 0;
+function noterEnvoi(type, texte, code) {
+  texte = String(texte || '');
+  envoisRecents.push({ n: ++numeroEnvoi, quand: Date.now(), type: type,
+                       octets: Buffer.byteLength(texte), texte: texte.slice(0, 20000),
+                       code: code === undefined ? null : code });
+  if (envoisRecents.length > ENVOIS_GARDES) envoisRecents.shift();
+}
+function envoisDepuis(n) {
+  return { dernier: numeroEnvoi, envois: envoisRecents.filter(e => e.n > n) };
 }
 
 /* Le poids de chaque partie du message, en octets : ce qui pèse le plus se
@@ -347,4 +417,4 @@ function etat() {
   return { connecte, erreur: derniereErreur, dernierMessage, statistiques };
 }
 
-module.exports = { configure, publishBoard, setLang, etat };
+module.exports = { configure, publishBoard, publishVeille, setLang, etat, envoisDepuis };

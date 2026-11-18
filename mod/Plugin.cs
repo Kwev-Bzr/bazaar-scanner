@@ -29,7 +29,7 @@ namespace BazaarScannerBridge
            changement du mod, avec MOD_ATTENDU dans app.js. */
         /* Alignée sur la version de l'application depuis la V3 : un seul numéro
            pour le streamer. Elles avancent ensemble. */
-        public const string VERSION_MOD = "3.0.0";
+        public const string VERSION_MOD = "3.1.0";
 
         internal static ManualLogSource Log;
 
@@ -64,9 +64,9 @@ namespace BazaarScannerBridge
                         System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
                     var locale = prop?.GetValue(null);
                     if (locale == null) continue;
-                    var idProp = locale.GetType().GetProperty("Identifier");
+                    var idProp = locale.GetType().Prop("Identifier");
                     var id = idProp?.GetValue(locale);
-                    var codeProp = id?.GetType().GetProperty("Code");
+                    var codeProp = id?.GetType().Prop("Code");
                     var code = codeProp?.GetValue(id) as string;
                     if (!string.IsNullOrEmpty(code)) return code.ToLower().Substring(0, 2);
                 }
@@ -144,9 +144,29 @@ namespace BazaarScannerBridge
 
         private void Update()
         {
+            /* Les valeurs des descriptions en attente de recalcul : quelques-unes
+               par image, hors du relevé. */
+            /* Peu avant le relevé, les cartes du plateau (et d'en face) sont
+               remises à calculer : leurs valeurs ont ainsi moins de
+               AVANCE_JETONS au moment d'écrire, au lieu d'un relevé entier. */
+            if (!_preCalculLance && _timer >= IntervalSeconds - AVANCE_JETONS)
+            {
+                _preCalculLance = true;
+                try { PrecalculerJetonsVifs(); }
+                catch (Exception ex) { LogLimite("jetons-avance", "[BazaarScanner] jetons (avance) : " + ex.Message); }
+            }
+
+            if (_jetonsPrioritaires.Count > 0 || _jetonsARefaire.Count > 0)
+            {
+                try { RafraichirJetons(); }
+                catch (Exception ex) { LogLimite("jetons-images", "[BazaarScanner] jetons : " + ex.Message); }
+            }
+
             _timer += UnityEngine.Time.unscaledDeltaTime;
             if (_timer < IntervalSeconds) return;
             _timer = 0f;
+            _preCalculLance = false;
+            _cartesVives.Clear();      // le relevé qui suit dit quelles cartes sont en jeu
 
             var chrono = System.Diagnostics.Stopwatch.StartNew();
             _cycles++;
@@ -202,66 +222,55 @@ namespace BazaarScannerBridge
             var result = new List<CardInfo>();
             var vues = new HashSet<string>();
 
-            object dict;
-            try
-            {
-                dict = typeof(Data).GetProperty("CardControllerToBoardTarget",
-                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-                    ?.GetValue(null);
-            }
-            catch { return result; }
-
-            var suite = dict as System.Collections.IEnumerable;
-            if (suite == null) return result;
+            var suite = EntreesAffichees();
+            if (suite.Count == 0) return result;
 
             try
             {
                 foreach (var e in suite)
                 {
-                    var t = e.GetType();
-                    var emplacement = t.GetProperty("Value")?.GetValue(e)?.ToString();
-                    if (emplacement == null) continue;
+                    var emplacement = e.Key;
 
                     List<CardInfo> cible = null;
                     string p = null;
-                    if (emplacement.StartsWith(prefixe)) { cible = result; p = prefixe; }
+                    if (emplacement.StartsWith(prefixe, StringComparison.Ordinal)) { cible = result; p = prefixe; }
                     else if (prefixe2 != null && seconde != null
-                             && emplacement.StartsWith(prefixe2)) { cible = seconde; p = prefixe2; }
+                             && emplacement.StartsWith(prefixe2, StringComparison.Ordinal)) { cible = seconde; p = prefixe2; }
                     if (cible == null) continue;
 
                     if (!int.TryParse(emplacement.Substring(p.Length),
                                       out var socket)) continue;
 
-                    var controleur = t.GetProperty("Key")?.GetValue(e);
+                    var controleur = e.Value;
                     if (controleur == null) continue;
 
                     object carte = null;
                     try
                     {
-                        carte = controleur.GetType().GetProperty("CardData")?.GetValue(controleur)
-                             ?? controleur.GetType().GetProperty("Card")?.GetValue(controleur);
+                        carte = controleur.GetType().Prop("CardData")?.GetValue(controleur)
+                             ?? controleur.GetType().Prop("Card")?.GetValue(controleur);
                     }
                     catch { }
                     if (carte == null) continue;
 
                     try
                     {
-                        var go = controleur.GetType().GetProperty("gameObject")?.GetValue(controleur);
-                        var actif = go?.GetType().GetProperty("activeInHierarchy")?.GetValue(go);
+                        var go = controleur.GetType().Prop("gameObject")?.GetValue(controleur);
+                        var actif = go?.GetType().Prop("activeInHierarchy")?.GetValue(go);
                         if (actif is bool b && !b) continue;
                     }
                     catch { }
 
                     string type = null;
-                    try { type = carte.GetType().GetProperty("Type")?.GetValue(carte)?.ToString(); }
+                    try { type = carte.GetType().Prop("Type")?.GetValue(carte)?.ToString(); }
                     catch { }
                     if (type == "SocketEffect") continue;
 
                     string instance = null;
                     try
                     {
-                        var iid = carte.GetType().GetProperty("InstanceId")?.GetValue(carte);
-                        instance = iid?.GetType().GetProperty("Value")?.GetValue(iid)?.ToString()
+                        var iid = carte.GetType().Prop("InstanceId")?.GetValue(carte);
+                        instance = iid?.GetType().Prop("Value")?.GetValue(iid)?.ToString()
                                 ?? iid?.ToString();
                     }
                     catch { }
@@ -273,7 +282,8 @@ namespace BazaarScannerBridge
                     /* L'avancement des quêtes, comme pour le plateau : en PVP,
                        celui de l'adversaire, si le jeu le transmet. */
                     if (info.Quests == null) info.Quests = LireQuetes(carte, ValeurDe(carte, "Template"));
-                    if (info.Jetons == null) info.Jetons = LireJetons(carte);
+                    if (info.Jetons == null)
+                        info.Jetons = LireJetons(carte, ReferenceEquals(cible, result) ? AGE_JETONS_VIF : AGE_JETONS_LENT);
                     if (info.Multicast == null) info.Multicast = LireAttributEntier(carte, "Multicast");
                     if (info.Delai == null) info.Delai = LireAttributEntier(carte, "CooldownMax");
                     if (info.Munitions == null) info.Munitions = LireAttributEntier(carte, "AmmoMax");
@@ -295,7 +305,7 @@ namespace BazaarScannerBridge
             if (face == null || face.Count == 0) return result;
 
             object adversaire;
-            try { adversaire = run.GetType().GetProperty("Opponent")?.GetValue(run); }
+            try { adversaire = run.GetType().Prop("Opponent")?.GetValue(run); }
             catch { return result; }
             if (adversaire == null) return result;
 
@@ -400,7 +410,7 @@ namespace BazaarScannerBridge
             try
             {
                 var conteneur = joueur?.GetType()
-                    .GetProperty("Socket")?.GetValue(joueur);
+                    .Prop("Socket")?.GetValue(joueur);
                 if (conteneur == null) return effets;
 
                 var m = conteneur.GetType().GetMethod("GetItems",
@@ -414,14 +424,14 @@ namespace BazaarScannerBridge
                     if (effet == null) continue;
 
                     var id = effet.GetType()
-                        .GetProperty("TemplateId")?.GetValue(effet)?.ToString();
+                        .Prop("TemplateId")?.GetValue(effet)?.ToString();
 
                     string code = null;
                     try
                     {
-                        var modele = effet.GetType().GetProperty("Template")?.GetValue(effet);
+                        var modele = effet.GetType().Prop("Template")?.GetValue(effet);
                         var interne = modele?.GetType()
-                            .GetProperty("InternalName")?.GetValue(modele)?.ToString();
+                            .Prop("InternalName")?.GetValue(modele)?.ToString();
                         if (interne != null)
                         {
                             var ouvre = interne.IndexOf('[');
@@ -436,7 +446,7 @@ namespace BazaarScannerBridge
                     catch { }
 
                     var emplacement = effet.GetType()
-                        .GetProperty("LeftSocketId")?.GetValue(effet)?.ToString();
+                        .Prop("LeftSocketId")?.GetValue(effet)?.ToString();
                     if (id == null || emplacement == null) continue;
 
                     var chiffres = emplacement.Substring(emplacement.LastIndexOf('_') + 1);
@@ -515,27 +525,28 @@ namespace BazaarScannerBridge
             try
             {
                 var t = carte.GetType();
-                var modele = t.GetProperty("Template")?.GetValue(carte);
-                var id = modele?.GetType().GetProperty("Id")?.GetValue(modele)?.ToString();
+                var modele = t.Prop("Template")?.GetValue(carte);
+                var id = modele?.GetType().Prop("Id")?.GetValue(modele)?.ToString();
 
                 if (modele != null && id != null && VidageDemande())
                     TryExtractCardData(modele, id);
 
-                var loc = modele?.GetType().GetProperty("Localization")?.GetValue(modele);
-                var titre = loc?.GetType().GetProperty("Title")?.GetValue(loc);
+                var loc = modele?.GetType().Prop("Localization")?.GetValue(modele);
+                var titre = loc?.GetType().Prop("Title")?.GetValue(loc);
 
                 return new CardInfo
                 {
                     Name         = LocalizeText(titre),
-                    InternalName = modele?.GetType().GetProperty("InternalName")
+                    InternalName = modele?.GetType().Prop("InternalName")
                                          ?.GetValue(modele)?.ToString(),
                     TemplateId   = id,
-                    Size         = t.GetProperty("Size")?.GetValue(carte)?.ToString(),
-                    Tier         = t.GetProperty("Tier")?.GetValue(carte)?.ToString(),
+                    Size         = t.Prop("Size")?.GetValue(carte)?.ToString(),
+                    Tier         = t.Prop("Tier")?.GetValue(carte)?.ToString(),
                     Socket       = socket,
-                    Type         = t.GetProperty("Type")?.GetValue(carte)?.ToString(),
+                    Type         = t.Prop("Type")?.GetValue(carte)?.ToString(),
                     Enchantment  = NomEnchantement(carte),
-                    ArtKey       = modele?.GetType().GetProperty("ArtKey")
+                    Tiny         = LireAttributEntier(carte, "Tiny") > 0 ? true : (bool?)null,
+                    ArtKey       = modele?.GetType().Prop("ArtKey")
                                          ?.GetValue(modele)?.ToString(),
                 };
             }
@@ -783,6 +794,79 @@ namespace BazaarScannerBridge
                 Decrire(m.Value, retrait + "    ", profondeur + 1, false, lignes, vus);
             }
         }
+
+#if SONDES
+        /* ── Sonde : où le jeu range-t-il l'enchantement Tiny ? ────────────
+           Tiny réduit la taille d'un objet d'un cran et s'ajoute à son autre
+           enchantement. Le mod voit la taille réduite (Size), mais le champ
+           Enchantment garde l'autre enchantement : Tiny est rangé ailleurs.
+
+           Pour chaque objet du plateau et de la réserve dont la taille diffère
+           de celle de son modèle, cette sonde écrit tous ses attributs et tous
+           ses membres, sur deux niveaux ; puis la même chose pour un objet
+           ordinaire, à comparer. Elle ne tourne que si le fichier témoin
+           « sonder-tiny » est posé à côté de la DLL, et n'écrit qu'une fois,
+           dès qu'un objet réduit est trouvé. */
+        private static bool _sondeTinyFaite;
+
+        private void SonderTiny(object joueur)
+        {
+            if (_sondeTinyFaite || joueur == null) return;
+
+            var dossier = Path.GetDirectoryName(_outputPath);
+            if (!File.Exists(Path.Combine(dossier, "sonder-tiny"))) return;
+
+            var reduits = new List<(ItemCard carte, string ou)>();
+            ItemCard ordinaire = null;
+            string ouOrdinaire = null;
+
+            foreach (var nomConteneur in new[] { "Hand", "Stash" })
+            {
+                object conteneur = null;
+                try { conteneur = joueur.GetType().GetProperty(nomConteneur)?.GetValue(joueur); } catch { }
+                var container = (conteneur as CardContainer)?.Container;
+                if (container == null) continue;
+
+                foreach (var (socketable, socketId) in container.GetCardsAndSockets())
+                {
+                    if (socketable is not ItemCard carte) continue;
+                    string tailleModele = null;
+                    foreach (var m in MembresDe(carte.Template))
+                        if (m.Key == "Size") { tailleModele = m.Value?.ToString(); break; }
+                    var taille = carte.Size.ToString();
+                    var ou = nomConteneur + ", emplacement " + (int)socketId
+                             + ", taille " + taille + ", modèle " + (tailleModele ?? "?");
+                    if (tailleModele != null && tailleModele != taille) reduits.Add((carte, ou));
+                    else if (ordinaire == null && taille != "Small") { ordinaire = carte; ouOrdinaire = ou; }
+                }
+            }
+
+            if (reduits.Count == 0) return;      // on attend qu'un objet soit réduit
+            _sondeTinyFaite = true;
+
+            var lignes = new List<string>();
+            void Ecrire(ItemCard carte, string titre)
+            {
+                lignes.Add("=== " + titre + " : " + (carte.Template?.InternalName ?? "?"));
+                lignes.Add("  Attributs :");
+                try { foreach (var a in carte.Attributes) lignes.Add("    [" + a.Key + "] = " + a.Value); }
+                catch { lignes.Add("    (illisibles)"); }
+                lignes.Add("  Membres :");
+                Decrire(carte, "    ", 0, false, lignes, new List<object>());
+                lignes.Add("");
+            }
+            foreach (var (carte, ou) in reduits) Ecrire(carte, "RÉDUIT (" + ou + ")");
+            if (ordinaire != null) Ecrire(ordinaire, "ORDINAIRE, pour comparer (" + ouOrdinaire + ")");
+
+            try
+            {
+                File.WriteAllText(Path.Combine(dossier, "sonde-tiny.txt"),
+                                  string.Join(Environment.NewLine, lignes));
+                Log.LogInfo("[BazaarScanner] sonde-tiny.txt écrit.");
+            }
+            catch { }
+        }
+#endif
 
 #if SONDES
         /* ── Sonde : où le jeu résout-il les valeurs des infobulles ? ───────
@@ -1146,6 +1230,181 @@ namespace BazaarScannerBridge
         }
 #endif
 
+#if SONDES
+        /* ── Sonde du tournoi (26 octobre) ─────────────────────────────────
+           Où le jeu range-t-il le nombre de joueurs restants (« Players
+           left »), le classement final et la couronne du vainqueur ? Et
+           comment reconnaître le mode spectateur, après une élimination ?
+
+           Elle sert aussi aux combats contre les monstres (27 octobre) : où
+           le jeu dit-il qu'un combat JcE est gagné ou perdu, et contre qui ?
+           D'où l'adversaire (Run.Opponent) et les mots du combat.
+
+           Témoin « sonder-tournoi » ou « sonder-combats », à placer à côté de
+           la DLL. Toutes les secondes, un instantané : la scène, les champs simples de Run
+           et du joueur (attributs compris), les membres statiques de Data
+           dont le nom évoque un tournoi, et les textes affichés qui parlent
+           de joueurs, de rang, de place, de victoire ou de défaite. Seuls les
+           CHANGEMENTS sont écrits, horodatés, dans « sonde-partie.txt » ; un nouvel objet Run est en
+           plus décrit en entier une fois. Simple lecture : rien n'est
+           modifié dans le jeu. Appelée même hors partie (Run absent), pour
+           voir l'écran de fin et le retour au menu. */
+        private static float _sondeTournoiProchaine;
+        private static Dictionary<string, string> _sondeTournoiAvant = new Dictionary<string, string>();
+        private static object _sondeTournoiRun;
+        private static Type _typeTexteTmp;
+        private static bool _typeTexteCherche;
+
+        private static readonly System.Text.RegularExpressions.Regex MotifTournoi = new System.Text.RegularExpressions.Regex(
+            "spectat|observ|watch|left|remain|alive|rank|place|position|tournament|lobby|elimin|winner|victor|standing|leader|crown|players|opponent|mode|phase|status|finish|result|combat|fight|battle|outcome|reward|win|loss|defeat|encounter|monster",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        private static readonly System.Text.RegularExpressions.Regex MotifTexteTournoi = new System.Text.RegularExpressions.Regex(
+            "left|restant|joueur|player|rank|rang|place|winner|vainqueur|gagnant|elimin|spectat|victoire|défaite|victory|defeat|vaincu|defeated|\\bwin|\\blos[et]|perdu|#\\d|\\d+(st|nd|rd|th|e|er|ème)\\b|\\d+\\s*/\\s*\\d+",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        private void SonderTournoi()
+        {
+            if (Time.unscaledTime < _sondeTournoiProchaine) return;
+            _sondeTournoiProchaine = Time.unscaledTime + 1f;
+            var dossier = Path.GetDirectoryName(_outputPath);
+            if (!File.Exists(Path.Combine(dossier, "sonder-tournoi"))
+                && !File.Exists(Path.Combine(dossier, "sonder-combats"))) return;
+
+            var maintenant = new Dictionary<string, string>();
+            var complet = new List<string>();
+            try
+            {
+                maintenant["scene"] = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+                var run = Data.Run;
+                maintenant["Run"] = run == null ? "null"
+                    : run.GetType().Name + " #" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(run);
+                if (run != null)
+                {
+                    foreach (var m in MembresDe(run))
+                        if (Simple(m.Value)) maintenant["Run." + m.Key] = m.Value?.ToString() ?? "null";
+                    var joueur = ValeurDe(run, "Player");
+                    maintenant["Run.Player"] = joueur == null ? "null"
+                        : joueur.GetType().Name + " #" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(joueur);
+                    foreach (var m in MembresDe(joueur))
+                        if (Simple(m.Value)) maintenant["Player." + m.Key] = m.Value?.ToString() ?? "null";
+                    if (ValeurDe(joueur, "Attributes") is System.Collections.IDictionary attributs)
+                        foreach (System.Collections.DictionaryEntry e in attributs)
+                            maintenant["Player.Attributes." + e.Key] = Court(e.Value);
+                    /* Les talents du joueur regardé (1er novembre) : en spectateur,
+                       ceux de chaque joueur observé s'ajoutent à la liste sans que
+                       les précédents partent. Le nombre, l'objet liste lui-même et
+                       les derniers ajoutés diront comment le jeu s'y prend, et
+                       quand l'on passe d'un joueur à l'autre. */
+                    var talentsSonde = ValeurDe(joueur, "Skills");
+                    if (talentsSonde is System.Collections.IEnumerable listeTalents)
+                    {
+                        var talentsVus = listeTalents.Cast<object>().ToList();
+                        maintenant["Player.Skills"] = talentsVus.Count + " (liste #"
+                            + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(talentsSonde) + ")";
+                        maintenant["Player.Skills.derniers"] = string.Join(" | ", talentsVus.Skip(Math.Max(0, talentsVus.Count - 4))
+                            .Select(t => (t as SkillCard)?.Template?.InternalName ?? t?.GetType().Name ?? "null"));
+                        maintenant["Player.Skills.premiers"] = string.Join(" | ", talentsVus.Take(3)
+                            .Select(t => (t as SkillCard)?.Template?.InternalName ?? t?.GetType().Name ?? "null"));
+                    }
+                    /* L'adversaire du moment : monstre ou joueur. */
+                    var adversaire = ValeurDe(run, "Opponent");
+                    maintenant["Run.Opponent"] = adversaire == null ? "null"
+                        : adversaire.GetType().Name + " #" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(adversaire);
+                    foreach (var m in MembresDe(adversaire))
+                        if (Simple(m.Value)) maintenant["Opponent." + m.Key] = m.Value?.ToString() ?? "null";
+                    if (ValeurDe(adversaire, "Attributes") is System.Collections.IDictionary attributsAdverses)
+                        foreach (System.Collections.DictionaryEntry e in attributsAdverses)
+                            maintenant["Opponent.Attributes." + e.Key] = Court(e.Value);
+                    /* Les objets de Run dont le nom évoque le tournoi ou le combat : leurs champs simples. */
+                    foreach (var m in MembresDe(run))
+                        if (m.Value != null && !Simple(m.Value) && MotifTournoi.IsMatch(m.Key))
+                            foreach (var s in MembresDe(m.Value))
+                                if (Simple(s.Value)) maintenant["Run." + m.Key + "." + s.Key] = s.Value?.ToString() ?? "null";
+
+                    if (!ReferenceEquals(run, _sondeTournoiRun))
+                    {
+                        _sondeTournoiRun = run;
+                        complet.Add("=== Nouvel objet Run : description complète");
+                        DecrireProfond(run, "  ", 0, 2, complet, new List<object>(), 1500);
+                    }
+                }
+
+                var tous = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+                foreach (var pr in typeof(Data).GetProperties(tous))
+                {
+                    if (pr.GetIndexParameters().Length > 0 || !MotifTournoi.IsMatch(pr.Name)) continue;
+                    object v = null;
+                    try { v = pr.GetValue(null); } catch { continue; }
+                    AjouterTournoi(maintenant, "Data." + pr.Name, v);
+                }
+                foreach (var ch in typeof(Data).GetFields(tous))
+                {
+                    if (ch.Name.Contains("<") || !MotifTournoi.IsMatch(ch.Name)) continue;
+                    object v = null;
+                    try { v = ch.GetValue(null); } catch { continue; }
+                    AjouterTournoi(maintenant, "Data." + ch.Name, v);
+                }
+
+                /* Les textes à l'écran (TextMeshPro), cherché par son nom : le
+                   mod ne référence pas l'assemblage. */
+                if (!_typeTexteCherche)
+                {
+                    _typeTexteCherche = true;
+                    foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        try { _typeTexteTmp = a.GetType("TMPro.TMP_Text"); } catch { }
+                        if (_typeTexteTmp != null) break;
+                    }
+                }
+                if (_typeTexteTmp != null)
+                {
+                    var textes = new List<string>();
+                    foreach (var o in UnityEngine.Object.FindObjectsOfType(_typeTexteTmp))
+                    {
+                        var composant = o as Component;
+                        if (composant == null || !composant.gameObject.activeInHierarchy) continue;
+                        var t = ValeurDe(o, "text") as string;
+                        if (string.IsNullOrEmpty(t) || t.Length > 80 || !MotifTexteTournoi.IsMatch(t)) continue;
+                        textes.Add(composant.gameObject.name + " : " + t.Replace("\n", " ").Replace("\r", ""));
+                    }
+                    var n = 0;
+                    foreach (var t in textes.Distinct().OrderBy(x => x).Take(40))
+                        maintenant["Texte." + (n++)] = t;
+                }
+                else maintenant["Texte"] = "(TMPro.TMP_Text introuvable)";
+            }
+            catch (Exception e) { maintenant["erreur"] = Erreur(e); }
+
+            var changements = new List<string>();
+            foreach (var kv in maintenant)
+            {
+                string avant;
+                var connu = _sondeTournoiAvant.TryGetValue(kv.Key, out avant);
+                if (!connu || avant != kv.Value)
+                    changements.Add("  " + kv.Key + " = " + kv.Value + (connu ? "      (avant : " + avant + ")" : ""));
+            }
+            foreach (var k in _sondeTournoiAvant.Keys)
+                if (!maintenant.ContainsKey(k)) changements.Add("  " + k + " : disparu");
+            _sondeTournoiAvant = maintenant;
+            if (changements.Count == 0 && complet.Count == 0) return;
+
+            var lignes = new List<string> { "----- " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " -----" };
+            lignes.AddRange(changements);
+            lignes.AddRange(complet);
+            try { File.AppendAllText(Path.Combine(dossier, "sonde-partie.txt"), string.Join(Environment.NewLine, lignes) + Environment.NewLine); }
+            catch { }
+        }
+
+        /* Une valeur de Data : simple, telle quelle ; un objet, ses champs simples. */
+        private static void AjouterTournoi(Dictionary<string, string> d, string nom, object v)
+        {
+            if (Simple(v)) { d[nom] = v?.ToString() ?? "null"; return; }
+            d[nom] = Court(v);
+            foreach (var s in MembresDe(v))
+                if (Simple(s.Value)) d[nom + "." + s.Key] = s.Value?.ToString() ?? "null";
+        }
+#endif
+
         /* Ce que la sonde ne décrit jamais : la mécanique de .NET elle-même
            (types, modules, assemblages), qui noyait tout le reste. */
         private static bool Mecanique(string nom, object v)
@@ -1340,6 +1599,9 @@ namespace BazaarScannerBridge
         private void WriteBoardState()
         {
             var run = Data.Run;
+#if SONDES
+            SonderTournoi();
+#endif
             if (run?.Player == null)
             {
                 File.WriteAllText(_outputPath, "{\"ready\":false}");
@@ -1354,10 +1616,11 @@ namespace BazaarScannerBridge
             SonderJetons(run.Player);
             SonderEtapes();
             SonderMode();
+            SonderTiny(run.Player);
 #endif
 
             _affichesEnCours = CartesAffichees("PlayerSocket_");
-            var board = ReadContainerItems(run.Player.Hand);
+            var board = ReadContainerItems(run.Player.Hand, AGE_JETONS_VIF);
             _affichesEnCours = null;
 
             var effets = LireEffetsEmplacement();
@@ -1387,9 +1650,22 @@ namespace BazaarScannerBridge
             var enCombat = false;
             try
             {
-                var adv = run.GetType().GetProperty("Opponent")?.GetValue(run);
-                var main = adv?.GetType().GetProperty("Hand")?.GetValue(adv);
-                enCombat = ReadContainerItems(main).Count > 0;
+                var adv = run.GetType().Prop("Opponent")?.GetValue(run);
+                var main = adv?.GetType().Prop("Hand")?.GetValue(adv);
+
+                /* Il suffit de savoir si l'adversaire a des objets : les relire
+                   en entier (valeurs des descriptions comprises) doublait le
+                   travail fait sur la bande d'en face. L'export du catalogue,
+                   lui, les extrait toujours. */
+                var conteneurAdverse = (main as CardContainer)?.Container;
+                if (conteneurAdverse != null)
+                    foreach (var (objetAdverse, _) in conteneurAdverse.GetCardsAndSockets())
+                    {
+                        if (!(objetAdverse is ItemCard carteAdverse)) continue;
+                        enCombat = true;
+                        if (!VidageDemande()) break;
+                        TryExtractCardData(carteAdverse.Template, carteAdverse.Template?.Id.ToString());
+                    }
             }
             catch { }
 
@@ -1594,7 +1870,7 @@ namespace BazaarScannerBridge
             try
             {
                 var t = localizableText.GetType();
-                return t.GetProperty("Text")?.GetValue(localizableText)?.ToString();
+                return t.Prop("Text")?.GetValue(localizableText)?.ToString();
             }
             catch
             {
@@ -1658,6 +1934,8 @@ namespace BazaarScannerBridge
                     JsonConvert.SerializeObject(_extractedCardsEn, Formatting.None));
         }
 
+        private static int _essaisVidage;
+
         private static void ViderCatalogue()
         {
             if (_vidageFait) return;
@@ -1672,7 +1950,7 @@ namespace BazaarScannerBridge
                 if (statique is System.Threading.Tasks.Task tache)
                 {
                     if (!tache.IsCompleted) return;
-                    var resultat = tache.GetType().GetProperty("Result");
+                    var resultat = tache.GetType().Prop("Result");
                     statique = resultat?.GetValue(tache);
                 }
             }
@@ -1684,6 +1962,53 @@ namespace BazaarScannerBridge
             }
 
             if (statique == null) return;
+
+            /* La liste des cartes est copiee ICI, sur le fil du jeu : le jeu
+               la complete encore au menu, et la parcourir depuis un autre fil
+               s'arretait sur « Collection was modified » (28 octobre, apres
+               le patch du 27) sans rien ecrire. La copie prend quelques
+               millisecondes ; l'extraction, longue, part ensuite sur la copie.
+               En cas d'echec, on reessaie a la seconde suivante (5 fois). */
+            List<KeyValuePair<string, object>> copie;
+            try
+            {
+                var methode = statique.GetType().GetMethod("GetCardMap",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (methode == null)
+                {
+                    Log.LogWarning("[Catalogue] GetCardMap introuvable sur "
+                        + statique.GetType().Name + " - le jeu a change d'interface.");
+                    _vidageFait = true;
+                    return;
+                }
+
+                var carte = methode.Invoke(statique, null) as System.Collections.IDictionary;
+                if (carte == null)
+                {
+                    Log.LogWarning("[Catalogue] GetCardMap n'a rien renvoye d'exploitable.");
+                    _vidageFait = true;
+                    return;
+                }
+
+                copie = new List<KeyValuePair<string, object>>(carte.Count);
+                foreach (System.Collections.DictionaryEntry entree in carte)
+                {
+                    var id = entree.Key?.ToString();
+                    if (string.IsNullOrEmpty(id) || entree.Value == null) continue;
+                    copie.Add(new KeyValuePair<string, object>(id, entree.Value));
+                }
+            }
+            catch (Exception ex)
+            {
+                if (++_essaisVidage >= 5)
+                {
+                    Log.LogWarning("[Catalogue] Copie de la liste impossible apres 5 essais : " + ex.Message);
+                    _vidageFait = true;
+                }
+                else Log.LogInfo("[Catalogue] Liste en cours de modification, nouvel essai (" + ex.Message + ")");
+                return;
+            }
+
             _vidageFait = true;
 
             System.Threading.ThreadPool.QueueUserWorkItem(_ =>
@@ -1691,37 +2016,15 @@ namespace BazaarScannerBridge
                 _filDuVidage = true;
                 try
                 {
-                    var methode = statique.GetType().GetMethod("GetCardMap",
-                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                    if (methode == null)
-                    {
-                        Log.LogWarning("[Catalogue] GetCardMap introuvable sur "
-                            + statique.GetType().Name + " - le jeu a change d'interface.");
-                        return;
-                    }
-
-                    var carte = methode.Invoke(statique, null) as System.Collections.IDictionary;
-                    if (carte == null)
-                    {
-                        Log.LogWarning("[Catalogue] GetCardMap n'a rien renvoye d'exploitable.");
-                        return;
-                    }
-
-                    Log.LogInfo("[Catalogue] " + carte.Count + " modele(s) de carte trouve(s). Extraction...");
+                    Log.LogInfo("[Catalogue] " + copie.Count + " modele(s) de carte trouve(s). Extraction...");
 
                     var avant = _extractedCards.Count;
                     _vidageEnCours = true;
                     var echecs = 0;
 
-                    foreach (System.Collections.DictionaryEntry entree in carte)
+                    foreach (var entree in copie)
                     {
-                        try
-                        {
-                            var id = entree.Key?.ToString();
-                            if (string.IsNullOrEmpty(id) || entree.Value == null) continue;
-
-                            TryExtractCardData(entree.Value, id);
-                        }
+                        try { TryExtractCardData(entree.Value, entree.Key); }
                         catch { echecs++; }
                     }
 
@@ -1761,13 +2064,13 @@ namespace BazaarScannerBridge
             try
             {
                 var tpl = socketable?.GetType()
-                    .GetProperty("Template")?.GetValue(socketable);
+                    .Prop("Template")?.GetValue(socketable);
                 if (tpl == null) return null;
 
-                var loc = tpl.GetType().GetProperty("Localization")?.GetValue(tpl);
+                var loc = tpl.GetType().Prop("Localization")?.GetValue(tpl);
                 if (loc == null) return null;
 
-                var titre = loc.GetType().GetProperty("Title")?.GetValue(loc);
+                var titre = loc.GetType().Prop("Title")?.GetValue(loc);
                 return LocalizeText(titre);
             }
             catch { return null; }
@@ -1817,7 +2120,8 @@ namespace BazaarScannerBridge
             }
         }
 
-        private static List<CardInfo> ReadContainerItems(object inventory)
+        private static List<CardInfo> ReadContainerItems(object inventory,
+                                                         double ageJetons = AGE_JETONS_LENT)
         {
             var result = new List<CardInfo>();
             if (inventory == null) return result;
@@ -1832,6 +2136,10 @@ namespace BazaarScannerBridge
                 var realId = itemCard.Template?.Id.ToString();
                 TryExtractCardData(itemCard.Template, realId);
 
+                /* La carte à lire (l'affichée en combat), cherchée une fois et
+                   non six. */
+                var lue = CarteALire(itemCard, (int)socketId);
+
                 result.Add(new CardInfo
                 {
                     Name = LocalizeText(itemCard.Template?.Localization?.Title) ?? itemCard.Template?.InternalName,
@@ -1843,12 +2151,13 @@ namespace BazaarScannerBridge
                     Socket = (int)socketId,
                     ArtKey = itemCard.Template?.ArtKey,
                     Quests = LireQuetes(itemCard, itemCard.Template),
-                    Jetons = LireJetons(CarteALire(itemCard, (int)socketId)),
-                    Crit = LireCrit(CarteALire(itemCard, (int)socketId)),
-                    Multicast = LireAttributEntier(CarteALire(itemCard, (int)socketId), "Multicast"),
-                    Delai = LireAttributEntier(CarteALire(itemCard, (int)socketId), "CooldownMax"),
-                    Munitions = LireAttributEntier(CarteALire(itemCard, (int)socketId), "AmmoMax"),
-                    TagsAjoutes = LireTagsAjoutes(CarteALire(itemCard, (int)socketId)),
+                    Jetons = LireJetons(lue, ageJetons),
+                    Crit = LireCrit(lue),
+                    Multicast = LireAttributEntier(lue, "Multicast"),
+                    Delai = LireAttributEntier(lue, "CooldownMax"),
+                    Munitions = LireAttributEntier(lue, "AmmoMax"),
+                    TagsAjoutes = LireTagsAjoutes(lue),
+                    Tiny = LireAttributEntier(itemCard, "Tiny") > 0 ? true : (bool?)null,
                 });
             }
 
@@ -1994,13 +2303,13 @@ namespace BazaarScannerBridge
         private static object ValeurDe(object o, string nom)
         {
             if (o == null) return null;
-            var drapeaux = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
             try
             {
-                var p = o.GetType().GetProperty(nom, drapeaux);
-                if (p != null && p.GetIndexParameters().Length == 0) return p.GetValue(o);
-                var f = o.GetType().GetField(nom, drapeaux);
-                if (f != null) return f.GetValue(o);
+                /* La même recherche qu'avant (propriété sans paramètre, sinon
+                   champ, publics ou non), faite une fois par type et par nom. */
+                var m = Reflexion.Membre(o.GetType(), nom);
+                if (m is PropertyInfo p) return p.GetValue(o);
+                if (m is FieldInfo f) return f.GetValue(o);
             }
             catch { }
             return null;
@@ -2014,9 +2323,37 @@ namespace BazaarScannerBridge
            table « aura.1 » -> 6, « aura.1.mod » -> 3, du même nom que les
            jetons publiés, pour que l'extension remplace la valeur figée.
 
-           Préparer une infobulle coûte plus que lire le plateau : chaque
-           carte n'est recalculée qu'au plus toutes les 2,5 secondes, et le
-           temps passé est noté au journal une fois par minute. */
+           Une carte coûte environ 0,15 ms (journal du 24 octobre). Celles du
+           combat - votre plateau et celui d'en face, vingt cartes au plus - sont
+           recalculées à chaque relevé, les autres (talents, réserve) toutes les
+           2,5 secondes. Le recalcul d'une carte déjà connue ne se fait pas
+           pendant le relevé : il est réparti sur les images suivantes, quatre
+           cartes par image au plus, pour ne jamais alourdir une image ; le
+           relevé reprend entre-temps la valeur précédente. Une carte jamais vue
+           est calculée tout de suite. Le temps passé est noté au journal une
+           fois par minute. */
+        /* Une demi-seconde : recalculée juste après un relevé, la valeur a
+           presque une seconde au relevé suivant, qui en redemande donc une
+           nouvelle. À 0,9 s, elle passait parfois tout juste sous le seuil, et
+           n'était plus renouvelée qu'un relevé sur deux. */
+        private const double AGE_JETONS_VIF = 0.5;
+        private const double AGE_JETONS_LENT = 2.5;
+        private const int JETONS_PAR_IMAGE = 4;
+
+        /* Les valeurs du plateau étaient recalculées juste APRÈS un relevé :
+           le relevé suivant écrivait donc des valeurs vieilles d'une seconde,
+           et une stat qui monte arrivait chez le spectateur une seconde après
+           le déplacement d'un objet (Kwev, 28 octobre). On les recalcule
+           désormais juste AVANT : 0,25 s avant le relevé, les cartes vues au
+           relevé précédent passent en tête de file, toujours quatre par image
+           (vingt cartes : cinq images, moins d'un dixième de seconde). Même
+           coût qu'avant, seul le moment change. */
+        private const float AVANCE_JETONS = 0.25f;
+        private static bool _preCalculLance;
+        private static readonly Dictionary<string, object> _cartesVives = new Dictionary<string, object>();
+        private static readonly Queue<string> _jetonsPrioritaires = new Queue<string>();
+        private static readonly Queue<string> _jetonsARefaire = new Queue<string>();
+        private static readonly Dictionary<string, object> _cartesARefaire = new Dictionary<string, object>();
         private static MethodInfo _creerInfobulle;
         private static readonly HashSet<string> _typesRefuses = new HashSet<string>();
         private static readonly HashSet<string> _typesSansValeur = new HashSet<string>();
@@ -2027,27 +2364,79 @@ namespace BazaarScannerBridge
         private static int _cartesJetons;
         private static DateTime _dernierBilanJetons = DateTime.UtcNow;
 
-        private static Dictionary<string, float> LireJetons(object carte)
+        private static Dictionary<string, float> LireJetons(object carte, double ageMax = AGE_JETONS_LENT)
         {
             if (carte == null) return null;
 
             var instance = ValeurDe(carte, "InstanceId")?.ToString();
             if (instance != null)
                 instance += "#" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(carte);
-            if (!string.IsNullOrEmpty(instance)
-                && _jetonsEnCache.TryGetValue(instance, out var memo)
-                && (DateTime.UtcNow - memo.Key).TotalSeconds < 2.5)
-                return memo.Value;
+            if (!string.IsNullOrEmpty(instance) && ageMax <= AGE_JETONS_VIF)
+                _cartesVives[instance] = carte;
 
+            if (!string.IsNullOrEmpty(instance)
+                && _jetonsEnCache.TryGetValue(instance, out var memo))
+            {
+                if ((DateTime.UtcNow - memo.Key).TotalSeconds < ageMax) return memo.Value;
+
+                /* Trop ancienne : recalculée dans les images qui suivent. */
+                if (!_cartesARefaire.ContainsKey(instance)) _jetonsARefaire.Enqueue(instance);
+                _cartesARefaire[instance] = carte;
+                return memo.Value;
+            }
+
+            var res = CalculerJetonsChronometre(carte);
+
+            if (!string.IsNullOrEmpty(instance))
+                _jetonsEnCache[instance] = new KeyValuePair<DateTime, Dictionary<string, float>>(DateTime.UtcNow, res);
+
+            BilanJetons();
+            return res;
+        }
+
+        private static Dictionary<string, float> CalculerJetonsChronometre(object carte)
+        {
             _chronoJetons.Start();
             Dictionary<string, float> res = null;
             try { res = CalculerJetons(carte); }
             catch { res = null; }
             _chronoJetons.Stop();
             _cartesJetons++;
+            return res;
+        }
 
-            if (!string.IsNullOrEmpty(instance))
-                _jetonsEnCache[instance] = new KeyValuePair<DateTime, Dictionary<string, float>>(DateTime.UtcNow, res);
+        /* Les cartes du plateau et d'en face, vues au dernier relevé, en tête
+           de file : recalculées dans les images qui précèdent le relevé. */
+        private static void PrecalculerJetonsVifs()
+        {
+            /* Une carte déjà en file ordinaire passe devant : la file ordinaire
+               la retrouvera déjà faite et l'ignorera. */
+            foreach (var paire in _cartesVives)
+            {
+                _cartesARefaire[paire.Key] = paire.Value;
+                if (_prioritaires.Add(paire.Key)) _jetonsPrioritaires.Enqueue(paire.Key);
+            }
+        }
+        private static readonly HashSet<string> _prioritaires = new HashSet<string>();
+
+        /* Appelé à chaque image : quelques recalculs en attente, pas plus.
+           Les cartes du plateau d'abord. */
+        private static void RafraichirJetons()
+        {
+            for (var i = 0; i < JETONS_PAR_IMAGE && (_jetonsPrioritaires.Count > 0 || _jetonsARefaire.Count > 0); i++)
+            {
+                string cle;
+                if (_jetonsPrioritaires.Count > 0) { cle = _jetonsPrioritaires.Dequeue(); _prioritaires.Remove(cle); }
+                else cle = _jetonsARefaire.Dequeue();
+                if (!_cartesARefaire.TryGetValue(cle, out var carte)) continue;
+                _cartesARefaire.Remove(cle);
+                var res = CalculerJetonsChronometre(carte);
+                _jetonsEnCache[cle] = new KeyValuePair<DateTime, Dictionary<string, float>>(DateTime.UtcNow, res);
+            }
+        }
+
+        private static void BilanJetons()
+        {
 
             if ((DateTime.UtcNow - _dernierBilanJetons).TotalSeconds >= 60)
             {
@@ -2058,7 +2447,6 @@ namespace BazaarScannerBridge
                 _dernierBilanJetons = DateTime.UtcNow;
                 if (_jetonsEnCache.Count > 400) _jetonsEnCache.Clear();
             }
-            return res;
         }
 
         /* ── Les valeurs d'une étape de rencontre, calculées comme le jeu ──────
@@ -2356,9 +2744,28 @@ namespace BazaarScannerBridge
         private static string _derniereCombinaison;
         private static int _combinaisonsNotees;
 
-        private static Dictionary<int, object> CartesAffichees(string prefixe)
+        /* Les cartes affichées, relevées UNE fois par image.
+
+           Le dictionnaire du jeu était parcouru jusqu'à huit fois par relevé :
+           le plateau, la bande d'en face, et trois noms d'emplacements de
+           talents essayés pour vous puis pour l'adversaire. Chaque passage
+           interrogeait chaque entrée par réflexion et y appliquait une
+           expression régulière ; le dictionnaire grossissant avec les cartes à
+           l'écran, le relevé passait de 2 ms en début de partie à plus de 9 ms
+           en fin de partie (journal du 24 octobre). On le lit désormais une
+           seule fois : emplacement et contrôleur, dans l'ordre du jeu. */
+        private static List<KeyValuePair<string, object>> _entreesAffichees;
+        private static int _imageEntrees = -1;
+
+        private static List<KeyValuePair<string, object>> EntreesAffichees()
         {
-            var res = new Dictionary<int, object>();
+            var image = UnityEngine.Time.frameCount;
+            if (_entreesAffichees != null && _imageEntrees == image) return _entreesAffichees;
+
+            var res = new List<KeyValuePair<string, object>>();
+            _entreesAffichees = res;
+            _imageEntrees = image;
+
             object dict;
             try
             {
@@ -2368,25 +2775,47 @@ namespace BazaarScannerBridge
             catch { return res; }
             if (!(dict is System.Collections.IEnumerable suite)) return res;
 
-            var noms = new HashSet<string>();
             try
             {
                 foreach (var e in suite)
                 {
                     var t = e.GetType();
-                    var emplacement = t.GetProperty("Value")?.GetValue(e)?.ToString();
+                    var emplacement = t.Prop("Value")?.GetValue(e)?.ToString();
                     if (emplacement == null) continue;
-                    noms.Add(System.Text.RegularExpressions.Regex.Replace(emplacement, @"\d+$", ""));
-                    if (!emplacement.StartsWith(prefixe)) continue;
+                    res.Add(new KeyValuePair<string, object>(emplacement, t.Prop("Key")?.GetValue(e)));
+                }
+            }
+            catch { }
+            return res;
+        }
+
+        private static readonly char[] Chiffres = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+
+        private static Dictionary<int, object> CartesAffichees(string prefixe)
+        {
+            var res = new Dictionary<int, object>();
+            var suite = EntreesAffichees();
+            if (suite.Count == 0) return res;
+
+            /* Les noms d'emplacements ne servent qu'au journal, dix fois au
+               plus : inutile de les rassembler ensuite. */
+            var noms = _combinaisonsNotees < 10 ? new HashSet<string>() : null;
+            try
+            {
+                foreach (var e in suite)
+                {
+                    var emplacement = e.Key;
+                    noms?.Add(emplacement.TrimEnd(Chiffres));
+                    if (!emplacement.StartsWith(prefixe, StringComparison.Ordinal)) continue;
                     if (!int.TryParse(emplacement.Substring(prefixe.Length), out var socket)) continue;
 
-                    var controleur = t.GetProperty("Key")?.GetValue(e);
+                    var controleur = e.Value;
                     if (controleur == null) continue;
                     object carte = null;
                     try
                     {
-                        carte = controleur.GetType().GetProperty("CardData")?.GetValue(controleur)
-                             ?? controleur.GetType().GetProperty("Card")?.GetValue(controleur);
+                        carte = controleur.GetType().Prop("CardData")?.GetValue(controleur)
+                             ?? controleur.GetType().Prop("Card")?.GetValue(controleur);
                     }
                     catch { }
                     if (carte != null) res[socket] = carte;
@@ -2397,6 +2826,7 @@ namespace BazaarScannerBridge
             /* Les noms d'emplacements, notés chaque fois que leur combinaison
                change, dix fois au plus : c'est ce qui dira le nom des
                emplacements des talents, qui ne sont pas toujours à l'écran. */
+            if (noms == null) return res;
             var combinaison = string.Join(", ", noms.OrderBy(x => x));
             if (noms.Count > 0 && combinaison != _derniereCombinaison && _combinaisonsNotees < 10)
             {
@@ -2468,7 +2898,7 @@ namespace BazaarScannerBridge
             {
                 if (!(ValeurDe(carte, "Attributes") is System.Collections.IDictionary attributs)) return null;
                 foreach (System.Collections.DictionaryEntry e in attributs)
-                    if (e.Key?.ToString() == nom) return Convert.ToInt32(e.Value);
+                    if (Reflexion.NomCle(e.Key) == nom) return Convert.ToInt32(e.Value);
             }
             catch { }
             return null;
@@ -2617,7 +3047,7 @@ namespace BazaarScannerBridge
 
                 /* Ce que porte un talent : l'un de ces champs donne peut-être
                    sa position à l'écran. */
-                var skills = joueur.GetType().GetProperty("Skills")
+                var skills = joueur.GetType().Prop("Skills")
                     ?.GetValue(joueur) as System.Collections.IEnumerable;
 
                 if (skills != null)
@@ -2677,7 +3107,7 @@ namespace BazaarScannerBridge
                 break;
             }
             if (skills == null)
-                skills = player.GetType().GetProperty("Skills")?.GetValue(player) as System.Collections.IEnumerable;
+                skills = player.GetType().Prop("Skills")?.GetValue(player) as System.Collections.IEnumerable;
             if (skills == null) return result;
 
             /* Une borne, contre une accumulation absurde seulement : un joueur
@@ -2829,6 +3259,14 @@ namespace BazaarScannerBridge
         /* Les tags gagnés en partie, absents du modèle de la carte. */
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public List<string> TagsAjoutes;
+
+        /* L'enchantement Tiny (mises à jour de novembre 2026) : pour le jeu, un
+           ATTRIBUT de l'exemplaire (Tiny = 1), non un enchantement ; il réduit
+           la taille d'un cran, et Size la donne déjà réduite. Écrit seulement
+           quand il vaut 1. Lu par son nom : le mod compile et tourne aussi avec
+           une version du jeu où l'attribut n'existe pas. */
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? Tiny;
         public string Size;
         public string Tier;
         public string Enchantment;
@@ -2843,5 +3281,77 @@ namespace BazaarScannerBridge
         public float? H;
 
         public string Type;
+    }
+
+    /* Les recherches par réflexion, faites une seule fois par type et par nom.
+
+       Chercher une propriété par son nom coûte bien plus que la lire, et le
+       relevé le faisait des centaines de fois par seconde, pour les mêmes
+       types et les mêmes noms. Le résultat (y compris « absente ») est gardé ;
+       une recherche qui échoue sur une erreur n'est pas gardée et échouera de
+       la même façon la fois suivante, comme avant. */
+    internal static class Reflexion
+    {
+        private static readonly object _verrou = new object();
+        private static readonly Dictionary<Type, Dictionary<string, PropertyInfo>> _proprietes =
+            new Dictionary<Type, Dictionary<string, PropertyInfo>>();
+        private static readonly Dictionary<Type, Dictionary<string, MemberInfo>> _membres =
+            new Dictionary<Type, Dictionary<string, MemberInfo>>();
+        private static readonly Dictionary<object, string> _nomsCles = new Dictionary<object, string>();
+
+        /* Exactement Type.GetProperty(nom), mémorisé. */
+        internal static PropertyInfo Prop(this Type t, string nom)
+        {
+            if (t == null) return null;
+            lock (_verrou)
+            {
+                if (!_proprietes.TryGetValue(t, out var parNom))
+                {
+                    parNom = new Dictionary<string, PropertyInfo>();
+                    _proprietes[t] = parNom;
+                }
+                if (parNom.TryGetValue(nom, out var p)) return p;
+                p = t.GetProperty(nom);
+                parNom[nom] = p;
+                return p;
+            }
+        }
+
+        /* Pour ValeurDe : la propriété sans paramètre, sinon le champ, publics
+           ou non, comme avant. */
+        internal static MemberInfo Membre(Type t, string nom)
+        {
+            if (t == null) return null;
+            lock (_verrou)
+            {
+                if (!_membres.TryGetValue(t, out var parNom))
+                {
+                    parNom = new Dictionary<string, MemberInfo>();
+                    _membres[t] = parNom;
+                }
+                if (parNom.TryGetValue(nom, out var m)) return m;
+
+                var drapeaux = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+                var p = t.GetProperty(nom, drapeaux);
+                if (p != null && p.GetIndexParameters().Length == 0) m = p;
+                else m = t.GetField(nom, drapeaux);
+                parNom[nom] = m;
+                return m;
+            }
+        }
+
+        /* Le nom d'une clé d'attribut (une valeur d'énumération) : son
+           ToString, calculé une fois par valeur. */
+        internal static string NomCle(object cle)
+        {
+            if (cle == null) return null;
+            lock (_verrou)
+            {
+                if (_nomsCles.TryGetValue(cle, out var n)) return n;
+                n = cle.ToString();
+                if (_nomsCles.Count < 4096) _nomsCles[cle] = n;
+                return n;
+            }
+        }
     }
 }
